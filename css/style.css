@@ -609,15 +609,65 @@ body.menu-open .overlay { opacity: 1; pointer-events: auto; }
   padding: 1px 6px; font-size: 13px; color: var(--accent-4);
   font-family: "SF Mono", Menlo, Consolas, monospace;
 }
-.md-math {
-  color: var(--accent-5); font-family: "SF Mono", Menlo, Consolas, monospace;
-  background: rgba(255,184,92,.08); border-radius: 4px; padding: 1px 5px; font-size: 13.5px;
+/* --- 公式（LaTeX 子集渲染）--- */
+.md-math, .md-formula {
+  font-family: "Cambria Math", "Latin Modern Math", "STIX Two Math", "Times New Roman", Georgia, "Songti SC", serif;
+  font-style: italic; color: var(--text); line-height: 1.35;
 }
+.md-math { padding: 0 2px; font-size: 1.04em; }
+.md-math .m-op, .md-formula .m-op,
+.md-math .m-text, .md-formula .m-text,
+.md-math .m-raw, .md-formula .m-raw { font-style: normal; }
+.md-math .m-text, .md-formula .m-text { font-family: inherit; }
+.m-op { margin-right: .12em; }
+.m-raw { color: var(--accent-5); }
+.m-sp { display: inline-block; }
+
+/* 上下标 */
+.m-scr > sub, .m-scr > sup { font-size: .68em; font-style: inherit; }
+.m-scr > sub { vertical-align: -.3em; }
+.m-scr > sup { vertical-align: .58em; }
+
+/* 分数 */
+.m-frac { display: inline-block; vertical-align: -.56em; text-align: center; margin: 0 .14em; font-size: .97em; }
+.m-frac > .m-num { display: block; padding: 0 .3em .1em; border-bottom: 1.3px solid currentColor; }
+.m-frac > .m-den { display: block; padding: .1em .3em 0; }
+
+/* 根号 */
+.m-sqrt { display: inline-flex; align-items: flex-start; }
+.m-sqrt > .m-radic { font-style: normal; }
+.m-sqrt > .m-rad { border-top: 1.3px solid currentColor; padding: .17em .2em 0 .12em; margin-top: .04em; }
+
+/* 重音（上加符号） */
+.m-acc { position: relative; display: inline-block; }
+.m-acc::after { position: absolute; left: 0; right: 0; text-align: center; font-style: normal; line-height: 1; }
+.m-acc--bar::after { content: ''; top: -.05em; border-top: 1.4px solid currentColor; }
+.m-acc--hat::after { content: '^'; top: -.66em; font-size: .92em; }
+.m-acc--tilde::after { content: '~'; top: -.54em; font-size: 1.05em; }
+.m-acc--dot::after { content: '\00B7'; top: -.68em; }
+.m-acc--vec::after { content: '\2192'; top: -.66em; font-size: .85em; }
+
+/* 二项式系数 */
+.m-bin-coef { display: inline-flex; flex-direction: column; vertical-align: -.62em; text-align: center; margin: 0 .12em; }
+.m-bin-in { display: block; padding: 0 .3em; font-size: .92em; }
+
+/* 自动间距（模拟 LaTeX 的二元关系符/运算符间距） */
+.m-rel { margin: 0 .24em; }
+.m-bin { margin: 0 .18em; }
+
+/* 定界符（\left( \right) 等自动放大） */
+.m-delim--auto { font-size: 1.32em; vertical-align: -.16em; font-style: normal; }
+.m-delim--md { font-size: 1.45em; vertical-align: -.18em; font-style: normal; }
+.m-delim--lg { font-size: 1.8em; vertical-align: -.22em; font-style: normal; }
+
+/* 大运算符的上下限（独立公式里叠放） */
+.m-limits { display: inline-flex; flex-direction: column; align-items: center; vertical-align: -.42em; margin: 0 .16em; }
+.m-lim-sup, .m-lim-sub { font-size: .62em; line-height: 1.15; }
+.m-lim-base { font-size: 1.22em; line-height: 1; }
 .md-formula {
-  margin: 20px 0; padding: 16px 18px; text-align: center; white-space: pre-wrap;
+  margin: 20px 0; padding: 18px 20px; text-align: center;
   background: var(--code-bg); border: 1px solid var(--border); border-left: 3px solid var(--accent-5);
-  border-radius: 10px; color: var(--accent-5); font-size: 14px;
-  font-family: "SF Mono", Menlo, Consolas, monospace; overflow-x: auto;
+  border-radius: 10px; font-size: 17px; overflow-x: auto;
 }
 
 /* --- 代码块 --- */

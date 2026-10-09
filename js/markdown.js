@@ -49,11 +49,239 @@
     return id;
   }
 
+  // ============================================================
+  // LaTeX 子集渲染器
+  // 覆盖机器学习笔记里常见的公式语法，渲染成 HTML + CSS，不依赖 KaTeX
+  // 不认识的命令会原样显示（而不是静默丢失）
+  // ============================================================
+
+  // 希腊字母 / 运算符 / 关系符 -> Unicode
+  const SYM = {
+    alpha: 'α', beta: 'β', gamma: 'γ', delta: 'δ', varepsilon: 'ε', epsilon: 'ϵ',
+    zeta: 'ζ', eta: 'η', theta: 'θ', vartheta: 'ϑ', iota: 'ι', kappa: 'κ', lambda: 'λ',
+    mu: 'μ', nu: 'ν', xi: 'ξ', pi: 'π', rho: 'ρ', sigma: 'σ', tau: 'τ', upsilon: 'υ',
+    phi: 'φ', varphi: 'ϕ', chi: 'χ', psi: 'ψ', omega: 'ω',
+    Gamma: 'Γ', Delta: 'Δ', Theta: 'Θ', Lambda: 'Λ', Xi: 'Ξ', Pi: 'Π', Sigma: 'Σ',
+    Phi: 'Φ', Psi: 'Ψ', Omega: 'Ω',
+    varnothing: '∅', emptyset: '∅', infty: '∞', partial: '∂', nabla: '∇', ell: 'ℓ',
+    hbar: 'ℏ', Re: 'ℜ', Im: 'ℑ',
+    cdot: '·', cdots: '⋯', ldots: '…', dots: '…', vdots: '⋮', ddots: '⋱',
+    times: '×', div: '÷', pm: '±', mp: '∓', ast: '∗', star: '⋆', circ: '∘', bullet: '•',
+    le: '≤', leq: '≤', ge: '≥', geq: '≥', ne: '≠', neq: '≠', approx: '≈', equiv: '≡',
+    sim: '∼', simeq: '≃', propto: '∝', ll: '≪', gg: '≫',
+    to: '→', rightarrow: '→', leftarrow: '←', leftrightarrow: '↔',
+    Rightarrow: '⇒', Leftarrow: '⇐', Leftrightarrow: '⇔', mapsto: '↦', implies: '⟹',
+    in: '∈', notin: '∉', subset: '⊂', subseteq: '⊆', supset: '⊃', supseteq: '⊇',
+    cup: '∪', cap: '∩', setminus: '∖',
+    forall: '∀', exists: '∃', nexists: '∄', neg: '¬', lnot: '¬', land: '∧', lor: '∨',
+    sum: '∑', prod: '∏', coprod: '∐', int: '∫', oint: '∮',
+    mid: '∣', '|': '‖', vert: '|', Vert: '‖', lVert: '‖', rVert: '‖', lvert: '|', rvert: '|',
+    langle: '⟨', rangle: '⟩', lceil: '⌈', rceil: '⌉', lfloor: '⌊', rfloor: '⌋',
+    degree: '°', angle: '∠', perp: '⊥', parallel: '∥',
+    limits: '', nolimits: '', displaystyle: '', textstyle: '', scriptstyle: '',
+    mathstrut: '', phantom: ''
+    // 注意：quad/qquad/enspace/thinspace 交给 SPACE 处理，
+    //       left/right/middle/big/Big/bigg/Bigg 交给尺寸修饰分支处理，
+    //       都不要写进这张表，否则会被这里的空映射提前拦截。
+  };
+
+  // 需要正体显示的算子名
+  const OPS = ['log', 'ln', 'lg', 'exp', 'sin', 'cos', 'tan', 'cot', 'sec', 'csc',
+    'arcsin', 'arccos', 'arctan', 'sinh', 'cosh', 'tanh', 'max', 'min', 'sup', 'inf',
+    'argmax', 'argmin', 'det', 'dim', 'deg', 'gcd', 'lim', 'mod', 'bmod'];
+
+  // 间距命令 -> em
+  const SPACE = { ',': 0.167, ':': 0.222, ';': 0.278, '!': -0.167, ' ': 0.333, quad: 1, qquad: 2, enspace: 0.5 };
+
+  // 重音命令
+  const ACCENT = { bar: 'bar', hat: 'hat', widehat: 'hat', tilde: 'tilde', widetilde: 'tilde', dot: 'dot', ddot: 'dot', vec: 'vec', overrightarrow: 'vec' };
+
+  // 自动间距用：二元关系符 / 二元运算符 / 大运算符
+  const REL = '=≈∼≤≥≠→←↔⇒⇔∈∉⊂⊆⊃⊇∣∝≡≃≪≫⟹';
+  const BINOP = '+−×÷·±∓∪∩∧∨∗∘⊂';
+  const BIGOP = '∑∏∐∫∮';
+
+  const MATH_ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
+  const mEsc = s => String(s).replace(/[&<>"]/g, c => MATH_ESC[c]);
+
+  function texTokens(src) {
+    // 先把 \text{...} 的内容摘成不可拆分的 token，保留其中的空格
+    const texts = [];
+    let s = String(src).replace(/\\(?:text|textrm|mathrm|operatorname|mbox)\s*\{([^{}]*)\}/g,
+      (m, t) => { texts.push(t); return '\u0007' + (texts.length - 1) + '\u0007'; });
+
+    const toks = [];
+    let i = 0;
+    while (i < s.length) {
+      const c = s[i];
+      if (c === '\u0007') {                       // 文本占位
+        const end = s.indexOf('\u0007', i + 1);
+        toks.push({ t: 'text', v: texts[+s.slice(i + 1, end)] });
+        i = end + 1;
+      } else if (c === '\\') {
+        const m = /^\\([a-zA-Z]+|.)/.exec(s.slice(i));
+        toks.push({ t: 'cmd', v: m[1] });
+        i += m[0].length;
+      } else if (c === '{' || c === '}') { toks.push({ t: c }); i++; }
+      else if (c === '^' || c === '_') { toks.push({ t: c }); i++; }
+      else if (c === ' ' || c === '\n' || c === '\t') { i++; }   // LaTeX 忽略空白
+      else { toks.push({ t: 'ch', v: c }); i++; }
+    }
+    return toks;
+  }
+
+  function texParse(toks) {
+    const st = { i: 0 };
+
+    function seq() {
+      const nodes = [];
+      while (st.i < toks.length && toks[st.i].t !== '}') {
+        const n = atom();
+        if (n) nodes.push(n);
+      }
+      return nodes;
+    }
+    function arg() {                              // 一个参数：{...} 或单个 token
+      const tk = toks[st.i];
+      if (!tk) return { k: 'sym', v: '' };
+      if (tk.t === '{') { st.i++; const c = seq(); if (toks[st.i] && toks[st.i].t === '}') st.i++; return { k: 'grp', c: c }; }
+      if (tk.t === 'cmd') { st.i++; return cmd(tk.v); }
+      if (tk.t === 'text') { st.i++; return { k: 'text', v: tk.v }; }
+      st.i++;
+      return { k: 'sym', v: tk.v };
+    }
+    function cmd(name) {
+      if (name in SYM) return { k: 'sym', v: SYM[name] };
+      if (OPS.indexOf(name) >= 0) return { k: 'op', v: name };
+      if (name in SPACE) return { k: 'sp', w: SPACE[name] };
+      if (name === 'frac' || name === 'dfrac' || name === 'tfrac') {
+        const a = arg(), b = arg();
+        return { k: 'frac', a: a, b: b };
+      }
+      if (name === 'sqrt' || name === 'cbrt') {
+        if (toks[st.i] && toks[st.i].t === 'ch' && toks[st.i].v === '[') {   // \sqrt[n]{x}
+          st.i++;
+          while (st.i < toks.length && !(toks[st.i].t === 'ch' && toks[st.i].v === ']')) st.i++;
+          st.i++;
+        }
+        const a = arg();
+        return { k: 'sqrt', a: a, cube: name === 'cbrt' };
+      }
+      if (name in ACCENT) return { k: 'acc', a: name, b: arg() };
+      if (name === 'binom') { const a = arg(), b = arg(); return { k: 'binom', a: a, b: b }; }
+      if (name === 'left' || name === 'right' || name === 'middle' ||
+          name === 'big' || name === 'Big' || name === 'bigg' || name === 'Bigg') {
+        // 尺寸修饰符：把紧跟的括号类定界符放大（\left( … \right)）
+        const tk = toks[st.i];
+        const auto = name === 'left' || name === 'right' || name === 'middle';
+        if (tk && tk.t === 'ch' && '()[]{}|'.indexOf(tk.v) >= 0) {
+          st.i++;
+          return { k: 'delim', v: tk.v, lv: auto ? 'auto' : (/^(bigg|Bigg)$/.test(name) ? 'lg' : 'md') };
+        }
+        return { k: 'sym', v: '' };               // 后面不是括号就忽略尺寸修饰
+      }
+      return { k: 'raw', v: '\\' + name };        // 未知命令：原样显示
+    }
+    function atom() {
+      const tk = toks[st.i];
+      let base;
+      if (tk.t === '{') { st.i++; base = { k: 'grp', c: seq() }; if (toks[st.i] && toks[st.i].t === '}') st.i++; }
+      else if (tk.t === 'cmd') { st.i++; base = cmd(tk.v); }
+      else if (tk.t === 'text') { st.i++; base = { k: 'text', v: tk.v }; }
+      else if (tk.t === '^' || tk.t === '_') { st.i++; return null; }
+      else { st.i++; base = { k: 'sym', v: tk.v }; }
+
+      const sub = [], sup = [];
+      while (st.i < toks.length && (toks[st.i].t === '^' || toks[st.i].t === '_')) {
+        const kind = toks[st.i].t; st.i++;
+        const a = arg();
+        (kind === '^' ? sup : sub).push(a);
+      }
+      if (sub.length || sup.length) return { k: 'scr', base: base, sub: sub, sup: sup };
+      return base;
+    }
+    return seq();
+  }
+
+  function texHtml(nodes, opt) {
+    opt = opt || {};
+    const push = [];
+    nodes.forEach(function (n, idx) {
+      switch (n.k) {
+        case 'sym':
+          if (n.v === '') break;
+          // 二元关系符 / 运算符：按 LaTeX 习惯自动加间距（上下标内不加）
+          if (!opt.compact && n.v.length === 1) {
+            if (REL.indexOf(n.v) >= 0) { push.push('<span class="m-rel">' + mEsc(n.v) + '</span>'); break; }
+            if (BINOP.indexOf(n.v) >= 0) {
+              const pv = nodes[idx - 1];
+              const prevv = pv && pv.k === 'sym' ? pv.v : '';
+              const unary = !pv || (prevv && (REL.indexOf(prevv) >= 0 || BINOP.indexOf(prevv) >= 0 || '(,['.indexOf(prevv) >= 0));
+              push.push(unary ? mEsc(n.v) : '<span class="m-bin">' + mEsc(n.v) + '</span>');
+              break;
+            }
+          }
+          push.push(n.v === '-' ? '−' : mEsc(n.v));
+          break;
+        case 'op': push.push('<span class="m-op">' + mEsc(n.v) + '</span>'); break;
+        case 'delim': push.push('<span class="m-delim m-delim--' + n.lv + '">' + mEsc(n.v) + '</span>'); break;
+        case 'text': push.push('<span class="m-text">' + mEsc(n.v) + '</span>'); break;
+        case 'raw': push.push('<span class="m-raw">' + mEsc(n.v) + '</span>'); break;
+        case 'sp': push.push('<span class="m-sp" style="width:' + n.w + 'em"></span>'); break;
+        case 'grp': push.push(texHtml(n.c, opt)); break;
+        case 'scr': {
+          const base = texHtml([n.base], opt);
+          // 大运算符在独立公式里把上下限叠起来（\sum_{t=2}^{T}）
+          const big = n.base.k === 'sym' && BIGOP.indexOf(n.base.v) >= 0;
+          if (big && opt.display && n.sub.length && n.sup.length) {
+            push.push('<span class="m-limits"><span class="m-lim-sup">' + texHtml(n.sup, { compact: true }) + '</span>' +
+              '<span class="m-lim-base">' + base + '</span>' +
+              '<span class="m-lim-sub">' + texHtml(n.sub, { compact: true }) + '</span></span>');
+            break;
+          }
+          push.push('<span class="m-scr">' + base +
+            (n.sub.length ? '<sub>' + texHtml(n.sub, { compact: true }) + '</sub>' : '') +
+            (n.sup.length ? '<sup>' + texHtml(n.sup, { compact: true }) + '</sup>' : '') + '</span>');
+          break;
+        }
+        case 'frac':
+          push.push('<span class="m-frac"><span class="m-num">' + texHtml([n.a], opt) +
+            '</span><span class="m-den">' + texHtml([n.b], opt) + '</span></span>');
+          break;
+        case 'sqrt':
+          push.push('<span class="m-sqrt"><span class="m-radic">' + (n.cube ? '∛' : '√') +
+            '</span><span class="m-rad">' + texHtml([n.a], opt) + '</span></span>');
+          break;
+        case 'acc':
+          push.push('<span class="m-acc m-acc--' + n.a + '">' + texHtml([n.b], { compact: true }) + '</span>');
+          break;
+        case 'binom':
+          push.push('<span class="m-bin-coef"><span class="m-bin-in">' + texHtml([n.a], opt) +
+            '</span><span class="m-bin-in">' + texHtml([n.b], opt) + '</span></span>');
+          break;
+        default: break;
+      }
+    });
+    return push.join('');
+  }
+
+  // 对外：把一段 LaTeX 渲染成 HTML
+  function renderMath(tex, display) {
+    try {
+      return texHtml(texParse(texTokens(tex)), { display: !!display });
+    } catch (e) {
+      return '<span class="m-raw">' + mEsc(tex) + '</span>';   // 解析失败就原样显示
+    }
+  }
+
   // ---------- 行内元素 ----------
   function inline(s) {
-    const codes = [];
+    const codes = [], maths = [];
     // 行内代码先摘出来，避免其中的符号被当成语法
     s = s.replace(/`([^`]+)`/g, (m, c) => { codes.push(c); return '\u0000' + (codes.length - 1) + '\u0001'; });
+    // 行内公式也要在 HTML 转义之前摘出来（转义交给公式渲染器自己做）
+    s = s.replace(/\$\$([^$\n]+)\$\$/g, (m, t) => { maths.push(t); return '\u0002' + (maths.length - 1) + '\u0003'; });
+    s = s.replace(/\$([^$\n]+)\$/g, (m, t) => { maths.push(t); return '\u0002' + (maths.length - 1) + '\u0003'; });
     s = esc(s);
     // 图片
     s = s.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g,
@@ -63,12 +291,12 @@
       const ext = /^https?:\/\//i.test(href);
       return '<a href="' + href + '"' + (ext ? ' target="_blank" rel="noopener"' : '') + '>' + text + '</a>';
     });
-    // 公式（不做 LaTeX 解析，只做样式化显示）
-    s = s.replace(/\$([^$\n]+)\$/g, (m, tex) => '<span class="md-math">' + tex.trim() + '</span>');
     // 强调
     s = s.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
     s = s.replace(/(^|[^*\w])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
     s = s.replace(/~~([^~\n]+)~~/g, '<del>$1</del>');
+    // 还原公式
+    s = s.replace(/\u0002(\d+)\u0003/g, (m, i) => '<span class="md-math">' + renderMath(maths[+i]) + '</span>');
     // 还原行内代码
     s = s.replace(/\u0000(\d+)\u0001/g, (m, i) => '<code class="md-code-inline">' + esc(codes[+i]) + '</code>');
     return s;
@@ -157,11 +385,11 @@
       // 独立公式 $$ ... $$
       if (/^\s*\$\$/.test(line)) {
         const oneLine = /^\s*\$\$(.+?)\$\$\s*$/.exec(line);
-        if (oneLine) { html.push('<div class="md-formula">' + esc(oneLine[1].trim()) + '</div>'); i++; continue; }
+        if (oneLine) { html.push('<div class="md-formula">' + renderMath(oneLine[1].trim(), true) + '</div>'); i++; continue; }
         const buf = []; i++;
         while (i < lines.length && !/^\s*\$\$\s*$/.test(lines[i])) { buf.push(lines[i]); i++; }
         i++;
-        html.push('<div class="md-formula">' + esc(buf.join('\n').trim()) + '</div>');
+        html.push('<div class="md-formula">' + renderMath(buf.join('\n').trim(), true) + '</div>');
         continue;
       }
 
