@@ -134,8 +134,8 @@ console.log('  ─────────────────────�
 console.log(`  主题 TOPICS      ${nTopics}`);
 console.log(`  演示 MLDemos     ${Object.keys(demos).length}`);
 console.log(`  分类 CATEGORIES  ${nCats}`);
-console.log(`  知识地图阶段     ${nStage}`);
-console.log(`  笔记方法 METHODS ${Array.isArray(METHODS) ? METHODS.length : 0}`);
+console.log(`  路线图阶段     ${nStage}`);
+console.log(`  方法论 METHODS ${Array.isArray(METHODS) ? METHODS.length : 0}`);
 console.log(`  延伸阅读         ${Array.isArray(RESOURCES) ? RESOURCES.length : 0}`);
 console.log('');
 

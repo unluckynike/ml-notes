@@ -37,8 +37,8 @@
   function buildNav() {
     const nav = $('#navList');
     const secs = [
-      { id: 'roadmap', label: '知识地图', icon: '🧭' },
-      { id: 'howto', label: '笔记方法', icon: '📖' },
+      { id: 'roadmap', label: '路线图', icon: '🧭' },
+      { id: 'howto', label: '方法论', icon: '📖' },
       { id: 'topics', label: '全部主题', icon: '🧠' },
       { id: 'resources', label: '延伸阅读', icon: '📚' }
     ];
@@ -71,7 +71,7 @@
       </div>`).join('');
   }
 
-  // ---------- 笔记方法 ----------
+  // ---------- 方法论 ----------
   function buildMethods() {
     const m = $('#methodCards');
     m.innerHTML = METHODS.map(x => `

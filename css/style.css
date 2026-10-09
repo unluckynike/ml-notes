@@ -267,7 +267,7 @@ body.menu-open .overlay { opacity: 1; pointer-events: auto; }
 .reveal { opacity: 0; transform: translateY(28px); transition: opacity .7s ease, transform .7s cubic-bezier(.2,.7,.2,1); }
 .reveal.in-view { opacity: 1; transform: none; }
 
-/* ============ 知识地图 ============ */
+/* ============ 路线图 ============ */
 .roadmap { display: flex; flex-wrap: wrap; gap: 14px; align-items: stretch; }
 .roadmap-stage {
   flex: 1 1 170px; min-width: 160px;
@@ -294,7 +294,7 @@ body.menu-open .overlay { opacity: 1; pointer-events: auto; }
   border-radius: 50%; background: var(--stage-color, var(--accent-2)); opacity: .7;
 }
 
-/* ============ 笔记方法卡片 ============ */
+/* ============ 方法论卡片 ============ */
 .method-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
 .method-card {
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
