@@ -2039,7 +2039,8 @@ const TOPICS = [
       '搞清逆向是<strong>预测噪声</strong>（而非直接预测 x_0）。',
       '了解 <strong>DDPM → DDIM → Stable Diffusion</strong> 的演进主线。'
     ],
-    demo: { id: 'diffusion', title: '扩散 · 3D 点云加噪去噪', note: '拖拽旋转；拖动 t 看一个 3D 甜甜圈如何被打散成噪声云、再重新聚拢成形。' }
+    demo: { id: 'diffusion', title: '扩散 · 3D 点云加噪去噪', note: '拖拽旋转；拖动 t 看一个 3D 甜甜圈如何被打散成噪声云、再重新聚拢成形。' },
+    deep: 'content/diffusion.md'
   },
 
   {

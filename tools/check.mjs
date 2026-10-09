@@ -104,12 +104,80 @@ if (Array.isArray(TOPICS)) {
   });
 }
 
-// ---------- 4. 反向检查：注册但未被引用 ----------
+// ---------- 4. 深度阅读（deep 字段）校验 ----------
+const deepRefs = new Map();      // md 相对路径 -> [引用它的主题 id]
+if (Array.isArray(TOPICS)) {
+  TOPICS.forEach(t => {
+    if (!t.deep) return;
+    const rel = String(t.deep);
+    if (!deepRefs.has(rel)) deepRefs.set(rel, []);
+    deepRefs.get(rel).push(t.id);
+  });
+}
+
+let mdRenderer = null;
+try {
+  new Function(read('js/markdown.js'))();
+  mdRenderer = globalThis.window.MLMarkdown || null;
+  if (!mdRenderer) err('js/markdown.js 没有导出 window.MLMarkdown');
+} catch (e) {
+  err('js/markdown.js 执行失败：' + e.message);
+}
+
+const CONTENT_DIR = 'content';
+deepRefs.forEach((ids, rel) => {
+  const who = '主题 ' + ids.join(', ');
+  const abs = path.join(ROOT, rel);
+  if (!fs.existsSync(abs)) {
+    err(`${who} 的 deep 指向不存在的文件：${rel}（页面会显示「长文加载失败」）`);
+    return;
+  }
+  let md;
+  try { md = fs.readFileSync(abs, 'utf8'); }
+  catch (e) { err(`读取 ${rel} 失败：${e.message}`); return; }
+
+  if (!md.trim()) { err(`${rel} 是空文件`); return; }
+  if (!/^#\s+\S/m.test(md)) warn(`${rel} 没有一级标题（建议以 "# 标题" 开头）`);
+
+  // 渲染一遍，确保渲染器能吃下这篇长文
+  if (mdRenderer) {
+    try {
+      const html = mdRenderer.renderWithToc(md);
+      if (!html || html.length < 100) err(`${rel} 渲染结果异常（内容过短）`);
+      if (/<script/i.test(html)) err(`${rel} 渲染后出现未转义的 <script>`);
+      const open = (html.match(/<(ul|ol|li|p|blockquote|table|pre|div)[ >]/g) || []).length;
+      const close = (html.match(/<\/(ul|ol|li|p|blockquote|table|pre|div)>/g) || []).length;
+      if (open !== close) warn(`${rel} 渲染后块级标签数量不配对（开 ${open} / 闭 ${close}）`);
+    } catch (e) {
+      err(`${rel} 渲染失败：${e.message}`);
+    }
+  }
+
+  // 文内的本地图片/链接是否存在
+  const links = [];
+  md.replace(/!?\[[^\]]*\]\(([^)\s]+)\)/g, (m, href) => { links.push(href); return m; });
+  links.forEach(href => {
+    if (/^(https?:|mailto:|tel:|data:|#)/i.test(href)) return;
+    const target = path.resolve(path.dirname(abs), href.split('#')[0]);
+    if (!fs.existsSync(target)) warn(`${rel} 引用了不存在的本地资源：${href}`);
+  });
+});
+
+// 反向检查：content/ 下有没有没被引用的孤儿 md
+const cdir = path.join(ROOT, CONTENT_DIR);
+if (fs.existsSync(cdir)) {
+  fs.readdirSync(cdir).filter(f => f.endsWith('.md')).forEach(f => {
+    const rel = CONTENT_DIR + '/' + f;
+    if (!deepRefs.has(rel)) warn(`${rel} 没有被任何主题的 deep 字段引用（孤儿文件）`);
+  });
+}
+
+// ---------- 5. 反向检查：注册但未被引用 ----------
 for (const k of Object.keys(demos)) {
   if (!usedDemos.has(k)) warn(`演示 "${k}" 已注册，但没有主题引用它`);
 }
 
-// ---------- 5. 逐个初始化演示 ----------
+// ---------- 6. 逐个初始化演示 ----------
 if (hasDemos) {
   for (const [k, fn] of Object.entries(demos)) {
     const t0 = Date.now();
@@ -131,12 +199,13 @@ const nStage = Array.isArray(ROADMAP) ? ROADMAP.length : 0;
 console.log('');
 console.log('  内容统计');
 console.log('  ────────────────────────────');
-console.log(`  主题 TOPICS      ${nTopics}`);
-console.log(`  演示 MLDemos     ${Object.keys(demos).length}`);
-console.log(`  分类 CATEGORIES  ${nCats}`);
-console.log(`  路线图阶段     ${nStage}`);
-console.log(`  方法论 METHODS ${Array.isArray(METHODS) ? METHODS.length : 0}`);
-console.log(`  延伸阅读         ${Array.isArray(RESOURCES) ? RESOURCES.length : 0}`);
+console.log(`  主题 TOPICS        ${nTopics}`);
+console.log(`  演示 MLDemos       ${Object.keys(demos).length}`);
+console.log(`  分类 CATEGORIES    ${nCats}`);
+console.log(`  路线图阶段         ${nStage}`);
+console.log(`  方法论 METHODS     ${Array.isArray(METHODS) ? METHODS.length : 0}`);
+console.log(`  延伸阅读           ${Array.isArray(RESOURCES) ? RESOURCES.length : 0}`);
+console.log(`  深度长文           ${deepRefs.size}`);
 console.log('');
 
 if (warns.length) {

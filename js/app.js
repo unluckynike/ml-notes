@@ -86,8 +86,11 @@
   const TABS = [
     ['intro', '简介'], ['principle', '核心思想'], ['example', '直观例子'],
     ['proscons', '优缺点'], ['history', '发展历程'], ['scenario', '适用场景'],
-    ['learn', '怎么上手'], ['demo', '演示']
+    ['learn', '怎么上手'], ['deep', '深度阅读'], ['demo', '演示']
   ];
+
+  // 只保留该主题真正有内容的标签页（「深度阅读」仅当主题声明了 deep 字段才出现）
+  const tabsFor = t => TABS.filter(([k]) => k !== 'deep' || !!t.deep);
 
   function diffStars(d) { return '●'.repeat(d) + '○'.repeat(5 - d); }
 
@@ -136,7 +139,60 @@
     if (key === 'demo') {
       return `<div class="tab-panel" data-panel="demo"><div class="demo-mount" data-demo="${t.demo.id}"></div></div>`;
     }
+    if (key === 'deep') {
+      if (!t.deep) return '';
+      return `<div class="tab-panel" data-panel="deep"><div class="deep-mount" data-src="${esc(t.deep)}">` +
+        `<div class="deep-loading">正在加载长文…</div></div></div>`;
+    }
     return '';
+  }
+
+  // ---------- 深度阅读（按需加载 markdown） ----------
+  const deepCache = Object.create(null);
+
+  function deepFallback(src, err) {
+    const isFile = location.protocol === 'file:';
+    if (isFile) {
+      return `<div class="deep-error">
+        <div class="deep-error__title">📄 长文加载失败</div>
+        <p>你现在是用 <code>file://</code> 直接双击打开页面的，浏览器出于安全策略<strong>禁止网页读取本地文件</strong>（CORS 限制，不是文件不存在）。</p>
+        <p>两个解决办法，任选其一：</p>
+        <ul>
+          <li>在项目根目录执行 <code>python3 -m http.server 8000</code>，再访问 <code>http://127.0.0.1:8000/</code></li>
+          <li>或者直接看线上版：<code>https://unluckynike.github.io/ml-notes/</code></li>
+        </ul>
+        <p class="deep-error__note">其余 8 个标签页和所有交互演示都不受影响，可以正常使用。</p>
+      </div>`;
+    }
+    return `<div class="deep-error">
+      <div class="deep-error__title">📄 长文加载失败</div>
+      <p>无法读取 <code>${esc(src)}</code>${err && err.message ? '（' + esc(err.message) + '）' : ''}。</p>
+      <p>请检查该文件是否存在于仓库中，或运行 <code>node tools/check.mjs</code> 自检。</p>
+    </div>`;
+  }
+
+  function loadDeep(mount) {
+    if (mount.dataset.state === 'loading' || mount.dataset.state === 'done') return;
+    const src = mount.dataset.src;
+    if (!src) return;
+    if (deepCache[src]) { mount.innerHTML = deepCache[src]; mount.dataset.state = 'done'; return; }
+    if (!window.MLMarkdown) {
+      mount.innerHTML = deepFallback(src, { message: 'js/markdown.js 未加载' });
+      return;
+    }
+    mount.dataset.state = 'loading';
+    fetch(src)
+      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+      .then(text => {
+        const html = window.MLMarkdown.renderWithToc(text);
+        deepCache[src] = html;
+        mount.innerHTML = html;
+        mount.dataset.state = 'done';
+      })
+      .catch(e => {
+        mount.innerHTML = deepFallback(src, e);
+        mount.dataset.state = 'error';
+      });
   }
 
   function buildTopics() {
@@ -161,8 +217,8 @@
           <p class="topic__tagline">${t.tagline}</p>
           <button class="topic__check" title="标记为已掌握" aria-label="标记为已掌握">✓</button>
         </div>
-        <div class="topic__tabs">${TABS.map(([k, lab]) => `<button class="tab-btn ${k === 'intro' ? 'active' : ''}" data-tab="${k}">${lab}</button>`).join('')}</div>
-        <div class="topic__body">${TABS.map(([k]) => tabPanel(k, t)).join('')}</div>
+        <div class="topic__tabs">${tabsFor(t).map(([k, lab]) => `<button class="tab-btn ${k === 'intro' ? 'active' : ''}" data-tab="${k}">${lab}</button>`).join('')}</div>
+        <div class="topic__body">${tabsFor(t).map(([k]) => tabPanel(k, t)).join('')}</div>
       </article>`;
     }).join('');
 
@@ -175,6 +231,10 @@
           btn.classList.add('active');
           const panel = card.querySelector(`[data-panel="${btn.dataset.tab}"]`);
           if (panel) panel.classList.add('active');
+          if (btn.dataset.tab === 'deep') {
+            const mount = card.querySelector('.deep-mount');
+            if (mount) loadDeep(mount);
+          }
         });
       });
       // 已掌握勾选
