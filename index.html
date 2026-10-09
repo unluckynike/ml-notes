@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="机器学习 · 深度学习 · 计算机视觉 · 大模型 · Agent 知识笔记：线性回归、聚类、LSTM、SVM、XGBoost、ResNet、扩散模型、Transformer、RAG 等，含用途、原理、优缺点、发展历程、适用场景与交互式可视化演示。" />
+  <title>ML 笔记 · 机器学习与深度学习知识笔记</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- 顶部阅读进度条 -->
+  <div class="read-progress" id="readProgress" aria-hidden="true"></div>
+
+  <!-- 侧边导航 -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar__brand">
+      <span class="brand__mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="26" height="26">
+          <circle cx="8" cy="22" r="3.2" fill="#00d4ff" />
+          <circle cx="16" cy="12" r="3.2" fill="#6c5ce7" />
+          <circle cx="24" cy="22" r="3.2" fill="#ff7ac6" />
+          <path d="M8 22 L16 12 L24 22" stroke="#8b93b8" stroke-width="1.6" fill="none" />
+          <path d="M8 22 L16 12 M16 12 L24 22" stroke="#00d4ff" stroke-width="1" fill="none" opacity="0.5" />
+        </svg>
+      </span>
+      <div class="brand__text">
+        <strong>ML 笔记</strong>
+        <span>机器学习 · 深度学习笔记</span>
+      </div>
+    </div>
+
+    <div class="sidebar__search">
+      <input id="searchInput" type="search" placeholder="搜索：回归 / 聚类 / LSTM…" autocomplete="off" />
+      <span class="search__icon" aria-hidden="true">⌕</span>
+    </div>
+
+    <nav class="sidebar__nav" id="navList" aria-label="目录"></nav>
+
+    <div class="sidebar__progress">
+      <div class="progress__head">
+        <span>掌握进度</span>
+        <span id="progressPct">0%</span>
+      </div>
+      <div class="progress__track"><div class="progress__bar" id="progressBar"></div></div>
+      <p class="progress__hint">点击主题右上角「✓」标记为已掌握</p>
+    </div>
+  </aside>
+
+  <!-- 移动端遮罩 -->
+  <div class="overlay" id="overlay"></div>
+
+  <!-- 主内容 -->
+  <main class="main" id="main">
+    <header class="topbar">
+      <button class="topbar__menu" id="menuToggle" aria-label="打开目录">
+        <span></span><span></span><span></span>
+      </button>
+      <span class="topbar__title">ML 笔记</span>
+      <button class="topbar__theme" id="themeToggle" aria-label="切换主题">◐</button>
+    </header>
+
+    <!-- Hero -->
+    <section class="hero" id="hero">
+      <div class="hero__canvas" aria-hidden="true">
+        <canvas id="heroCanvas"></canvas>
+      </div>
+      <div class="hero__inner">
+        <p class="hero__eyebrow">从统计到深度学习 · 一页看懂</p>
+        <h1 class="hero__title">像搭积木一样<br /><span class="grad">理解机器学习</span></h1>
+        <p class="hero__sub">
+          线性回归、逻辑回归、决策树、随机森林、XGBoost、SVM、K-Means、PCA、神经网络、RNN、LSTM、ResNet、扩散模型、Transformer、LLM、Agent……
+          <br />每个主题都记清 <strong>用途 · 原理 · 优缺点 · 发展历程 · 适用场景 · 上手路径</strong>，并配一个可交互的可视化演示。
+        </p>
+        <div class="hero__cta">
+          <a href="#roadmap" class="btn btn--primary">开始浏览 <span>→</span></a>
+          <a href="#topics" class="btn btn--ghost">直接看主题</a>
+        </div>
+        <div class="hero__stats">
+          <div class="stat"><strong id="statTopics">0</strong><span>核心模型</span></div>
+          <div class="stat"><strong id="statDemos">0</strong><span>交互演示</span></div>
+          <div class="stat"><strong>6</strong><span>知识板块</span></div>
+        </div>
+      </div>
+      <div class="hero__scroll" aria-hidden="true"><span></span>向下滚动</div>
+    </section>
+
+    <!-- 知识地图 -->
+    <section class="section" id="roadmap">
+      <div class="section__head">
+        <p class="eyebrow">ROADMAP · 知识地图</p>
+        <h2>先看什么，后看什么？</h2>
+        <p class="section__desc">机器学习不是一堆孤立算法，而是一条有依赖关系的知识链。下面是这张地图的 13 个板块。</p>
+      </div>
+      <div class="roadmap" id="roadmapGraph"></div>
+    </section>
+
+    <!-- 笔记方法 -->
+    <section class="section" id="howto">
+      <div class="section__head">
+        <p class="eyebrow">METHOD · 笔记方法</p>
+        <h2>一个主题怎么才算记牢？</h2>
+        <p class="section__desc">光看不动手很容易「看过就忘」。下面这套六步笔记法，每个主题都适用。</p>
+      </div>
+      <div class="method-cards" id="methodCards"></div>
+    </section>
+
+    <!-- 主题列表 -->
+    <section class="section" id="topics">
+      <div class="section__head">
+        <p class="eyebrow">TOPICS · 全部主题</p>
+        <h2>逐个整理，从原理到演示</h2>
+        <p class="section__desc">每个主题都包含：一句话定位、解决什么问题、核心思想、直观比喻、优缺点、发展历程、适用/不适用场景、怎么上手，以及一个可交互演示。</p>
+      </div>
+      <div class="topic-list" id="topicList"></div>
+    </section>
+
+    <!-- 资源 -->
+    <section class="section" id="resources">
+      <div class="section__head">
+        <p class="eyebrow">RESOURCES · 延伸阅读</p>
+        <h2>想再深入看什么？</h2>
+        <p class="section__desc">这份笔记负责帮你建立「地图」。深入细节，推荐下面这些经典资源。</p>
+      </div>
+      <div class="resource-grid" id="resourceGrid"></div>
+    </section>
+
+    <footer class="footer">
+      <p>ML 笔记 · 一份可交互的机器学习与深度学习知识笔记</p>
+      <p>所有演示均为浏览器本地计算，无任何数据上传 · 数据仅供示意</p>
+    </footer>
+  </main>
+
+  <button class="backtop" id="backTop" aria-label="回到顶部">↑</button>
+  <button class="theme-fixed" id="themeToggleFixed" aria-label="切换主题" title="切换深浅主题">◐</button>
+
+  <script src="js/content.js"></script>
+  <script src="js/demos.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
