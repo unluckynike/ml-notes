@@ -82,7 +82,7 @@
         <h2>先看什么，后看什么？</h2>
         <p class="section__desc">机器学习不是一堆孤立算法，而是一条有依赖关系的知识链。下面是这张地图的 13 个板块。</p>
       </div>
-      <div class="roadmap" id="roadmapGraph"></div>
+      <div class="roadmap" id="roadmapGraph"><div class="loading-hint">正在加载知识地图…</div></div>
     </section>
 
     <!-- 方法论 -->
@@ -92,7 +92,7 @@
         <h2>一个主题怎么才算记牢？</h2>
         <p class="section__desc">光看不动手很容易「看过就忘」。下面这套六步方法论，每个主题都适用。</p>
       </div>
-      <div class="method-cards" id="methodCards"></div>
+      <div class="method-cards" id="methodCards"><div class="loading-hint">正在加载…</div></div>
     </section>
 
     <!-- 主题列表 -->
@@ -102,7 +102,7 @@
         <h2>逐个整理，从原理到演示</h2>
         <p class="section__desc">每个主题都包含：一句话定位、解决什么问题、核心思想、直观比喻、优缺点、发展历程、适用/不适用场景、怎么上手，以及一个可交互演示。</p>
       </div>
-      <div class="topic-list" id="topicList"></div>
+      <div class="topic-list" id="topicList"><div class="loading-hint">正在加载主题…</div></div>
     </section>
 
     <!-- 资源 -->
@@ -112,7 +112,7 @@
         <h2>想再深入看什么？</h2>
         <p class="section__desc">这份笔记负责帮你建立「地图」。深入细节，推荐下面这些经典资源。</p>
       </div>
-      <div class="resource-grid" id="resourceGrid"></div>
+      <div class="resource-grid" id="resourceGrid"><div class="loading-hint">正在加载…</div></div>
     </section>
 
     <footer class="footer">
@@ -128,5 +128,10 @@
   <script src="js/content.js"></script>
   <script src="js/demos.js"></script>
   <script src="js/app.js"></script>
+  <noscript>
+    <div style="padding:24px;text-align:center;color:#c2cbe4">
+      本站内容由 JavaScript 渲染，请启用 JavaScript 后刷新。
+    </div>
+  </noscript>
 </body>
 </html>

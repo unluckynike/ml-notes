@@ -255,21 +255,39 @@
   }
 
   // ---------- 演示懒加载 ----------
+  // demos.js 是异步加载的（约 230KB），所以这里必须处理「脚本还没到」的情况：
+  // 先轮询等待 window.MLDemos 出现，到了再初始化；只有真正初始化成功才断开 observer。
   function initDemos(scope) {
     const mounts = scope.querySelectorAll('.demo-mount');
     mounts.forEach(mount => {
       const card = mount.closest('.topic');
       const id = mount.dataset.demo;
-      let started = false;
+      let started = false, timer = null;
+
       const start = () => {
-        if (started || !window.MLDemos || !window.MLDemos[id]) return;
+        if (started) return;
+        if (!window.MLDemos) {                  // 脚本尚未加载完成 → 稍后重试
+          timer = setTimeout(start, 300);
+          return;
+        }
+        if (!window.MLDemos[id]) {              // 脚本已到但这支演示缺失 → 真的是 bug
+          console.error('demo not registered:', id);
+          mount.innerHTML = '<p style="color:var(--muted);padding:16px">演示加载失败</p>';
+          started = true;
+          return;
+        }
         started = true;
+        if (timer) { clearTimeout(timer); timer = null; }
         const t = TOPICS.find(x => x.demo.id === id);
-        try { window.MLDemos[id](mount, t && t.demo); } catch (e) { console.error('demo init failed', id, e); mount.innerHTML = '<p style="color:var(--muted);padding:16px">演示加载失败</p>'; }
+        try { window.MLDemos[id](mount, t && t.demo); }
+        catch (e) { console.error('demo init failed', id, e); mount.innerHTML = '<p style="color:var(--muted);padding:16px">演示加载失败</p>'; }
       };
+
       if ('IntersectionObserver' in window) {
         const obs = new IntersectionObserver((entries) => {
-          if (entries.some(e => e.isIntersecting)) { start(); obs.disconnect(); }
+          if (!entries.some(e => e.isIntersecting)) return;
+          start();
+          if (started) obs.disconnect();         // 没初始化成功就不断开，等重试
         }, { rootMargin: '200px' });
         obs.observe(card);
       } else { start(); }

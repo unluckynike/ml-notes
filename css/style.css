@@ -715,3 +715,12 @@ body.menu-open .overlay { opacity: 1; pointer-events: auto; }
   .md-code code { font-size: 12px; }
   .md-table th, .md-table td { padding: 8px 10px; font-size: 13px; }
 }
+
+/* 首屏占位提示（JS 渲染前显示，减少「白屏以为挂了」的错觉） */
+.loading-hint {
+  padding: 26px 8px; text-align: center; color: var(--muted);
+  font-size: 13.5px; letter-spacing: .04em;
+  animation: loadingPulse 1.6s ease-in-out infinite;
+}
+@keyframes loadingPulse { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .loading-hint { animation: none; opacity: .8; } }
