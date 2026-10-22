@@ -35,7 +35,7 @@ const ROADMAP = [
   {
     title: '回归模型',
     color: '#00d4ff',
-    items: ['线性回归', '岭回归·Lasso', '逻辑回归', '广义线性模型']
+    items: ['线性回归', '岭回归·Lasso', '逻辑回归', '广义线性模型 GLM']
   },
   {
     title: '经典分类器',
@@ -45,7 +45,7 @@ const ROADMAP = [
   {
     title: '集成学习',
     color: '#ffb85c',
-    items: ['随机森林', 'AdaBoost', 'XGBoost / LightGBM', 'Bagging 与 Boosting']
+    items: ['随机森林', 'AdaBoost', 'XGBoost', 'LightGBM / CatBoost', 'Bagging 与 Boosting']
   },
   {
     title: '无监督学习',
@@ -75,7 +75,7 @@ const ROADMAP = [
   {
     title: '大语言模型',
     color: '#34d399',
-    items: ['Tokenization 分词', '词嵌入 Word2Vec', 'BERT 编码器', 'GPT 架构与预训练', '位置编码与长上下文', '微调与 LoRA', 'RLHF 对齐', '提示工程', '推理优化与部署']
+    items: ['Tokenization 分词', '词嵌入 Word2Vec', 'BERT 编码器', 'GPT 架构与预训练', '位置编码与长上下文', '微调与 LoRA', 'RLHF 对齐', '提示工程', '推理优化与部署', '多模态 VLM']
   },
   {
     title: '智能体 Agent',
@@ -3368,5 +3368,152 @@ const TOPICS = [
       '知道 <strong>PSI</strong> 等漂移指标的用法与阈值。'
     ],
     demo: { id: 'mlops', title: 'MLOps · 漂移监控演示', note: '拖动数据漂移强度，看线上分布偏离训练分布、准确率下滑，以及监控如何触发告警。' }
+  },
+
+  {
+    id: 'gbdt',
+    num: '67',
+    emoji: '🌿',
+    name: 'LightGBM 与 CatBoost',
+    en: 'LightGBM & CatBoost',
+    cat: 'ensemble',
+    diff: 4,
+    accent: '#ffb85c',
+    tagline: '同样的提升树，换个长树方式和分桶技巧，训练能快十倍——工程里最常用的两个实现。',
+    intro: {
+      what: '梯度提升树（GBDT）的两个主流高效实现。LightGBM 主打速度（直方图分桶 + leaf-wise 生长 + 采样技巧），CatBoost 主打类别特征与稳定性（有序目标编码 + 对称树）。',
+      problem: '传统 GBDT 要遍历所有特征的所有切分点，特征与样本一多就极慢；类别特征（如城市、商品 ID）直接 one-hot 会维度爆炸。',
+      idea: 'LightGBM：把连续特征离散成 255 个桶，切分只在桶边界找；长树时优先分裂增益最大的叶子。CatBoost：用有序目标统计把类别转成数值，并用对称树抑制过拟合。'
+    },
+    principle: {
+      text: [
+        '直方图分桶：把特征值装进固定数量的桶，每次分裂只在桶边界比较，复杂度从 O(#样本) 降到 O(#桶)。',
+        'leaf-wise 生长：每次挑增益最大的叶子分裂（而不是按层铺开），同样叶子数下损失更低，但更容易过拟合，需要限制深度或叶子数。',
+        'CatBoost 的有序目标编码：只用「该样本之前的数据」计算类别均值，避免目标泄漏；对称树让预测更快更稳。'
+      ],
+      formula: {
+        html: '<span class="fn">Gain</span> = <span class="frac"><span class="num">1</span><span class="den">2</span></span><span class="op">[</span><span class="frac"><span class="num">G<sub>L</sub>²</span><span class="den">H<sub>L</sub>+λ</span></span> + <span class="frac"><span class="num">G<sub>R</sub>²</span><span class="den">H<sub>R</sub>+λ</span></span> − <span class="frac"><span class="num">(G<sub>L</sub>+G<sub>R</sub>)²</span><span class="den">H<sub>L</sub>+H<sub>R</sub>+λ</span></span><span class="op">]</span> − γ',
+        note: '与 XGBoost 相同的分裂增益公式：G、H 是左右子节点的梯度与二阶导之和，γ 是分裂惩罚。'
+      }
+    },
+    example: {
+      analogy: '建房子：level-wise 像一层层往上盖，整齐但很多层在浪费时间；leaf-wise 像哪里最缺就先盖哪里，同样砖头盖得更高，但容易盖歪（过拟合），所以要限高。',
+      mini: '100 万行、500 维的数据集，LightGBM 用直方图 + leaf-wise，训练时间通常比传统 GBDT 快 5~10 倍，精度相当或更好。'
+    },
+    pros: ['训练快、内存占用低（直方图 + 特征捆绑）', 'leaf-wise 在同等叶子数下损失更低', 'CatBoost 原生处理类别特征，调参少、开箱效果好'],
+    cons: ['leaf-wise 在小数据上易过拟合，需限制 num_leaves', '直方图分桶会损失部分精度', 'CatBoost 训练与预测相对更慢、模型更大'],
+    history: [
+      { year: '2016', text: 'XGBoost 成为 Kaggle 主流，但训练仍偏慢。' },
+      { year: '2017', text: 'LightGBM 提出直方图与 leaf-wise，速度大幅领先。' },
+      { year: '2017', text: 'CatBoost 提出有序目标编码，主打类别特征。' },
+      { year: '至今', text: '三者共同构成表格数据的基线三件套。' }
+    ],
+    use: ['表格数据的分类/回归基线（首选之一）', '类别特征多的场景（CatBoost 优势）', '大数据量下的快速迭代'],
+    avoid: ['小样本（leaf-wise 易过拟合，建议限层或换 XGBoost）', '需要单树可解释性的场景', '图像/文本等非结构化数据（用深度模型）'],
+    learn: [
+      '在演示里对比 <strong>level-wise 与 leaf-wise</strong> 的生长顺序。',
+      '理解 <strong>直方图分桶</strong> 为什么能把复杂度降下来。',
+      '搞清 <strong>CatBoost 有序目标编码</strong> 在防什么（目标泄漏）。',
+      '知道 <strong>num_leaves / min_data_in_leaf</strong> 是 LightGBM 最关键的调参项。'
+    ],
+    demo: { id: 'gbdt', title: '提升树 · 两种生长策略', note: '切换 level-wise / leaf-wise，逐步展开节点，看它们的生长顺序与树形差异。' }
+  },
+
+  {
+    id: 'glm',
+    num: '68',
+    emoji: '🔗',
+    name: '广义线性模型 GLM',
+    en: 'Generalized Linear Models',
+    cat: 'super',
+    diff: 3,
+    accent: '#00d4ff',
+    tagline: '线性回归、逻辑回归、泊松回归其实是同一个模型——差别只在「用什么链接函数」。',
+    intro: {
+      what: '把线性回归推广到非正态响应变量的一族模型：用链接函数 g 把线性预测 η=Xβ 映射到响应均值，如逻辑回归（伯努利）、泊松回归（计数）。',
+      problem: '线性回归假设响应连续、方差恒定、可正可负。但计数（≥0 整数）、比例（0~1）、生存时间都违反这些假设，硬套会预测出负数或概率大于 1。',
+      idea: '保留线性预测 η=Xβ 这个好性质，但通过链接函数把 η 映射到响应的合法范围，并按分布选择方差函数——用指数族 + 最大似然统一处理一大类问题。'
+    },
+    principle: {
+      text: [
+        '三个部件：随机成分（响应分布，如泊松/伯努利）、系统成分（η=Xβ）、链接函数（g(μ)=η）。',
+        '常见组合：线性回归 = 恒等链接 + 高斯；逻辑回归 = logit 链接 + 伯努利；泊松回归 = log 链接 + 泊松。',
+        '参数用最大似然/IRLS 估计而非最小二乘；解释系数要过链接函数（泊松里系数是乘性效应）。'
+      ],
+      formula: {
+        html: '<span class="fn">g</span>(<span class="sym">μ</span>) = <span class="sym">X</span><span class="sym">β</span>　⟺　<span class="sym">μ</span> = <span class="fn">g</span><sup>−1</sup>(<span class="sym">X</span><span class="sym">β</span>)',
+        note: 'GLM 的核心：链接函数 g 把均值 μ 与线性预测 Xβ 连起来，保证 μ 落在合法范围。'
+      }
+    },
+    example: {
+      analogy: '线性回归是直尺；换个刻度盘（链接函数），同样的直尺就能量出「概率」（0~1）或「计数」（≥0）——骨架没变，只是把输出掰到合法区间。',
+      mini: '预测门店一天的订单数：线性回归会预测出 -3.2 单（无意义）；泊松回归用 log 链接保证恒为正，且方差随均值增大，更符合计数数据。'
+    },
+    pros: ['统一框架覆盖回归/分类/计数/比例等多种响应', '系数可解释（经链接函数变换后有明确含义）', '有成熟的推断（置信区间、显著性检验）'],
+    cons: ['需正确指定分布与链接，选错则系统性偏差', '对异常值与多重共线性敏感', '非线性关系与交互项需手工设计'],
+    history: [
+      { year: '1972', text: 'Nelder 与 Wedderburn 提出 GLM 统一框架。' },
+      { year: '1980s', text: 'IRLS 算法与统计软件普及，GLM 成为应用统计标准工具。' },
+      { year: '2000s', text: '扩展到 GAM（加性模型）与混合效应模型。' },
+      { year: '至今', text: '保险定价、流行病学、广告归因仍以 GLM 为主力。' }
+    ],
+    use: ['计数数据（订单量、点击次数）→ 泊松/负二项', '比例数据（转化率）→ 二项/Beta', '保险赔付与风险定价（Gamma/Tweedie）'],
+    avoid: ['把计数数据当连续值直接做线性回归', '用线性回归预测概率（会越界）', '忽略过度离散（泊松方差=均值，实际常更大）'],
+    learn: [
+      '在演示里切换三种链接函数，看线性预测如何被映射到不同取值范围。',
+      '理解 <strong>链接函数</strong> 在解决什么（把 η 掰到合法区间）。',
+      '搞清 <strong>分布 + 链接</strong> 的组合怎么选（计数→log，比例→logit）。',
+      '知道为什么 GLM 用<strong>最大似然而不是最小二乘</strong>。'
+    ],
+    demo: { id: 'glm', title: 'GLM · 三种链接函数', note: '拖动线性预测 η，看恒等 / logit / log 三种链接把同一个 η 映射到完全不同的取值范围。' }
+  },
+
+  {
+    id: 'vlm',
+    num: '69',
+    emoji: '🖼️',
+    name: '多模态大模型 VLM',
+    en: 'Vision-Language Models',
+    cat: 'llm',
+    diff: 5,
+    accent: '#34d399',
+    tagline: '把图片变成「视觉 token」塞进语言模型——同一个 Transformer，既读文字也读图。',
+    intro: {
+      what: '能同时理解图像与文本的大模型（GPT-4V、LLaVA、Qwen-VL）。核心是把视觉编码器输出的 patch 特征投影成与词向量同维的视觉 token，拼进 LLM 上下文一起做注意力。',
+      problem: '语言模型只吃 token 序列。图像是高维像素网格，既不是序列、也不在词表里，无法直接输入。',
+      idea: '用 ViT 把图像切成 patch 并编码，再用投影层（MLP/Q-Former）映射到 LLM 的词向量空间——于是图就变成了几十到几百个特殊 token，剩下的交给 LLM。'
+    },
+    principle: {
+      text: [
+        '视觉编码器：ViT 把图像切成 14×14 的 patch，输出每个 patch 的特征向量。',
+        '投影层：把视觉特征映射到 LLM 隐层维度（简单 MLP，或用 Q-Former 把上百 patch 压成 32 个 token）。',
+        '拼接与对齐：视觉 token 与文本 token 一起送入 LLM；训练分两阶段（先对齐投影层，再指令微调）。'
+      ],
+      formula: {
+        html: '<span class="fn">h</span><sub>v</sub> = <span class="fn">Proj</span>(<span class="fn">ViT</span>(<span class="fn">patches</span>))　→　[<span class="fn">h</span><sub>v</sub>; <span class="fn">E</span><sub>text</sub>] → <span class="fn">LLM</span>',
+        note: '视觉 token 与文本 token 拼接后一起送入语言模型，由注意力自然完成跨模态对齐。'
+      }
+    },
+    example: {
+      analogy: '给只懂文字的人配一个翻译官：翻译官（ViT + 投影层）把照片翻译成他能读的描述词序列，于是他能一边看描述一边回答问题。',
+      mini: 'LLaVA 的极简配方：冻结 ViT + 冻结 LLM，只训一个线性投影层，就能让 7B 语言模型看图问答——成本低到单机可复现。'
+    },
+    pros: ['一个模型同时处理图文，支持看图问答/OCR/图表理解', '复用成熟 LLM 的语言与推理能力', '架构简单（ViT + 投影 + LLM），易扩展'],
+    cons: ['视觉 token 占用大量上下文，长图/多图成本高', '细粒度空间推理（计数、位置）仍弱', '幻觉更隐蔽（会看图编造）'],
+    history: [
+      { year: '2021', text: 'CLIP 用对比学习对齐图文，提供视觉编码基础。' },
+      { year: '2022', text: 'Flamingo 用交叉注意力做少样本图文学习。' },
+      { year: '2023', text: 'LLaVA / MiniGPT-4 用投影层把 ViT 接到 LLM，开源方案爆发。' },
+      { year: '2024+', text: '原生多模态（统一 tokenizer）与视频理解成为方向。' }
+    ],
+    use: ['看图问答、文档/票据 OCR 与理解', '图表与截图分析、UI 自动化', '多模态 Agent（Computer Use）的感知前端'],
+    avoid: ['需要精确计数/空间测量的任务', '超高清图像（token 成本爆炸）', '对事实准确性零容忍的场景'],
+    learn: [
+      '在演示里看图像 patch 如何变成视觉 token 并拼进文本序列。',
+      '理解 <strong>投影层</strong> 在解决什么（维度与语义空间对齐）。',
+      '搞清 <strong>CLIP 对比学习</strong> 与 <strong>生成式 VLM</strong> 的区别。',
+      '知道 <strong>视觉 token 数量</strong> 如何影响成本与长上下文。'
+    ],
+    demo: { id: 'vlm', title: 'VLM · 视觉 token 拼接演示', note: '切换不同输入（图片 / 图表 / 代码截图），看图像被切成多少视觉 token，以及它如何与文本拼接。' }
   }
 ];

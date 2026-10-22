@@ -4428,6 +4428,228 @@
     draw();
   }
 
+  // ============================================================
+  // 集成学习 · 提升树的两种生长策略
+  // ============================================================
+  function gbdt(container) {
+    const d = demoShell('提升树 · 两种生长策略', '切换 level-wise / leaf-wise，逐步展开节点，看它们的生长顺序与树形差异。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 400);
+    // 3 层二叉树：id, depth, 横向位置(0..7), gain
+    const NODES = [
+      { id: 0, depth: 0, pos: 4, gain: 0, parent: -1 },
+      { id: 1, depth: 1, pos: 2, gain: 3.2, parent: 0 },
+      { id: 2, depth: 1, pos: 6, gain: 1.8, parent: 0 },
+      { id: 3, depth: 2, pos: 1, gain: 1.2, parent: 1 },
+      { id: 4, depth: 2, pos: 3, gain: 2.5, parent: 1 },
+      { id: 5, depth: 2, pos: 5, gain: 0.6, parent: 2 },
+      { id: 6, depth: 2, pos: 7, gain: 0.9, parent: 2 }
+    ];
+    let mode = 'level', expanded, seq, stepNo;
+    function reset() { expanded = [false, false, false, false, false, false, false]; seq = [-1, -1, -1, -1, -1, -1, -1]; stepNo = 0; }
+    function step() {
+      const avail = NODES.filter(n => !expanded[n.id] && (n.parent === -1 || expanded[n.parent]));
+      if (!avail.length) return;
+      let pick;
+      if (mode === 'level') {
+        const minDepth = Math.min.apply(null, avail.map(n => n.depth));
+        pick = avail.filter(n => n.depth === minDepth).sort((a, b) => b.gain - a.gain)[0];
+      } else {
+        pick = avail.slice().sort((a, b) => b.gain - a.gain)[0];
+      }
+      expanded[pick.id] = true;
+      seq[pick.id] = ++stepNo;
+    }
+    const PX = n => 90 + n.pos * 82;
+    const PY = n => 90 + n.depth * 95;
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      // 边
+      NODES.forEach(n => {
+        if (n.parent < 0) return;
+        const p = NODES[n.parent];
+        ctx.strokeStyle = (expanded[n.id] && expanded[p.id]) ? 'rgba(0,212,255,0.55)' : 'rgba(120,145,200,0.18)';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(PX(p), PY(p) + 22); ctx.lineTo(PX(n), PY(n) - 22); ctx.stroke();
+      });
+      // 节点
+      NODES.forEach(n => {
+        const x = PX(n), y = PY(n);
+        const on = expanded[n.id];
+        const isLeafGrow = mode === 'leaf' && on && n.depth === 2;
+        ctx.fillStyle = on ? (isLeafGrow ? C.magenta : C.cyan) : 'rgba(120,145,200,0.10)';
+        ctx.globalAlpha = on ? 0.9 : 1;
+        ctx.beginPath(); ctx.arc(x, y, 21, 0, 7); ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = on ? (isLeafGrow ? C.magenta : C.cyan) : C.axis;
+        ctx.lineWidth = on ? 2 : 1;
+        ctx.stroke();
+        text(ctx, on ? String(seq[n.id]) : '·', x, y - 2, on ? '#08111f' : C.muted || C.text, 'center', 13);
+        if (n.id !== 0) text(ctx, 'gain ' + n.gain.toFixed(1), x, y + 34, on ? C.text : (C.muted || C.text), 'center', 9);
+      });
+      const nExp = expanded.filter(Boolean).length;
+      text(ctx, (mode === 'level' ? 'level-wise（按层铺开）' : 'leaf-wise（挑增益最大的叶子）') +
+        '　已展开 ' + nExp + '/7 个节点', 70, 32, C.yellow, 'left', 13);
+      text(ctx, mode === 'level'
+        ? '先把同一层的节点全部展开，树形整齐、深度可控，但会浪费在低增益的分裂上'
+        : '每次都分裂「增益最高」的叶子，同等叶子数下损失更低；代价是树更容易长歪，需要限制深度/叶子数',
+        70, H - 40, C.text, 'left', 11);
+      text(ctx, '圆内数字 = 该节点的展开顺序；灰色 = 尚未展开', 70, H - 20, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeSelect([
+      { value: 'level', label: 'level-wise（按层）' },
+      { value: 'leaf', label: 'leaf-wise（按增益）' }
+    ], v => { mode = v; reset(); draw(); }));
+    d.controls.appendChild(makeButton('下一层', () => { step(); draw(); }, true));
+    d.controls.appendChild(makeButton('重置', () => { reset(); draw(); }));
+    reset(); draw();
+  }
+
+  // ============================================================
+  // 监督学习 · GLM 三种链接函数
+  // ============================================================
+  function glm(container) {
+    const d = demoShell('GLM · 三种链接函数', '拖动线性预测 η，看恒等 / logit / log 三种链接把同一个 η 映射到完全不同的取值范围。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 420);
+    let eta = 0.8;
+    const box = { l: 80, r: 700, t: 110, b: 330 };
+    const XR = [-4, 4], YR = [-1.5, 4.5];
+    const links = [
+      { name: '恒等（线性回归）', col: C.cyan, f: e => e, note: '可任意取值，含负数' },
+      { name: 'logit（逻辑回归）', col: C.green, f: e => 1 / (1 + Math.exp(-e)), note: '恒在 0~1，即概率' },
+      { name: 'log（泊松回归）', col: C.orange, f: e => Math.exp(e), note: '恒为正，适合计数' }
+    ];
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      const sx = v => box.l + (v - XR[0]) / (XR[1] - XR[0]) * (box.r - box.l);
+      const sy = v => box.b - (clamp(v, YR[0], YR[1]) - YR[0]) / (YR[1] - YR[0]) * (box.b - box.t);
+      // 网格刻度
+      ctx.strokeStyle = 'rgba(120,145,200,0.18)'; ctx.setLineDash([3, 4]); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(box.l, sy(0)); ctx.lineTo(box.r, sy(0)); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(sx(0), box.t); ctx.lineTo(sx(0), box.b); ctx.stroke(); ctx.setLineDash([]);
+      text(ctx, 'μ = g⁻¹(η)', box.l - 6, box.t - 12, C.text, 'left', 11);
+
+      links.forEach(L => {
+        ctx.strokeStyle = L.col; ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        let on = false;
+        for (let k = 0; k <= 240; k++) {
+          const e = XR[0] + (XR[1] - XR[0]) * k / 240;
+          const v = L.f(e);
+          if (v > YR[1] + 0.6 || v < YR[0] - 0.6) { on = false; continue; }
+          const x = sx(e), y = sy(v);
+          if (!on) { ctx.moveTo(x, y); on = true; } else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      });
+      // 当前 η 位置的三个 μ
+      links.forEach((L, i) => {
+        const v = L.f(eta);
+        const x = sx(eta), y = sy(v);
+        ctx.fillStyle = L.col;
+        ctx.beginPath(); ctx.arc(x, y, 6, 0, 7); ctx.fill();
+        const label = L.name.split('（')[0] + ' μ=' + round(v, 2);
+        text(ctx, label, x + 10, y + (i - 1) * 16, L.col, 'left', 10);
+      });
+      // η 竖线
+      ctx.strokeStyle = C.yellow; ctx.setLineDash([4, 4]); ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(sx(eta), box.t); ctx.lineTo(sx(eta), box.b); ctx.stroke(); ctx.setLineDash([]);
+      text(ctx, 'η = ' + round(eta, 2), sx(eta), box.b + 18, C.yellow, 'center', 11);
+
+      // 图例
+      links.forEach((L, i) => {
+        const x = 80 + i * 215;
+        ctx.fillStyle = L.col; ctx.fillRect(x, 372, 16, 3.5);
+        text(ctx, L.name, x + 22, 376, L.col, 'left', 11);
+      });
+      text(ctx, '同一个线性预测 η = Xβ，经过不同链接函数被「掰」到各自的合法范围——模型骨架完全相同', 70, 30, C.yellow, 'left', 12);
+      text(ctx, '恒等链接在 η<0 时给出负值（对计数/概率不合法）；logit 压缩到 0~1；log 保证恒为正', 70, H - 18, C.text, 'left', 11);
+    }
+    d.controls.appendChild(makeRange(-4, 4, 0.05, eta, v => { eta = v; draw(); }, '线性预测 η'));
+    draw();
+  }
+
+  // ============================================================
+  // LLM · 多模态视觉 token 拼接
+  // ============================================================
+  function vlm(container) {
+    const d = demoShell('VLM · 视觉 token 拼接', '拖动图像边长，看它被切成多少视觉 token；这些 token 与文本拼接后一起进入语言模型。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 420);
+    const PATCH = 14;
+    let side = 336;
+    const TEXT_TOKENS = 24;
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const patchN = Math.round(side / PATCH);        // 每边 patch 数
+      const vis = patchN * patchN;
+      const total = vis + TEXT_TOKENS;
+      const ctxWin = 8192;
+
+      // 左：图像 patch 网格
+      const bx = 70, by = 110, bs = 190;
+      ctx.fillStyle = 'rgba(0,212,255,0.06)';
+      ctx.fillRect(bx, by, bs, bs);
+      ctx.strokeStyle = C.axis; ctx.lineWidth = 1; ctx.strokeRect(bx, by, bs, bs);
+      const showN = Math.min(patchN, 16);               // 显示上限，避免太密
+      const cell = bs / showN;
+      for (let i = 0; i < showN; i++) for (let j = 0; j < showN; j++) {
+        const c = ((i * 7 + j * 13) % 5);
+        ctx.fillStyle = 'rgba(' + [0, 255, 184, 160, 120][c] + ',' + [190, 122, 107, 180, 220][c] + ',' + [255, 198, 255, 92, 255][c] + ',0.22)';
+        ctx.fillRect(bx + j * cell + 0.5, by + i * cell + 0.5, cell - 1, cell - 1);
+      }
+      text(ctx, '图像切成 ' + patchN + '×' + patchN + ' 个 patch', bx, by - 12, C.text, 'left', 11);
+      text(ctx, '（' + side + 'px ÷ ' + PATCH + 'px/patch，显示上限 16×16）', bx, by + bs + 18, C.text, 'left', 10);
+
+      // 中：视觉 tokens
+      const tx = 300, ty = 130, perRow = 12, tw = 16, th = 16, tg = 4;
+      text(ctx, '视觉 token（' + vis + ' 个）', tx, ty - 14, C.green, 'left', 11);
+      const drawN = Math.min(vis, perRow * 9);
+      for (let k = 0; k < drawN; k++) {
+        const r = Math.floor(k / perRow), c = k % perRow;
+        ctx.fillStyle = 'rgba(0,230,160,0.5)';
+        ctx.fillRect(tx + c * (tw + tg), ty + r * (th + tg), tw, th);
+      }
+      if (vis > drawN) text(ctx, '… 共 ' + vis + ' 个', tx, ty + 9 * (th + tg) + 10, C.green, 'left', 10);
+
+      // 文本 tokens
+      const tex = tx, tey = ty + 9 * (th + tg) + 30;
+      text(ctx, '文本 token（' + TEXT_TOKENS + ' 个）', tex, tey - 14, C.cyan, 'left', 11);
+      for (let k = 0; k < TEXT_TOKENS; k++) {
+        const c = k % 12, r = Math.floor(k / 12);
+        ctx.fillStyle = 'rgba(0,212,255,0.5)';
+        ctx.fillRect(tex + c * (tw + tg), tey + r * (th + tg), tw, th);
+      }
+
+      // 右：送入 LLM
+      const lx = 560, ly = 150;
+      ctx.fillStyle = 'rgba(255,122,198,0.16)';
+      ctx.fillRect(lx, ly, 160, 120);
+      ctx.strokeStyle = C.magenta; ctx.lineWidth = 1.6; ctx.strokeRect(lx, ly, 160, 120);
+      text(ctx, 'LLM', lx + 80, ly + 46, C.magenta, 'center', 18);
+      text(ctx, '自注意力跨模态', lx + 80, ly + 74, C.text, 'center', 10);
+      text(ctx, '总序列 ' + total, lx + 80, ly + 96, C.yellow, 'center', 11);
+      // 箭头
+      ctx.strokeStyle = 'rgba(0,212,255,0.5)'; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(tx + 12 * (tw + tg) + 6, ly + 60); ctx.lineTo(lx - 8, ly + 60); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(lx - 8, ly + 60); ctx.lineTo(lx - 16, ly + 55); ctx.lineTo(lx - 16, ly + 65); ctx.closePath(); ctx.fillStyle = 'rgba(0,212,255,0.5)'; ctx.fill();
+
+      // 上下文占用
+      const barY = 372, barW = 640;
+      ctx.fillStyle = C.axis; ctx.fillRect(70, barY, barW, 14);
+      ctx.fillStyle = C.green; ctx.fillRect(70, barY, barW * Math.min(1, vis / ctxWin), 14);
+      ctx.fillStyle = C.cyan; ctx.fillRect(70 + barW * Math.min(1, vis / ctxWin), barY, barW * (TEXT_TOKENS / ctxWin), 14);
+      text(ctx, '占 8K 上下文 ' + (total / ctxWin * 100).toFixed(1) + '%', 70, barY - 10, C.text, 'left', 11);
+
+      text(ctx, '图像 ' + side + 'px → ' + vis + ' 个视觉 token（文本仅 ' + TEXT_TOKENS + ' 个）', 70, 34, C.yellow, 'left', 13);
+      text(ctx, '分辨率翻倍，视觉 token 变 4 倍——这是多模态模型「看图贵」的根本原因，也是 Q-Former 之类压缩模块要解决的问题', 70, H - 18, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeRange(112, 1024, 14, side, v => { side = v; draw(); }, '图像边长'));
+    draw();
+  }
+
   window.MLDemos = {
     dist: dist, linear: linear, logistic: logistic, tree: tree, forest: forest,
     xgboost: xgboost, svm: svm, kmeans: kmeans, pca: pca, mlp: mlp, rnn: rnn, lstm: lstm, seq: seq,
@@ -4443,6 +4665,7 @@
     token: token, bert: bert, ssl: ssl, gnn: gnn,
     distill: distill, moe: moe, causal: causal, mlops: mlops,
     arima: arima, posenc: posenc, inference: inference,
-    pg: pg, dqn: dqn
+    pg: pg, dqn: dqn,
+    gbdt: gbdt, glm: glm, vlm: vlm
   };
 })();
