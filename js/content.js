@@ -55,7 +55,7 @@ const ROADMAP = [
   {
     title: '深度学习',
     color: '#ff7ac6',
-    items: ['神经网络 MLP', 'CNN 卷积网络', '自编码器', 'RNN / LSTM / GRU', 'Transformer 注意力', '自监督与对比学习', '图神经网络']
+    items: ['神经网络 MLP', 'CNN 卷积网络', '自编码器', 'RNN / LSTM / GRU', 'Transformer 注意力', '自监督与对比学习', '图神经网络', '知识蒸馏与 MoE']
   },
   {
     title: '进阶与应用',
@@ -85,7 +85,7 @@ const ROADMAP = [
   {
     title: '工程方法论',
     color: '#f59e0b',
-    items: ['特征工程', '模型评估与调参', '序列预测·时间序列', '部署上线']
+    items: ['特征工程', '模型评估与调参', '因果推断', '序列预测·时间序列', 'MLOps 与监控']
   }
 ];
 
@@ -1603,6 +1603,104 @@ const TOPICS = [
   },
 
   {
+    id: 'distill',
+    num: '58',
+    emoji: '🎓',
+    name: '知识蒸馏与模型压缩',
+    en: 'Knowledge Distillation & Model Compression',
+    cat: 'dl',
+    diff: 4,
+    accent: '#ff7ac6',
+    tagline: '让大模型当老师，把「暗知识」教给小模型——精度不降，体积和延迟先降一个数量级。',
+    intro: {
+      what: '用一个大的「教师模型」指导小的「学生模型」训练。学生不只学真实标签（硬标签），还学教师输出的完整概率分布（软标签）。同时还包括剪枝、量化等压缩手段。',
+      problem: '大模型精度高但推理慢、显存吃紧、上不了端侧。直接训一个小模型又精度不够。',
+      idea: '教师的输出分布里含有「类别之间的相似性」——比如把「猫」错分成「狗」的概率远高于「汽车」，这种暗知识比 one-hot 标签信息量大得多，学生学到它能以小博大。'
+    },
+    principle: {
+      text: [
+        '软标签：用温度 T 把教师 logits 的 softmax 平滑化，T 越大分布越软、暗知识越明显。',
+        '损失：L = α·CE(学生, 硬标签) + (1−α)·T²·KL(学生_T ‖ 教师_T)，T² 用来补偿梯度被 T 缩小。',
+        '工程配套：剪枝（去掉不重要的权重/通道）、量化（FP32→INT8/4bit）、蒸馏三者常组合使用。'
+      ],
+      formula: {
+        html: '<span class="fn">p</span><sub>i</sub>(<span class="sym">T</span>) = <span class="frac"><span class="num">exp(<span class="sym">z</span><sub>i</sub>/<span class="sym">T</span>)</span><span class="den">Σ<sub>j</sub> exp(<span class="sym">z</span><sub>j</sub>/<span class="sym">T</span>)</span></span>',
+        note: '带温度的 softmax：T=1 是原始分布，T 越大分布越平坦，类间关系（暗知识）越清楚。'
+      }
+    },
+    example: {
+      analogy: '老教授带学生：不只告诉学生「这题选 B」（硬标签），还会说「这题 B 最像、C 有一点点像、A 完全不像」——后者包含的判断题感，才是真正值钱的东西。',
+      mini: '在 MNIST 上，教师对某个「3」可能给出 [0.7, 0.02, 0.2, 0.05, ...]，其中对「8」的 0.2 就是在提醒学生「3 和 8 长得像」。这正是硬标签给不了的信息。'
+    },
+    pros: ['小模型达到接近大模型的精度', '推理延迟/显存/成本显著下降', '可与剪枝、量化叠加，压缩比更大'],
+    cons: ['需要先训好教师，流程更长', '温度、α 等超参需要调', '教师与学生容量差太大时效果下降'],
+    history: [
+      { year: '2015', text: 'Hinton 等提出知识蒸馏，用软标签传递暗知识。' },
+      { year: '2019', text: 'DistilBERT 把 BERT 压到 60% 参数、保留 97% 性能。' },
+      { year: '2020s', text: '量化（INT8/4bit）与剪枝工业化，成为端侧部署标配。' },
+      { year: '2023+', text: '大模型蒸馏（用 GPT-4 输出训小模型）成为常见做法。' }
+    ],
+    use: ['端侧/移动端部署', '大模型能力下沉到小模型', '降低推理成本与延迟'],
+    avoid: ['教师本身质量差（垃圾进垃圾出）', '学生容量过小（学不动）', '对精度零容忍的场景'],
+    learn: [
+      '在演示里拖温度 T，看「暗知识」如何从被压平到显现。',
+      '理解 <strong>软标签比硬标签信息量大</strong> 在哪。',
+      '搞清损失里的 <strong>T² 补偿</strong> 是干什么的。',
+      '知道 <strong>蒸馏 / 剪枝 / 量化</strong> 三者的分工。'
+    ],
+    demo: { id: 'distill', title: '蒸馏 · 温度与暗知识', note: '拖动温度 T，看教师输出从「硬」变「软」，小类别之间的相似性（暗知识）逐渐显现。' }
+  },
+
+  {
+    id: 'moe',
+    num: '59',
+    emoji: '🎛️',
+    name: '混合专家 MoE',
+    en: 'Mixture of Experts',
+    cat: 'dl',
+    diff: 4,
+    accent: '#ff7ac6',
+    tagline: '参数扩十倍、算力只增一点——用「按需激活」把大模型的成本摊薄。',
+    intro: {
+      what: '把前馈层拆成多个「专家」子网络，再用一个门控网络（router）对每个 token 只激活其中少数几个（top-k），输出按门控权重加权求和。',
+      problem: '稠密模型要提升能力就得加参数，但每次前向都要算全部参数，成本线性上涨。',
+      idea: '稀疏激活：总参数可以很大（几十上百个专家），但每个 token 只走 2 个专家，计算量只跟激活的专家数有关。'
+    },
+    principle: {
+      text: [
+        '门控：router 对 token 打分，softmax 得到各专家权重，取 top-k（常见 k=2）。',
+        '加权求和：输出 = Σ (g_i · Expert_i(x))，未选中的专家不参与计算。',
+        '负载均衡：若某些专家被过度使用会退化，训练时加 auxiliary loss 鼓励均匀分配。'
+      ],
+      formula: {
+        html: '<span class="sym">y</span> = Σ<sub>i∈TopK</sub> <span class="sym">g</span><sub>i</sub>(<span class="sym">x</span>) · <span class="fn">E</span><sub>i</sub>(<span class="sym">x</span>),　<span class="sym">g</span> = <span class="fn">softmax</span>(<span class="fn">TopK</span>(<span class="fn">Router</span>(<span class="sym">x</span>)))',
+        note: 'MoE 层：router 选 top-k 专家，只对这些专家的输出按门控权重加权求和。'
+      }
+    },
+    example: {
+      analogy: '医院分诊：不用每次都叫全部科室会诊，护士（router）看一眼就分给最对口的两个科室（专家），既省资源又专业。',
+      mini: 'Mixtral 8×7B：总参数 47B，但每个 token 只激活 2 个专家（约 13B 计算量），效果接近更大的稠密模型而推理更便宜。'
+    },
+    pros: ['参数量与计算量解耦，可扩展到超大模型', '不同专家可特化到不同领域/语言', '推理成本远低于同等参数的稠密模型'],
+    cons: ['显存仍需装下全部专家（内存不省）', '路由不稳定，需负载均衡损失', '训练与分布式实现更复杂'],
+    history: [
+      { year: '1991', text: 'Jacobs 等提出混合专家（MoE）雏形。' },
+      { year: '2017', text: '稀疏门控 MoE 用于大规模语言模型（Shazeer 等）。' },
+      { year: '2021', text: 'Switch Transformer 简化为 top-1 路由，验证超大规模可行性。' },
+      { year: '2023+', text: 'Mixtral、DeepSeek-MoE 等把 MoE 推向主流开源模型。' }
+    ],
+    use: ['超大规模语言模型（降推理成本）', '多语言/多领域模型（专家特化）', '端云协同的稀疏推理'],
+    avoid: ['显存受限的端侧（专家仍要全部加载）', '小模型（稀疏收益不明显）', '对延迟方差敏感的服务'],
+    learn: [
+      '在演示里切换不同 token，看 router 如何把它分给不同的专家组合。',
+      '理解 <strong>top-k 稀疏激活</strong> 为什么能「参数大、算力小」。',
+      '搞清 <strong>负载均衡损失</strong> 在防什么（专家坍缩）。',
+      '对比 <strong>MoE 与稠密模型</strong> 的显存/算力取舍。'
+    ],
+    demo: { id: 'moe', title: 'MoE · 门控路由演示', note: '切换不同 token，看 router 打分、top-k 选择与加权输出，体会「按需激活」。' }
+  },
+
+  {
     id: 'seq',
     num: '12',
     emoji: '⏳',
@@ -2926,5 +3024,103 @@ const TOPICS = [
       '了解 AutoGen / CrewAI / LangGraph 等框架。'
     ],
     demo: { id: 'multiagent', title: '多智能体 · 协作演示', note: '三个角色 Agent 依次交接，看一段内容如何经「研究→写作→审校」逐步打磨成型。' }
+  },
+
+  {
+    id: 'causal',
+    num: '60',
+    emoji: '🧭',
+    name: '因果推断',
+    en: 'Causal Inference',
+    cat: 'method',
+    diff: 4,
+    accent: '#f59e0b',
+    tagline: '相关不等于因果——混淆变量能把「零效果」伪装成「有效」，也能把「有害」藏起来。',
+    intro: {
+      what: '从观测数据中估计「干预/处理」对结果的真实因果效应，而不是仅仅拟合相关性。核心工具包括随机对照试验、倾向得分、双重差分、工具变量、Do-Why 等。',
+      problem: '观测数据里，处理组与对照组的差异混杂了混淆变量的影响。例如「吃冰淇淋多的人溺水多」——真正的推手是气温。',
+      idea: '用因果图（DAG）明确假设，再通过分层/匹配/回归把混淆变量「控制住」，或利用随机化/自然实验切断混淆路径，得到可解释的效应估计。'
+    },
+    principle: {
+      text: [
+        '混淆变量 Z：同时影响处理 T 和结果 Y，若不控制，会把 Z 的影响算到 T 头上（辛普森悖论就源于此）。',
+        '调整公式（后门准则）：P(Y|do(T)) = Σ_z P(Y|T,Z=z)·P(Z=z)，即在每个 Z 层内比较再按分布加权。',
+        '随机化是黄金标准：随机分配 T 使其与所有 Z 独立，从而 d-分离所有后门路径，差异即为因果效应。'
+      ],
+      formula: {
+        html: '<span class="fn">ATE</span> = <span class="fn">E</span>[<span class="sym">Y</span> | <span class="fn">do</span>(<span class="sym">T</span>=1)] − <span class="fn">E</span>[<span class="sym">Y</span> | <span class="fn">do</span>(<span class="sym">T</span>=0)]',
+        note: 'ATE 是「干预」下的期望差，不是「观测到」的条件期望差；do() 表示主动施加处理。'
+      }
+    },
+    example: {
+      analogy: '同一款药，吃药的人恢复得更快——但也许他们本来就年轻健康（混淆）。只有随机分配谁吃谁不吃，才能确认是药的作用。',
+      mini: '某个门店做了促销，销售额上涨，但同期整体需求也在涨。要估计促销的真实效果，必须把「大盘趋势」这个混淆剥掉（双重差分就是干这个的）。'
+    },
+    pros: ['能回答「如果我做了 X 会怎样」这类决策问题', '摆脱「相关即因果」的误判', '在无法做 A/B 实验时仍可估计效应'],
+    cons: ['依赖因果图假设，假设错了结论就错', '观测数据里常存在未观测混淆', '对数据质量与样本量要求高'],
+    history: [
+      { year: '1974', text: 'Rubin 提出潜在结果框架（因果推断的现代基础）。' },
+      { year: '1995', text: 'Pearl 建立结构因果模型与 do-演算。' },
+      { year: '2000s', text: '倾向得分匹配、双重差分、工具变量在经济学/流行病学普及。' },
+      { year: '2020s', text: '因果推断与机器学习结合（DoWhy、因果森林），广泛用于业务决策。' }
+    ],
+    use: ['定价/促销/补贴的真实效果评估', '医疗与公共政策的效应评估', '无法做 A/B 实验时的离线评估'],
+    avoid: ['把所有回归系数都当成因果效应', '忽略未观测混淆就直接下结论', '因果图假设未经业务验证'],
+    learn: [
+      '在演示里拖「混淆强度」，看未调整的估计如何被高估。',
+      '理解 <strong>混淆变量</strong> 为什么会让相关偏离因果。',
+      '搞清 <strong>调整公式 / 后门准则</strong> 的直觉。',
+      '知道 <strong>随机实验</strong> 为什么是黄金标准。'
+    ],
+    demo: { id: 'causal', title: '因果推断 · 混淆偏差演示', note: '拖动混淆强度：只看相关会高估效应，控制混淆后估计才回到真实值。' }
+  },
+
+  {
+    id: 'mlops',
+    num: '61',
+    emoji: '🛠️',
+    name: 'MLOps 与模型监控',
+    en: 'MLOps & Model Monitoring',
+    cat: 'method',
+    diff: 3,
+    accent: '#f59e0b',
+    tagline: '模型上线只是开始——数据会漂移，模型会悄悄失效，监控才是它的生命维持系统。',
+    intro: {
+      what: '把模型从「训练脚本」变成「可持续运行的生产服务」的一整套工程实践：数据/特征管道、实验追踪、模型注册、灰度发布、在线监控与回滚。',
+      problem: '离线指标好不等于线上好。数据分布会变（漂移）、上游数据管道一改就崩、模型悄悄退化而你毫不知情。',
+      idea: '把模型的输入输出都监控起来：数据漂移、预测分布、业务指标、延迟与错误率。设阈值告警，并用「影子部署/灰度」降低上线风险。'
+    },
+    principle: {
+      text: [
+        '漂移监测：对比线上特征分布与训练分布的差异（PSI、KS、KL），超阈值就告警。',
+        '影子模式：新模型并行跑但不影响线上，先对比效果；再灰度放量（1%→10%→100%）。',
+        '闭环：监控发现退化 → 重训/回滚 → 重新评估上线，形成持续迭代。'
+      ],
+      formula: {
+        html: '<span class="fn">PSI</span> = Σ<sub>i</sub> (<span class="sym">a</span><sub>i</sub> − <span class="sym">e</span><sub>i</sub>) · ln(<span class="frac"><span class="num"><span class="sym">a</span><sub>i</sub></span><span class="den"><span class="sym">e</span><sub>i</sub></span></span>)',
+        note: '群体稳定性指数（PSI）：比较线上实际分布 a 与期望分布 e，>0.25 通常视为显著漂移。'
+      }
+    },
+    example: {
+      analogy: '汽车仪表盘：不是等抛锚了才知道问题，而是油温、胎压异常就先报警。模型监控就是模型的仪表盘。',
+      mini: '一个风控模型上线半年后，欺诈手法变了（数据漂移），召回率从 80% 掉到 55%——如果没监控，业务要过很久才发现损失。'
+    },
+    pros: ['及时发现退化，降低业务损失', '灰度/回滚让上线更安全', '沉淀数据与实验资产，加速迭代'],
+    cons: ['需要额外的基础设施与人力', '告警阈值难调（太灵敏会疲劳）', '真实标签往往滞后，监控本身有延迟'],
+    history: [
+      { year: '2015', text: 'MLOps 概念随「模型即服务」兴起。' },
+      { year: '2018', text: 'MLflow、Kubeflow 等工具链成熟。' },
+      { year: '2020s', text: '特征平台、模型注册、在线监控成为标配。' },
+      { year: '2023+', text: 'LLM 的可观测性（提示/输出/成本追踪）成为新课题。' }
+    ],
+    use: ['线上模型的持续运维', '风控/推荐等高频迭代场景', '合规要求高的行业（可追溯、可回滚）'],
+    avoid: ['一次性离线分析（不需要 MLOps）', '没有监控就大流量上线', '只盯准确率不看数据/延迟/成本'],
+    learn: [
+      '在演示里拖「漂移强度」，看准确率如何下降、何时触发告警。',
+      '理解 <strong>数据漂移 vs 概念漂移</strong> 的区别。',
+      '搞清 <strong>影子部署 / 灰度发布 / 回滚</strong> 的流程。',
+      '知道 <strong>PSI</strong> 等漂移指标的用法与阈值。'
+    ],
+    demo: { id: 'mlops', title: 'MLOps · 漂移监控演示', note: '拖动数据漂移强度，看线上分布偏离训练分布、准确率下滑，以及监控如何触发告警。' }
   }
 ];

@@ -3774,6 +3774,293 @@
     draw();
   }
 
+  // ============================================================
+  // 深度学习 · 知识蒸馏（温度与暗知识）
+  // ============================================================
+  function distill(container) {
+    const d = demoShell('蒸馏 · 温度与暗知识', '拖动温度 T，看教师输出从「硬」变「软」，小类别之间的相似性（暗知识）逐渐显现。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 400);
+    const LOGITS = [3.0, 1.5, 0.5, 0.2, -0.5];
+    const NAMES = ['猫', '狗', '狐狸', '汽车', '飞机'];
+    let T = 1.0;
+    const softmaxT = (z, t) => {
+      const m = Math.max.apply(null, z);
+      const e = z.map(v => Math.exp((v - m) / t));
+      const s = e.reduce((a, b) => a + b, 0);
+      return e.map(v => v / s);
+    };
+    const L = { l: 70, r: 370, t: 110, b: 320 };
+    const R = { l: 450, r: 740, t: 110, b: 320 };
+    function bars(box, probs, color, title) {
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      text(ctx, title, box.l, box.t - 12, color, 'left', 12);
+      const maxW = box.r - box.l - 110;
+      probs.forEach((p, i) => {
+        const y = box.t + 30 + i * 34;
+        ctx.fillStyle = color; ctx.globalAlpha = 0.8;
+        ctx.fillRect(box.l + 58, y - 9, Math.max(1, p * maxW), 16);
+        ctx.globalAlpha = 1;
+        text(ctx, NAMES[i], box.l + 50, y - 1, C.text, 'right', 12);
+        text(ctx, (p * 100).toFixed(1) + '%', box.l + 64 + Math.max(1, p * maxW), y - 1, C.text, 'left', 11);
+      });
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const hard = [1, 0, 0, 0, 0];
+      const soft = softmaxT(LOGITS, T);
+      bars(L, hard, C.orange, '硬标签（真实类别，one-hot）');
+      bars(R, soft, C.green, '教师软标签（温度 T = ' + round(T, 1) + '）');
+      // 暗知识标注：指认第 2、3 类
+      if (T >= 2) {
+        const y = R.t + 30 + 1 * 34;
+        ctx.strokeStyle = C.yellow; ctx.setLineDash([3, 3]); ctx.lineWidth = 1;
+        ctx.strokeRect(R.l + 54, y - 15, R.r - R.l - 60, 54);
+        ctx.setLineDash([]);
+        text(ctx, '← 硬标签里是 0，软标签里仍有可观概率 = 暗知识', R.l + 60, R.b + 18, C.yellow, 'left', 10);
+      }
+      text(ctx, '教师 logits = [' + LOGITS.join(', ') + ']　温度 T = ' + round(T, 1), 70, 42, C.yellow, 'left', 13);
+      text(ctx, 'T=1 接近硬标签；T 越大分布越平，但类别之间的相对关系（谁像谁）被保留下来，这才是学生要学的', 70, H - 30, C.text, 'left', 11);
+    }
+    d.controls.appendChild(makeRange(0.5, 8, 0.1, T, v => { T = v; draw(); }, '温度 T'));
+    draw();
+  }
+
+  // ============================================================
+  // 深度学习 · MoE 门控路由
+  // ============================================================
+  function moe(container) {
+    const d = demoShell('MoE · 门控路由演示', '切换不同 token，看 router 打分、top-2 选择与加权输出，体会「参数大、算力小」。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 400);
+    const TOKENS = {
+      cat: { name: '「猫」', logits: [3.0, 0.4, 2.2, 0.3] },
+      code: { name: '「for 循环」', logits: [0.3, 3.2, 0.4, 2.6] },
+      math: { name: '「矩阵乘法」', logits: [2.4, 0.6, 0.5, 3.1] }
+    };
+    let cur = 'cat';
+    const EXPERT = ['E1 通用', 'E2 代码', 'E3 语义', 'E4 数学'];
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const t = TOKENS[cur];
+      const z = t.logits;
+      const m = Math.max.apply(null, z);
+      const e = z.map(v => Math.exp(v - m));
+      const sum = e.reduce((a, b) => a + b, 0);
+      const g = e.map(v => v / sum);
+      const order = g.map((p, i) => ({ i: i, p: p })).sort((a, b) => b.p - a.p);
+      const top = order.slice(0, 2);
+      const topSum = top.reduce((s, o) => s + o.p, 0);
+
+      text(ctx, '输入 token：' + t.name, 70, 40, C.yellow, 'left', 13);
+      text(ctx, 'Router 打分（softmax 后）· 灰色 = 未被激活', 70, 72, C.text, 'left', 11);
+
+      // 门控条
+      const gx = 70, gy = 92, gw = 300;
+      g.forEach((p, i) => {
+        const y = gy + i * 34;
+        const on = top.some(o => o.i === i);
+        ctx.fillStyle = on ? C.cyan : C.axis;
+        ctx.globalAlpha = on ? 0.85 : 0.35;
+        ctx.fillRect(gx + 70, y - 9, Math.max(2, p * gw), 16);
+        ctx.globalAlpha = 1;
+        text(ctx, EXPERT[i], gx + 62, y - 1, on ? C.cyan : C.muted || C.text, 'right', 11);
+        text(ctx, (p * 100).toFixed(1) + '%', gx + 76 + Math.max(2, p * gw), y - 1, on ? C.white : C.muted || C.text, 'left', 11);
+      });
+
+      // 专家盒子
+      const ex = 470;
+      text(ctx, '专家（只算 top-2）', ex, 72, C.text, 'left', 11);
+      for (let i = 0; i < 4; i++) {
+        const y = 100 + i * 52;
+        const on = top.some(o => o.i === i);
+        ctx.fillStyle = on ? 'rgba(0,212,255,0.16)' : 'rgba(120,145,200,0.06)';
+        ctx.fillRect(ex, y - 18, 230, 36);
+        ctx.strokeStyle = on ? C.cyan : C.axis; ctx.lineWidth = on ? 2 : 1;
+        ctx.strokeRect(ex, y - 18, 230, 36);
+        text(ctx, EXPERT[i], ex + 12, y, on ? C.white : C.muted || C.text, 'left', 12);
+        text(ctx, on ? '✓ 激活' : '跳过', ex + 218, y, on ? C.green : C.axis, 'right', 11);
+      }
+
+      // 输出
+      const oy = 330;
+      ctx.strokeStyle = C.axis; ctx.strokeRect(70, oy - 20, 630, 46);
+      text(ctx, '输出 y = Σ gᵢ · Eᵢ(x)', 82, oy + 3, C.text, 'left', 12);
+      const parts = top.map(o => round(o.p / topSum, 2) + '×' + EXPERT[o.i].split(' ')[0]);
+      text(ctx, parts.join('　+　') + '　（其余两个专家不参与计算）', 250, oy + 3, C.green, 'left', 11);
+
+      text(ctx, '总参数 = 4 个专家；本次计算量 ≈ 2 个专家 → 参数量与算力解耦', 70, H - 34, C.text, 'left', 11);
+    }
+    d.controls.appendChild(makeSelect([
+      { value: 'cat', label: '「猫」（语义）' },
+      { value: 'code', label: '「for 循环」（代码）' },
+      { value: 'math', label: '「矩阵乘法」（数学）' }
+    ], v => { cur = v; draw(); }));
+    draw();
+  }
+
+  // ============================================================
+  // 方法论 · 因果推断（混淆偏差）
+  // ============================================================
+  function causal(container) {
+    const d = demoShell('因果推断 · 混淆偏差演示', '拖动混淆强度：只看相关会高估效应，控制混淆后估计才回到真实值（真实效应 = 1.00）。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 400);
+    const rng = makeRng(9911);
+    const N = 260;
+    // 处理分配的噪声与结果的噪声必须相互独立。若共用同一个噪声，
+    // 处理变量与误差项相关（内生性），即使「控制混淆」也估不出真实效应。
+    const Z = [], ET = [], EY = [];
+    for (let i = 0; i < N; i++) { Z.push(gauss(rng)); ET.push(gauss(rng)); EY.push(gauss(rng) * 0.4); }
+    let c = 0.9;
+    const TRUE = 1.0;
+    const box = { l: 60, r: 430, t: 100, b: 330 };
+    function build() {
+      const rows = [];
+      for (let i = 0; i < N; i++) {
+        const z = Z[i];
+        const t = (z + ET[i] * 0.6 > 0) ? 1 : 0;
+        const y = TRUE * t + c * z + EY[i];
+        rows.push({ t: t, z: z, y: y });
+      }
+      return rows;
+    }
+    function ols(rows) {
+      // y = b0 + b1*t + b2*z
+      const A = [[0, 0, 0], [0, 0, 0], [0, 0, 0]], b = [0, 0, 0];
+      rows.forEach(r => {
+        const x = [1, r.t, r.z];
+        for (let i = 0; i < 3; i++) { b[i] += x[i] * r.y; for (let j = 0; j < 3; j++) A[i][j] += x[i] * x[j]; }
+      });
+      for (let i = 0; i < 3; i++) A[i][i] += 1e-9;
+      return solveLinear(A, b);
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const rows = build();
+      const t1 = rows.filter(r => r.t === 1), t0 = rows.filter(r => r.t === 0);
+      const mean = a => a.reduce((s, r) => s + r.y, 0) / a.length;
+      const naive = mean(t1) - mean(t0);
+      const adj = ols(rows)[1];
+
+      // 左：散点（x = 混淆变量 Z，y = 结果 Y）
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      const zx = z => box.l + (clamp(z, -3, 3) + 3) / 6 * (box.r - box.l);
+      const yy = y => box.b - (clamp(y, -3.5, 4.5) + 3.5) / 8 * (box.b - box.t);
+      ctx.strokeStyle = 'rgba(120,145,200,0.3)'; ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(zx(0), box.t); ctx.lineTo(zx(0), box.b); ctx.stroke(); ctx.setLineDash([]);
+      rows.forEach(r => {
+        ctx.fillStyle = r.t === 1 ? 'rgba(0,230,160,0.75)' : 'rgba(255,122,198,0.7)';
+        ctx.beginPath(); ctx.arc(zx(r.z), yy(r.y), 2.6, 0, 7); ctx.fill();
+      });
+      text(ctx, '横轴 = 混淆变量 Z　纵轴 = 结果 Y（绿 = 处理组 T=1，粉 = 对照组 T=0）', box.l, box.t - 12, C.text, 'left', 11);
+
+      // 右：三种估计
+      const rx = 480, ry = 110, bw = 210;
+      const items = [
+        { label: '真实因果效应', v: TRUE, col: C.white },
+        { label: '未调整（只看相关）', v: naive, col: C.red },
+        { label: '控制 Z 之后', v: adj, col: C.green }
+      ];
+      const maxV = Math.max(2.2, naive + 0.3);
+      items.forEach((it, i) => {
+        const y = ry + i * 66;
+        ctx.fillStyle = it.col; ctx.globalAlpha = 0.8;
+        ctx.fillRect(rx + 120, y - 10, Math.max(2, it.v / maxV * bw), 20);
+        ctx.globalAlpha = 1;
+        text(ctx, it.label, rx + 112, y, C.text, 'right', 11);
+        text(ctx, it.v.toFixed(2), rx + 128 + Math.max(2, it.v / maxV * bw), y, it.col, 'left', 12);
+      });
+      // 真实值参考线
+      ctx.strokeStyle = 'rgba(255,255,255,0.45)'; ctx.setLineDash([4, 4]);
+      const refX = rx + 120 + TRUE / maxV * bw;
+      ctx.beginPath(); ctx.moveTo(refX, ry - 26); ctx.lineTo(refX, ry + 3 * 66); ctx.stroke(); ctx.setLineDash([]);
+      text(ctx, '真实值 1.00', refX, ry + 3 * 66 + 14, C.white, 'center', 10);
+
+      text(ctx, '混淆强度 c = ' + round(c, 2), 70, 40, C.yellow, 'left', 13);
+      text(ctx, '未调整估计 = ' + naive.toFixed(2) + '　控制混淆后 = ' + adj.toFixed(2) + '　（真实 = 1.00）', 70, 62, C.text, 'left', 11);
+      text(ctx, '混淆变量 Z 同时影响「是否处理」与「结果」，不控制它就会把 Z 的功劳错误地算到处理头上', 70, H - 28, C.text, 'left', 11);
+    }
+    d.controls.appendChild(makeRange(0, 1.5, 0.05, c, v => { c = v; draw(); }, '混淆强度'));
+    draw();
+  }
+
+  // ============================================================
+  // 方法论 · MLOps 漂移监控
+  // ============================================================
+  function mlops(container) {
+    const d = demoShell('MLOps · 漂移监控演示', '拖动数据漂移强度：线上分布逐渐偏离训练分布，准确率下滑，监控在超过阈值时告警。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 400);
+    let drift = 0.35;
+    const acc = drift ? (0.93 - 0.62 * Math.pow(drift, 1.4)) : 0.93;
+    const psi = drift * 0.62;
+    const ALERT_PSI = 0.25, ALERT_ACC = 0.75;
+    const box = { l: 60, r: 380, t: 96, b: 292 };
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const a = 0.93 - 0.62 * Math.pow(drift, 1.4);
+      const p = drift * 0.62;
+
+      // 左：训练分布 vs 线上分布
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      const xr = [-4, 6];
+      const tx = v => box.l + (v - xr[0]) / (xr[1] - xr[0]) * (box.r - box.l);
+      const dens = (v, mu) => Math.exp(-((v - mu) ** 2) / 2) / Math.sqrt(2 * Math.PI);
+      const curve = (mu, col) => {
+        ctx.strokeStyle = col; ctx.lineWidth = 2.2; ctx.beginPath();
+        for (let k = 0; k <= 240; k++) {
+          const v = xr[0] + (xr[1] - xr[0]) * k / 240;
+          const y = box.b - dens(v, mu) / 0.42 * (box.b - box.t - 12);
+          if (k === 0) ctx.moveTo(tx(v), y); else ctx.lineTo(tx(v), y);
+        }
+        ctx.stroke();
+      };
+      curve(0, C.cyan);
+      curve(drift * 3.2, C.magenta);
+      text(ctx, '训练分布（青） vs 线上分布（粉）', box.l, box.t - 12, C.text, 'left', 11);
+      text(ctx, '分布偏移 ' + round(drift * 3.2, 1) + 'σ', box.r - 8, box.t + 14, C.text, 'right', 10);
+
+      // 右：准确率随漂移下降
+      const rx = 440, ry = 110, rw = 290, rh = 180;
+      ctx.strokeStyle = C.axis; ctx.strokeRect(rx, ry, rw, rh);
+      const ax = d0 => rx + d0 * rw;
+      const ay = v => ry + rh - (v - 0.2) / 0.8 * rh;
+      ctx.strokeStyle = C.green; ctx.lineWidth = 2.2; ctx.beginPath();
+      for (let k = 0; k <= 100; k++) {
+        const d0 = k / 100;
+        const v = 0.93 - 0.62 * Math.pow(d0, 1.4);
+        if (k === 0) ctx.moveTo(ax(d0), ay(v)); else ctx.lineTo(ax(d0), ay(v));
+      }
+      ctx.stroke();
+      // 告警阈值
+      ctx.strokeStyle = C.red; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(rx, ay(ALERT_ACC)); ctx.lineTo(rx + rw, ay(ALERT_ACC)); ctx.stroke(); ctx.setLineDash([]);
+      text(ctx, '告警阈值 0.75', rx + 4, ay(ALERT_ACC) - 8, C.red, 'left', 10);
+      // 当前点
+      ctx.fillStyle = a < ALERT_ACC ? C.red : C.cyan;
+      ctx.beginPath(); ctx.arc(ax(drift), ay(a), 6, 0, 7); ctx.fill();
+      text(ctx, '准确率 0.93 → 当前 ' + a.toFixed(2), rx, ry - 12, C.text, 'left', 11);
+      text(ctx, '横轴 = 数据漂移强度', rx + rw, ry + rh + 12, C.text, 'right', 10);
+
+      // 指标卡片
+      const alert = (p > ALERT_PSI) || (a < ALERT_ACC);
+      const cy = 312;
+      ctx.fillStyle = alert ? 'rgba(255,107,107,0.16)' : 'rgba(0,230,160,0.14)';
+      ctx.fillRect(60, cy, 660, 42);
+      ctx.strokeStyle = alert ? C.red : C.green; ctx.lineWidth = 1.5;
+      ctx.strokeRect(60, cy, 660, 42);
+      text(ctx, (alert ? '⚠ 告警' : '✓ 正常') + '　PSI = ' + p.toFixed(2) + '（阈值 ' + ALERT_PSI + '）',
+        76, cy + 21, alert ? C.red : C.green, 'left', 13);
+      text(ctx, alert ? '建议：先回滚到上一版，再排查数据管道 / 重训' : '模型表现稳定，继续观察',
+        330, cy + 21, C.text, 'left', 12);
+
+      text(ctx, '数据漂移（输入分布变了）≠ 概念漂移（输入到输出的映射变了），两者都会让准确率悄悄下滑', 70, H - 20, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeRange(0, 1, 0.02, drift, v => { drift = v; draw(); }, '漂移强度'));
+    draw();
+  }
+
   window.MLDemos = {
     dist: dist, linear: linear, logistic: logistic, tree: tree, forest: forest,
     xgboost: xgboost, svm: svm, kmeans: kmeans, pca: pca, mlp: mlp, rnn: rnn, lstm: lstm, seq: seq,
@@ -3786,6 +4073,7 @@
     word2vec: word2vec, gpt: gpt, lora: lora, rlhf: rlhf, prompt: prompt,
     rag: rag, agent: agent, multiagent: multiagent,
     loss: loss, reg: reg, opt: opt, act: act,
-    token: token, bert: bert, ssl: ssl, gnn: gnn
+    token: token, bert: bert, ssl: ssl, gnn: gnn,
+    distill: distill, moe: moe, causal: causal, mlops: mlops
   };
 })();
