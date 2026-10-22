@@ -60,7 +60,7 @@ const ROADMAP = [
   {
     title: '进阶与应用',
     color: '#c084fc',
-    items: ['GAN 生成模型', '强化学习', '迁移学习', '推荐系统', '异常检测']
+    items: ['GAN 生成模型', '强化学习 · 策略梯度 · DQN', '迁移学习', '推荐系统', '异常检测']
   },
   {
     title: '计算机视觉',
@@ -1895,6 +1895,104 @@ const TOPICS = [
       '进阶看 <strong>DQN → 策略梯度 → PPO</strong> 的演进脉络。'
     ],
     demo: { id: 'rl', title: '强化学习 · 3D 价值地形', note: '拖拽旋转；每根柱子=一个状态的价值（max Q），点「训练」看它从平地长成通向终点的地形。' }
+  },
+
+  {
+    id: 'pg',
+    num: '65',
+    emoji: '🎯',
+    name: '策略梯度与 Actor-Critic',
+    en: 'Policy Gradient & Actor-Critic',
+    cat: 'rl',
+    diff: 5,
+    accent: '#ffd166',
+    tagline: '不学「每个动作值多少分」，而是直接调「该做什么」的概率——连续动作空间里这才是正路。',
+    intro: {
+      what: '直接对策略 π(a|s) 的参数求梯度、按回报高低调整动作概率的一类方法。Actor-Critic 用「演员」输出策略、「评论家」估计价值当作基线，降低方差。',
+      problem: 'Q-learning 需要对所有动作取 max，动作连续时无法穷举；而且价值只是间接推出策略，多绕一层。',
+      idea: '策略梯度定理：让高回报动作的概率上升、低回报的下降。再用一个可学习的基线 b(s) 减掉回报的常数部分，方差更小、训练更稳。'
+    },
+    principle: {
+      text: [
+        '策略梯度：∇J ≈ E[∇log π(a|s) · (R − b(s))]，括号里就是「比预期好多少」（优势）。',
+        '基线 b(s)：通常取状态价值 V(s)。减去它不改变梯度的期望，但能显著降低方差。',
+        'Actor-Critic：Actor 输出动作概率，Critic 用 TD 误差估计 V(s)；TD 误差本身就是优势的估计。'
+      ],
+      formula: {
+        html: '∇<span class="sym">J</span> = <span class="fn">E</span>[ ∇log π<sub><span class="sym">θ</span></sub>(a|s) · <span class="sym">A</span>(s,a) ]',
+        note: '策略梯度：沿「对数策略梯度 × 优势」方向更新，优势为正就提高该动作的概率。'
+      }
+    },
+    example: {
+      analogy: '教练带队员：不告诉每个动作打几分，而是直接说「刚才那招不错，多用；那招别用了」——按结果好坏调整习惯动作的倾向。',
+      mini: '三个动作真实回报 0.2 / 0.8 / 0.5。策略梯度不估计每个臂的值，而是不断把选中高回报臂的概率调高，最终大概率选中最好的那个。'
+    },
+    pros: ['天然支持连续/高维动作空间', '可学习随机策略（博弈里常需要混合策略）', 'Actor-Critic 方差低、收敛快'],
+    cons: ['梯度方差大、样本效率低', '对学习率与基线敏感', '容易陷入局部最优、训练不稳'],
+    history: [
+      { year: '1992', text: 'REINFORCE 提出基于蒙特卡洛回报的策略梯度。' },
+      { year: '2000', text: 'Actor-Critic 与自然梯度方法出现。' },
+      { year: '2015', text: 'A3C 用并行环境加速 Actor-Critic 训练。' },
+      { year: '2017', text: 'PPO 用裁剪替代复杂约束，成为通用默认算法（也是 RLHF 的基础）。' }
+    ],
+    use: ['连续控制（机器人、自动驾驶）', '需要随机策略的博弈场景', '大模型对齐（PPO 是 RLHF 的核心）'],
+    avoid: ['样本极贵的场景（优先 off-policy）', '奖励极稀疏又没有 shaping', '不做优势归一化就上大网络'],
+    learn: [
+      '在演示里看高回报动作的概率如何被一步步调高。',
+      '理解 <strong>优势 A = R − b(s)</strong> 为什么让更新方向更准。',
+      '搞清 <strong>Actor 与 Critic</strong> 各学什么、怎么互相喂信号。',
+      '知道 <strong>PPO</strong> 相对原始策略梯度改了什么（信任域/裁剪）。'
+    ],
+    demo: { id: 'pg', title: '策略梯度 · 概率调整演示', note: '采样动作、按回报更新策略概率，看概率如何向高回报动作集中。' }
+  },
+
+  {
+    id: 'dqn',
+    num: '66',
+    emoji: '🧠',
+    name: '深度强化学习 DQN',
+    en: 'Deep Q-Network (DQN)',
+    cat: 'rl',
+    diff: 5,
+    accent: '#ffd166',
+    tagline: 'Q 表装不下整个宇宙——用神经网络逼近 Q 函数，AI 才第一次学会了打游戏。',
+    intro: {
+      what: '用深度神经网络逼近动作价值函数 Q(s,a)，从而处理高维/连续状态空间；配合经验回放与目标网络两大技巧让训练稳定。',
+      problem: '表格型 Q-learning 要为每个状态单独存值。Atari 画面状态数天文级，Q 表根本装不下，且相邻状态之间无法共享知识。',
+      idea: '把 Q(s,a) 当成回归问题：用网络从状态特征预测价值。再用经验回放打散样本相关性、用目标网络冻结 TD 目标，缓解「致命三要素」导致的发散。'
+    },
+    principle: {
+      text: [
+        '函数逼近：Q(s,a) ≈ Q_θ(s,a)，损失为 TD 误差 (r + γ·max_a′ Q(s′,a′) − Q(s,a))²。',
+        '经验回放：把转移存入 buffer 再随机采样，打破时间强相关、提高样本利用率。',
+        '目标网络：TD 目标用一份冻结的旧参数计算，定期同步，避免「自己追自己」导致震荡发散。'
+      ],
+      formula: {
+        html: '<span class="fn">L</span>(<span class="sym">θ</span>) = <span class="fn">E</span>[ ( <span class="sym">r</span> + <span class="sym">γ</span>·<span class="fn">max</span><sub>a′</sub> Q<sub><span class="sym">θ</span>⁻</sub>(s′,a′) − Q<sub><span class="sym">θ</span></sub>(s,a) )² ]',
+        note: 'DQN 的 TD 损失：目标里用旧参数 θ⁻（目标网络）计算，训练更稳定。'
+      }
+    },
+    example: {
+      analogy: '打游戏靠「手感」而不是背棋谱：手感就是一个函数——看到什么局面大概值多少分。神经网络学的就是这个手感，还能举一反三到没见过的画面。',
+      mini: 'DQN 只用像素和得分作为输入，在打砖块上学会了绕到砖块上方、让球从背后连续得分的策略——人并没有教过它。'
+    },
+    pros: ['能处理高维状态（图像/连续特征）', '经验回放大幅提升样本效率', '是深度强化学习的里程碑与常用基线'],
+    cons: ['Q 值容易高估（max 操作偏乐观）', '训练不稳定、对超参敏感', '只适合离散动作空间'],
+    history: [
+      { year: '2013', text: 'DQN 在 Atari 上达到超越人类的水平（2015 年 Nature 发表）。' },
+      { year: '2015', text: 'Double DQN 缓解 Q 值高估。' },
+      { year: '2016', text: 'AlphaGo 结合深度网络与蒙特卡洛树搜索。' },
+      { year: '2018', text: 'Rainbow 整合六项改进，成为 DQN 系列集大成者。' }
+    ],
+    use: ['离散动作的游戏/仿真控制', '资源调度、推荐排序的 RL 建模', '教学与基线对比'],
+    avoid: ['连续动作空间（改用 DDPG/SAC/PPO）', '奖励极稀疏又无探索机制', '直接照搬超参到新任务'],
+    learn: [
+      '在演示里对比 <strong>Q 表（网格）与函数逼近</strong>，看泛化差异。',
+      '理解 <strong>经验回放</strong> 在打破什么相关性。',
+      '搞清 <strong>目标网络</strong> 为什么能防止发散。',
+      '知道 <strong>Double DQN / Dueling / Rainbow</strong> 各修了什么问题。'
+    ],
+    demo: { id: 'dqn', title: 'DQN · Q 表与函数逼近', note: '拖动网格数：Q 表只能记住离散格子且无法泛化，函数逼近能给出平滑的整条曲线。' }
   },
 
   {

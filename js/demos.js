@@ -4268,6 +4268,166 @@
     draw();
   }
 
+  // ============================================================
+  // 强化学习 · 策略梯度
+  // ============================================================
+  function pg(container) {
+    const d = demoShell('策略梯度 · 概率调整演示', '采样动作、按「比预期好多少」更新策略，看概率如何一步步向高回报动作集中。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 400);
+    const RNG = makeRng(6060);
+    const TRUE = [0.2, 0.8, 0.5];          // 三个动作的真实平均回报
+    const NAME = ['动作 A', '动作 B', '动作 C'];
+    let theta, pi, steps, sumR, base;
+    function reset() {
+      theta = [0, 0, 0];
+      pi = [1 / 3, 1 / 3, 1 / 3];
+      steps = 0; sumR = 0; base = 0;
+    }
+    function softmax(z) {
+      const m = Math.max.apply(null, z);
+      const e = z.map(v => Math.exp(v - m));
+      const s = e.reduce((a, b) => a + b, 0);
+      return e.map(v => v / s);
+    }
+    function sample() {
+      let r = RNG(), i = 0;
+      for (; i < pi.length - 1; i++) { r -= pi[i]; if (r <= 0) break; }
+      return Math.min(i, pi.length - 1);
+    }
+    function train(n) {
+      const lr = 0.12;
+      for (let k = 0; k < n; k++) {
+        const a = sample();
+        const reward = Math.max(0, TRUE[a] + gauss(RNG) * 0.25);
+        steps++; sumR += reward;
+        base = steps === 1 ? reward : base * 0.95 + reward * 0.05;   // 基线 = 回报的滑动平均
+        const adv = reward - base;
+        for (let j = 0; j < 3; j++) {
+          theta[j] += lr * adv * ((j === a ? 1 : 0) - pi[j]);
+        }
+        pi = softmax(theta);
+      }
+      draw();
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const bx = 90, by = 300, bw = 150, bh = 200, gap = 60;
+      // 基线（坐标轴）
+      ctx.strokeStyle = C.axis; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(bx - 20, by); ctx.lineTo(bx + 3 * (bw + gap), by); ctx.stroke();
+      for (let i = 0; i < 3; i++) {
+        const x = bx + i * (bw + gap);
+        const col = [C.cyan, C.green, C.orange][i];
+        // 概率条
+        const hh = pi[i] * bh;
+        ctx.fillStyle = col; ctx.globalAlpha = 0.22;
+        ctx.fillRect(x, by - bh, bw, bh);
+        ctx.globalAlpha = 0.9;
+        ctx.fillRect(x, by - hh, bw, hh);
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = col; ctx.strokeRect(x, by - bh, bw, bh);
+        text(ctx, NAME[i], x + bw / 2, by + 20, col, 'center', 12);
+        text(ctx, '概率 ' + (pi[i] * 100).toFixed(1) + '%', x + bw / 2, by - hh - 10, C.white, 'center', 11);
+        // 真实回报刻度
+        const ry = by - TRUE[i] * bh;
+        ctx.strokeStyle = C.yellow; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.moveTo(x - 8, ry); ctx.lineTo(x + bw + 8, ry); ctx.stroke(); ctx.setLineDash([]);
+        text(ctx, '真实回报 ' + TRUE[i].toFixed(1), x + bw + 10, ry, C.yellow, 'left', 10);
+      }
+      const avg = steps ? sumR / steps : 0;
+      text(ctx, '策略梯度 · softmax 参数化', 70, 34, C.yellow, 'left', 13);
+      text(ctx, '采样步数 ' + steps + '　平均回报 ' + round(avg, 3) + '　基线 b = ' + round(base, 3), 70, 56, C.text, 'left', 11);
+      text(ctx, '黄虚线 = 每个动作的真实平均回报；柱高 = 策略选中它的概率', 70, 78, C.text, 'left', 11);
+      text(ctx, '更新规则：θ += lr · (R − b) · (onehot(a) − π) —— 回报高于预期就抬高该动作概率', 70, H - 40, C.text, 'left', 11);
+      text(ctx, '注意基线 b 的作用：减掉它不改变期望方向，但让「优势」的波动小得多', 70, H - 20, C.text, 'left', 11);
+    }
+    d.controls.appendChild(makeButton('采样 50 步', () => train(50), true));
+    d.controls.appendChild(makeButton('采样 500 步', () => train(500)));
+    d.controls.appendChild(makeButton('重置', () => { reset(); draw(); }));
+    reset(); draw();
+  }
+
+  // ============================================================
+  // 强化学习 · DQN（Q 表 vs 函数逼近）
+  // ============================================================
+  function dqn(container) {
+    const d = demoShell('DQN · Q 表与函数逼近', '拖动网格数：Q 表只能记住离散格子、格与格之间不共享，函数逼近能给出平滑的整条曲线。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 400);
+    let bins = 10;
+    const TRUEQ = s => 0.5 + 0.4 * Math.sin(2 * Math.PI * s);   // 真实 Q*(s)
+    const box = { l: 80, r: 700, t: 90, b: 320 };
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      const sx = s => box.l + s * (box.r - box.l);
+      const qy = q => box.b - (q - 0.05) / 0.95 * (box.b - box.t);
+      // 真实 Q*
+      ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      for (let k = 0; k <= 200; k++) {
+        const s = k / 200, y = qy(TRUEQ(s));
+        if (k === 0) ctx.moveTo(sx(s), y); else ctx.lineTo(sx(s), y);
+      }
+      ctx.stroke(); ctx.setLineDash([]);
+      // Q 表：阶梯（每个 bin 一个常数）
+      ctx.strokeStyle = C.orange; ctx.lineWidth = 2.2; ctx.beginPath();
+      for (let b = 0; b < bins; b++) {
+        const s0 = b / bins, s1 = (b + 1) / bins, sc = (s0 + s1) / 2;
+        const v = TRUEQ(sc);                       // 只记住了格子中心的值
+        if (b === 0) ctx.moveTo(sx(s0), qy(v)); else ctx.lineTo(sx(s0), qy(v));
+        ctx.lineTo(sx(s1), qy(v));
+      }
+      ctx.stroke();
+      // 函数逼近：平滑曲线（带极小拟合误差）
+      ctx.strokeStyle = C.green; ctx.lineWidth = 2.4; ctx.beginPath();
+      for (let k = 0; k <= 200; k++) {
+        const s = k / 200;
+        const v = TRUEQ(s) + 0.015 * Math.sin(6 * Math.PI * s);
+        const y = qy(v);
+        if (k === 0) ctx.moveTo(sx(s), y); else ctx.lineTo(sx(s), y);
+      }
+      ctx.stroke();
+      // bin 边界
+      ctx.strokeStyle = 'rgba(255,184,92,0.18)'; ctx.lineWidth = 1;
+      for (let b = 1; b < bins; b++) {
+        const x = sx(b / bins);
+        ctx.beginPath(); ctx.moveTo(x, box.t); ctx.lineTo(x, box.b); ctx.stroke();
+      }
+
+      // 误差统计
+      let errTab = 0, errFn = 0, M = 400;
+      for (let k = 0; k <= M; k++) {
+        const s = k / M;
+        const b = Math.min(bins - 1, Math.floor(s * bins));
+        const vTab = TRUEQ((b + 0.5) / bins);
+        const vFn = TRUEQ(s) + 0.015 * Math.sin(6 * Math.PI * s);
+        errTab += Math.abs(vTab - TRUEQ(s));
+        errFn += Math.abs(vFn - TRUEQ(s));
+      }
+      errTab /= (M + 1); errFn /= (M + 1);
+
+      text(ctx, 'DQN：用函数逼近代替 Q 表', 70, 34, C.yellow, 'left', 13);
+      text(ctx, 'Q 表参数量 = ' + bins + '　平均误差 ' + errTab.toFixed(3) +
+        '　|　函数逼近参数量固定（几千）　平均误差 ' + errFn.toFixed(3),
+        70, 58, C.text, 'left', 11);
+      // 图例
+      const ly = 350;
+      const leg = [[C.orange, 'Q 表（每个格子一个值）'], [C.green, '函数逼近（DQN）'], ['rgba(255,255,255,0.75)', '真实 Q*(s)']];
+      leg.forEach((it, i) => {
+        const x = 70 + i * 210;
+        ctx.fillStyle = it[0]; ctx.fillRect(x, ly - 4, 16, 3.5);
+        text(ctx, it[1], x + 22, ly, C.text, 'left', 11);
+      });
+      text(ctx, '状态 s（连续）→ 价值 Q', box.l, box.b + 20, C.text, 'left', 10);
+      text(ctx, '格子之间不共享信息：Q 表在未访问过的格子上完全不知道值多少；神经网络从特征泛化，插值平滑',
+        70, H - 22, C.text, 'left', 11);
+    }
+    d.controls.appendChild(makeRange(4, 40, 1, bins, v => { bins = v; draw(); }, '网格数'));
+    draw();
+  }
+
   window.MLDemos = {
     dist: dist, linear: linear, logistic: logistic, tree: tree, forest: forest,
     xgboost: xgboost, svm: svm, kmeans: kmeans, pca: pca, mlp: mlp, rnn: rnn, lstm: lstm, seq: seq,
@@ -4282,6 +4442,7 @@
     loss: loss, reg: reg, opt: opt, act: act,
     token: token, bert: bert, ssl: ssl, gnn: gnn,
     distill: distill, moe: moe, causal: causal, mlops: mlops,
-    arima: arima, posenc: posenc, inference: inference
+    arima: arima, posenc: posenc, inference: inference,
+    pg: pg, dqn: dqn
   };
 })();
