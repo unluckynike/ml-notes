@@ -215,7 +215,6 @@
             <span class="tag tag--diff">难度 ${diffStars(t.diff)}</span>
           </div>
           <p class="topic__tagline">${t.tagline}</p>
-          <button class="topic__check" title="标记为已掌握" aria-label="标记为已掌握">✓</button>
         </div>
         <div class="topic__tabs">${tabsFor(t).map(([k, lab]) => `<button class="tab-btn ${k === 'intro' ? 'active' : ''}" data-tab="${k}">${lab}</button>`).join('')}</div>
         <div class="topic__body">${tabsFor(t).map(([k]) => tabPanel(k, t)).join('')}</div>
@@ -237,13 +236,6 @@
           }
         });
       });
-      // 已掌握勾选
-      const check = card.querySelector('.topic__check');
-      check.addEventListener('click', () => {
-        card.classList.toggle('done');
-        saveProgress();
-      });
-      if (getDoneSet().has(card.dataset.id)) card.classList.add('done');
     });
 
     // 懒加载演示
@@ -260,23 +252,6 @@
         <p>${r.desc}</p>
         <a href="${r.url}" target="_blank" rel="noopener">前往查看 →</a>
       </div>`).join('');
-  }
-
-  // ---------- 进度 ----------
-  function getDoneSet() {
-    try { return new Set(JSON.parse(localStorage.getItem('mlhub-done') || '[]')); }
-    catch (e) { return new Set(); }
-  }
-  function saveProgress() {
-    const done = $$('.topic.done').map(c => c.dataset.id);
-    try { localStorage.setItem('mlhub-done', JSON.stringify(done)); } catch (e) {}
-    updateProgress();
-  }
-  function updateProgress() {
-    const done = $$('.topic.done').length;
-    const pct = Math.round(done / TOPICS.length * 100);
-    $('#progressBar').style.width = pct + '%';
-    $('#progressPct').textContent = pct + '%';
   }
 
   // ---------- 演示懒加载 ----------
@@ -416,7 +391,6 @@
   buildMethods();
   buildTopics();
   buildResources();
-  updateProgress();
   initSearch();
   initScroll();
   initMenu();
