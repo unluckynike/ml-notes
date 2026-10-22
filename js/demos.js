@@ -4650,6 +4650,247 @@
     draw();
   }
 
+  // ============================================================
+  // 方法论 · 贝叶斯超参搜索
+  // ============================================================
+  function hpo(container) {
+    const d = demoShell('调参 · 贝叶斯搜索演示', '点「再采一个点」：代理模型按已采样点更新，采集函数把下一个点放在「有希望且不确定」的位置。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 420);
+    const f = x => Math.sin(2.2 * x) * 0.35 + Math.pow(x - 0.28, 2) * 1.6 + 0.35;
+    const box = { l: 80, r: 720, t: 96, b: 320 };
+    const DOM = [0, 1];
+    let pts = [];
+    function reset() { pts = [0.08, 0.92]; }
+    // 简化的代理模型：RBF 核加权平均 + 距离决定不确定性
+    function surrogate(x) {
+      let wsum = 0, vsum = 0, near = 1e9;
+      pts.forEach(p => {
+        const d2 = (x - p) ** 2;
+        const w = Math.exp(-d2 / 0.02);
+        wsum += w; vsum += w * f(p);
+        near = Math.min(near, Math.sqrt(d2));
+      });
+      const mean = wsum > 1e-9 ? vsum / wsum : 0.7;
+      const sd = 0.05 + 0.45 * (1 - Math.exp(-(near ** 2) / 0.035));   // 离已知点越远越不确定
+      return { mean: mean, sd: sd };
+    }
+    function best() { return Math.min.apply(null, pts.map(p => f(p))); }
+    function ei(x) {
+      const s = surrogate(x);
+      const imp = best() - s.mean;
+      const z = imp / (s.sd + 1e-9);
+      const cdf = 0.5 * (1 + Math.tanh(z * 0.8));   // 近似正态 CDF
+      return Math.max(0, imp * cdf + s.sd * Math.exp(-0.5 * z * z) * 0.4);
+    }
+    function nextPoint() {
+      let bx = DOM[0], bv = -1;
+      for (let k = 0; k <= 300; k++) {
+        const x = DOM[0] + (DOM[1] - DOM[0]) * k / 300;
+        const v = ei(x);
+        if (v > bv) { bv = v; bx = x; }
+      }
+      pts.push(bx);
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      const sx = x => box.l + (x - DOM[0]) / (DOM[1] - DOM[0]) * (box.r - box.l);
+      const YR = [0, 1.6];
+      const sy = v => box.b - (clamp(v, YR[0], YR[1]) - YR[0]) / (YR[1] - YR[0]) * (box.b - box.t);
+      // 真实函数
+      ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 1.6; ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      for (let k = 0; k <= 240; k++) { const x = DOM[0] + (DOM[1] - DOM[0]) * k / 240; const y = sy(f(x)); if (k === 0) ctx.moveTo(sx(x), y); else ctx.lineTo(sx(x), y); }
+      ctx.stroke(); ctx.setLineDash([]);
+      // 代理均值 + 不确定性带
+      ctx.strokeStyle = C.cyan; ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let k = 0; k <= 240; k++) { const x = DOM[0] + (DOM[1] - DOM[0]) * k / 240; const m = surrogate(x).mean; if (k === 0) ctx.moveTo(sx(x), sy(m)); else ctx.lineTo(sx(x), sy(m)); }
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(0,212,255,0.14)';
+      ctx.beginPath();
+      for (let k = 0; k <= 240; k++) { const x = DOM[0] + (DOM[1] - DOM[0]) * k / 240; const s0 = surrogate(x); ctx.lineTo(sx(x), sy(s0.mean + s0.sd)); }
+      for (let k = 240; k >= 0; k--) { const x = DOM[0] + (DOM[1] - DOM[0]) * k / 240; const s0 = surrogate(x); ctx.lineTo(sx(x), sy(s0.mean - s0.sd)); }
+      ctx.closePath(); ctx.fill();
+      // 已采样点
+      pts.forEach((p, i) => {
+        const x = sx(p), y = sy(f(p));
+        ctx.fillStyle = C.magenta; ctx.beginPath(); ctx.arc(x, y, 4.5, 0, 7); ctx.fill();
+        if (i === pts.length - 1) { ctx.strokeStyle = C.magenta; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, 9, 0, 7); ctx.stroke(); }
+      });
+      // EI 曲线（缩放到底部）
+      legendEi();
+      text(ctx, '已采样 ' + pts.length + ' 次　当前最优 f = ' + best().toFixed(3), 70, 34, C.yellow, 'left', 13);
+      text(ctx, '白虚线 = 真实曲线（模型并不知道）　青线 = 代理模型均值　青色带 = 不确定性', 70, 58, C.text, 'left', 11);
+      text(ctx, '粉点 = 已评估的超参配置；下一个点会落在「均值低 + 不确定性大」的地方（EI 最大）', 70, H - 40, C.text, 'left', 11);
+      text(ctx, '这就是为什么贝叶斯优化比随机撒点更省预算：每次采样都在更新对地形的判断', 70, H - 20, C.text, 'left', 10);
+    }
+    function legendEi() {
+      // 底部细线示意 EI
+      ctx.strokeStyle = 'rgba(255,184,92,0.55)'; ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      let mx = 1e-9;
+      const vals = [];
+      for (let k = 0; k <= 200; k++) { const x = DOM[0] + (DOM[1] - DOM[0]) * k / 200; const v = ei(x); vals.push(v); mx = Math.max(mx, v); }
+      vals.forEach((v, k) => {
+        const x = box.l + (box.r - box.l) * k / 200;
+        const y = box.b - 4 - (v / mx) * 46;
+        if (k === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      text(ctx, '橙线 = 采集函数 EI（越高越值得试）', box.l, box.b + 20, C.orange, 'left', 10);
+    }
+    d.controls.appendChild(makeButton('再采一个点', () => { nextPoint(); draw(); }, true));
+    d.controls.appendChild(makeButton('重置', () => { reset(); draw(); }));
+    reset(); draw();
+  }
+
+  // ============================================================
+  // 监督学习 · 半监督学习
+  // ============================================================
+  function semi(container) {
+    const d = demoShell('半监督 · 未标注数据的作用', '切换「只用标注 / 加上未标注」：少量标注点的分界会偏，用上未标注数据后边界被拉回正确位置。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 420);
+    const rng = makeRng(8808);
+    // 两类：左侧簇 + 右侧簇（真实边界在 x = 0 附近）
+    const labeled = [], unlabeled = [];
+    for (let i = 0; i < 3; i++) labeled.push({ x: -1.6 + gauss(rng) * 0.45, y: gauss(rng) * 0.5, c: 0 });
+    for (let i = 0; i < 3; i++) labeled.push({ x: 1.5 + gauss(rng) * 0.45, y: gauss(rng) * 0.5, c: 1 });
+    for (let i = 0; i < 60; i++) unlabeled.push({ x: -1.7 + gauss(rng) * 0.5, y: gauss(rng) * 0.9, c: 0 });
+    for (let i = 0; i < 60; i++) unlabeled.push({ x: 1.6 + gauss(rng) * 0.5, y: gauss(rng) * 0.9, c: 1 });
+    let useUnsup = false;
+    const box = { l: 80, r: 700, t: 100, b: 330 };
+    const XR = [-3, 3], YR = [-2.6, 2.6];
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      const sx = v => box.l + (v - XR[0]) / (XR[1] - XR[0]) * (box.r - box.l);
+      const sy = v => box.b - (v - YR[0]) / (YR[1] - YR[0]) * (box.b - box.t);
+      // 决策边界：只用标注 vs 加上未标注（类中心的中点）
+      const pool = useUnsup ? labeled.concat(unlabeled) : labeled;
+      const c0 = pool.filter(p => p.c === 0), c1 = pool.filter(p => p.c === 1);
+      const mx0 = c0.reduce((s, p) => s + p.x, 0) / c0.length;
+      const mx1 = c1.reduce((s, p) => s + p.x, 0) / c1.length;
+      const bound = (mx0 + mx1) / 2;
+      // 背景分区
+      ctx.fillStyle = 'rgba(0,212,255,0.06)';
+      ctx.fillRect(box.l, box.t, sx(bound) - box.l, box.b - box.t);
+      ctx.fillStyle = 'rgba(255,122,198,0.06)';
+      ctx.fillRect(sx(bound), box.t, box.r - sx(bound), box.b - box.t);
+      // 未标注点（空心）
+      if (useUnsup) {
+        unlabeled.forEach(p => {
+          ctx.strokeStyle = p.c === 0 ? 'rgba(0,212,255,0.45)' : 'rgba(255,122,198,0.45)';
+          ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.arc(sx(p.x), sy(p.y), 3, 0, 7); ctx.stroke();
+        });
+      }
+      // 标注点（实心）
+      labeled.forEach(p => {
+        ctx.fillStyle = p.c === 0 ? C.cyan : C.magenta;
+        ctx.beginPath(); ctx.arc(sx(p.x), sy(p.y), 7, 0, 7); ctx.fill();
+        ctx.strokeStyle = C.white; ctx.lineWidth = 1.5; ctx.stroke();
+      });
+      // 边界线
+      ctx.strokeStyle = C.yellow; ctx.lineWidth = 2.4; ctx.setLineDash([7, 5]);
+      ctx.beginPath(); ctx.moveTo(sx(bound), box.t); ctx.lineTo(sx(bound), box.b); ctx.stroke();
+      ctx.setLineDash([]);
+      text(ctx, '决策边界 x = ' + round(bound, 2), sx(bound) + 8, box.t + 16, C.yellow, 'left', 11);
+
+      text(ctx, (useUnsup ? '标注 + 未标注（半监督）' : '只用 6 个标注点'), 70, 34, C.yellow, 'left', 13);
+      text(ctx, useUnsup
+        ? '未标注点揭示了两个簇的真实位置，边界回到正确的中间位置'
+        : '只有 6 个标注点，类别中心估计偏差大，边界明显偏移', 70, 58, C.text, 'left', 11);
+      text(ctx, '实心 = 有标注（每类 3 个）　空心 = 未标注（每类 60 个，仅半监督模式显示）', 70, H - 40, C.text, 'left', 11);
+      text(ctx, '核心假设：同一簇内的样本大概率同类——未标注数据把这个结构暴露给模型', 70, H - 20, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeSelect([
+      { value: 'sup', label: '只用标注' },
+      { value: 'semi', label: '加上未标注' }
+    ], v => { useUnsup = v === 'semi'; draw(); }));
+    draw();
+  }
+
+  // ============================================================
+  // 应用 · 语音识别流水线
+  // ============================================================
+  function speech(container) {
+    const d = demoShell('语音 · 波形到文字', '上图波形被分帧、转成 Mel 频谱（中），再按时间对齐解码成文字（下）。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 460);
+    const CHARS = ['你', '好', '世', '界'];
+    const NF = 96, NMel = 16;
+    // 合成「4 个音段」的波形与 Mel 特征
+    const wave = [], mel = [];
+    for (let i = 0; i < NF; i++) {
+      const t = i / NF;
+      const seg = Math.min(3, Math.floor(t * 4));               // 4 个字符段
+      const local = (t * 4) - seg;
+      const env = Math.sin(Math.PI * Math.min(1, local * 1.6)) * 0.8 + 0.2;
+      const f0 = [180, 220, 200, 160][seg];
+      wave.push(env * (Math.sin(2 * Math.PI * f0 * i / 12) * 0.6 + Math.sin(2 * Math.PI * f0 * 2 * i / 12) * 0.25));
+      const col = [];
+      for (let m = 0; m < NMel; m++) {
+        // 每个音段在不同 Mel 频带上有能量峰（模拟共振峰）
+        const peak = [3, 7, 5, 10][seg];
+        col.push(Math.exp(-((m - peak) ** 2) / 6) * env);
+      }
+      mel.push(col);
+    }
+    const box = { l: 70, r: 710, t: 70, b: 170 };
+    const mbox = { l: 70, r: 710, t: 210, b: 330 };
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      // 波形
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      ctx.strokeStyle = C.cyan; ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      wave.forEach((v, i) => {
+        const x = box.l + i / (NF - 1) * (box.r - box.l);
+        const y = (box.t + box.b) / 2 - v * (box.b - box.t) * 0.42;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      text(ctx, '① 波形（16kHz 采样，此处为示意）', box.l, box.t - 12, C.cyan, 'left', 11);
+      // 分帧标记
+      ctx.strokeStyle = 'rgba(255,224,102,0.25)'; ctx.setLineDash([2, 4]);
+      for (let k = 0; k <= 12; k++) {
+        const x = box.l + k / 12 * (box.r - box.l);
+        ctx.beginPath(); ctx.moveTo(x, box.t); ctx.lineTo(x, box.b); ctx.stroke();
+      }
+      ctx.setLineDash([]);
+
+      // Mel 频谱
+      ctx.strokeStyle = C.axis; ctx.strokeRect(mbox.l, mbox.t, mbox.r - mbox.l, mbox.b - mbox.t);
+      const cw = (mbox.r - mbox.l) / NF, ch = (mbox.b - mbox.t) / NMel;
+      for (let i = 0; i < NF; i++) for (let m = 0; m < NMel; m++) {
+        const v = clamp(mel[i][m], 0, 1);
+        ctx.fillStyle = 'rgb(' + Math.round(20 + v * 235) + ',' + Math.round(60 + v * 120) + ',' + Math.round(120 + v * 90) + ')';
+        ctx.fillRect(mbox.l + i * cw, mbox.t + (NMel - 1 - m) * ch, Math.ceil(cw), Math.ceil(ch));
+      }
+      text(ctx, '② Mel 频谱（横轴时间帧，纵轴频带）', mbox.l, mbox.t - 12, C.green, 'left', 11);
+
+      // 字符对齐
+      const ty = 366;
+      CHARS.forEach((c, k) => {
+        const x0 = mbox.l + (k / 4) * (mbox.r - mbox.l);
+        const x1 = mbox.l + ((k + 1) / 4) * (mbox.r - mbox.l);
+        ctx.fillStyle = 'rgba(255,122,198,0.14)';
+        ctx.fillRect(x0, ty - 18, x1 - x0 - 4, 34);
+        ctx.strokeStyle = C.magenta; ctx.lineWidth = 1; ctx.strokeRect(x0, ty - 18, x1 - x0 - 4, 34);
+        text(ctx, c, (x0 + x1) / 2 - 2, ty, C.white, 'center', 16);
+        // 连接线
+        ctx.strokeStyle = 'rgba(255,122,198,0.4)';
+        ctx.beginPath(); ctx.moveTo((x0 + x1) / 2 - 2, mbox.b); ctx.lineTo((x0 + x1) / 2 - 2, ty - 18); ctx.stroke();
+      });
+      text(ctx, '③ 解码输出（CTC：中间允许 blank，把 96 帧折叠成 4 个字）', mbox.l, ty - 30, C.magenta, 'left', 11);
+      text(ctx, '真实 ASR 每秒约 100 帧特征、输出寥寥几个字——帧数与字数从来不对等，这正是 CTC 要解决的问题', 70, H - 20, C.text, 'left', 10);
+    }
+    draw();
+  }
+
   window.MLDemos = {
     dist: dist, linear: linear, logistic: logistic, tree: tree, forest: forest,
     xgboost: xgboost, svm: svm, kmeans: kmeans, pca: pca, mlp: mlp, rnn: rnn, lstm: lstm, seq: seq,
@@ -4666,6 +4907,7 @@
     distill: distill, moe: moe, causal: causal, mlops: mlops,
     arima: arima, posenc: posenc, inference: inference,
     pg: pg, dqn: dqn,
-    gbdt: gbdt, glm: glm, vlm: vlm
+    gbdt: gbdt, glm: glm, vlm: vlm,
+    hpo: hpo, semi: semi, speech: speech
   };
 })();
