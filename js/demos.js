@@ -3196,6 +3196,321 @@
     draw();
   }
 
+  // ============================================================
+  // 基础 · 损失函数（惩罚形状）
+  // ============================================================
+  function loss(container) {
+    const d = demoShell('损失函数 · 惩罚形状对比', '左边看 MSE/MAE/Huber 对误差的惩罚形状，右边拖滑块看交叉熵如何在「自信的错误」处爆炸。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 400);
+    let p = 0.9;
+    const L = { l: 60, r: 400, t: 70, b: 320 };
+    const R = { l: 460, r: 740, t: 70, b: 320 };
+    const YMAX = 4;
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+
+      // ---------- 左：误差 -> 损失 ----------
+      ctx.strokeStyle = C.axis; ctx.strokeRect(L.l, L.t, L.r - L.l, L.b - L.t);
+      const ex = e => L.l + (e + 3) / 6 * (L.r - L.l);
+      const ey = v => L.b - clamp(v, 0, YMAX) / YMAX * (L.b - L.t);
+      ctx.strokeStyle = 'rgba(120,145,200,0.22)'; ctx.lineWidth = 1;
+      for (let e = -3; e <= 3; e++) { ctx.beginPath(); ctx.moveTo(ex(e), L.t); ctx.lineTo(ex(e), L.b); ctx.stroke(); }
+      const curves = [
+        ['MSE (L2)', C.red, e => e * e],
+        ['MAE (L1)', C.green, e => Math.abs(e)],
+        ['Huber', C.orange, e => Math.abs(e) <= 1 ? 0.5 * e * e : Math.abs(e) - 0.5]
+      ];
+      curves.forEach(([name, col, fn]) => {
+        ctx.strokeStyle = col; ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        let on = false;
+        for (let k = 0; k <= 240; k++) {
+          const e = -3 + 6 * k / 240;
+          const v = fn(e);
+          if (v > YMAX) { on = false; continue; }   // 冲出画面就断开，不画平顶
+          const x = ex(e), y = ey(v);
+          if (!on) { ctx.moveTo(x, y); on = true; } else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      });
+      text(ctx, '误差 e', (L.l + L.r) / 2, L.b + 22, C.text, 'center', 11);
+      // 图例放在标题行，避免被曲线穿过
+      text(ctx, '损失', L.l, L.t - 12, C.text, 'left', 11);
+      curves.forEach(([n], i) => {
+        const col = [C.red, C.green, C.orange][i];
+        const lx = L.l + 42 + i * 92;
+        ctx.fillStyle = col; ctx.fillRect(lx, L.t - 16, 12, 3.5);
+        text(ctx, n.replace(' (L2)', '').replace(' (L1)', ''), lx + 17, L.t - 12, col, 'left', 11);
+      });
+      text(ctx, '纵轴截断在 4：MSE 冲出去的部分就是「平方放大」', L.l, L.b + 40, C.text, 'left', 10);
+
+      // ---------- 右：交叉熵 ----------
+      ctx.strokeStyle = C.axis; ctx.strokeRect(R.l, R.t, R.r - R.l, R.b - R.t);
+      const px = q => R.l + q * (R.r - R.l);
+      const py = v => R.b - clamp(v, 0, YMAX) / YMAX * (R.b - R.t);
+      ctx.strokeStyle = C.magenta; ctx.lineWidth = 2.4;
+      for (let seg = 0; seg < 1; seg++) {
+        ctx.beginPath();
+        let started = false;
+        for (let k = 1; k <= 400; k++) {
+          const q = k / 400, v = -Math.log(q);
+          if (v > YMAX * 1.5) { started = false; continue; }
+          const x = px(q), y = py(v);
+          if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+      const cur = -Math.log(p);
+      ctx.strokeStyle = C.yellow; ctx.setLineDash([4, 4]); ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(px(p), R.b); ctx.lineTo(px(p), py(cur)); ctx.lineTo(R.l, py(cur)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = C.yellow; ctx.beginPath(); ctx.arc(px(p), py(cur), 5, 0, 7); ctx.fill();
+      text(ctx, '预测概率 p（真实标签 = 1）', (R.l + R.r) / 2, R.b + 22, C.text, 'center', 11);
+      text(ctx, 'CE = −log(p)', R.r, R.t - 12, C.text, 'right', 11);
+      text(ctx, 'p = ' + round(p, 2) + '　L = ' + round(cur, 3), R.l + 6, R.t + 15, C.yellow, 'left', 12);
+      if (cur > 2) text(ctx, '← 自信地答错，惩罚急剧上升', px(0.08), py(3.4), C.red, 'left', 11);
+
+      text(ctx, '分类用交叉熵（重罚自信的错误）· 回归用 MSE/MAE（决定对离群点多敏感）', 70, H - 14, C.text, 'left', 12);
+    }
+    d.controls.appendChild(makeRange(0.01, 1, 0.01, p, v => { p = v; draw(); }, 'p'));
+    draw();
+  }
+
+  // ============================================================
+  // 基础 · 归一化
+  // ============================================================
+  function reg(container) {
+    const d = demoShell('归一化 · 分布拉回演示', '左边各层激活均值偏移、尺度不一；右边标准化后全部对齐到 0、尺度统一。拖动滑块改输入分布。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 400);
+    const rng = makeRng(7373);
+    const NF = 6, PER = 34;
+    const raw = [];
+    for (let f = 0; f < NF; f++) { const arr = []; for (let i = 0; i < PER; i++) arr.push(gauss(rng)); raw.push(arr); }
+    const jitter = [];
+    for (let f = 0; f < NF; f++) { const j = []; for (let i = 0; i < PER; i++) j.push(rng()); jitter.push(j); }
+    let shift = 0.8;
+    const L = { l: 80, r: 380, t: 70, b: 330 };
+    const R = { l: 460, r: 730, t: 70, b: 330 };
+    const stats = arr => {
+      const m = arr.reduce((a, b) => a + b, 0) / arr.length;
+      const s = Math.sqrt(arr.reduce((a, b) => a + (b - m) ** 2, 0) / arr.length) || 1e-6;
+      return { m, s };
+    };
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const cols = [];
+      for (let f = 0; f < NF; f++) {
+        const m0 = shift * (f - (NF - 1) / 2) * 1.4;
+        const s0 = 0.45 + 0.3 * (f % 3);
+        cols.push(raw[f].map(v => m0 + s0 * v));
+      }
+      const panel = (box, title, getter, norm) => {
+        ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+        const xr = norm ? [-2.8, 2.8] : [-5, 5];
+        const tx = v => box.l + (clamp(v, xr[0], xr[1]) - xr[0]) / (xr[1] - xr[0]) * (box.r - box.l);
+        const ty = f => box.b - (f + 0.7) / (NF + 0.3) * (box.b - box.t);
+        ctx.strokeStyle = 'rgba(255,224,102,0.45)'; ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(tx(0), box.t); ctx.lineTo(tx(0), box.b); ctx.stroke(); ctx.setLineDash([]);
+        for (let f = 0; f < NF; f++) {
+          const vals = getter(f);
+          const st = stats(vals);
+          ctx.fillStyle = norm ? C.green : C.magenta;
+          ctx.globalAlpha = 0.6;
+          vals.forEach((v, i) => {
+            ctx.beginPath();
+            ctx.arc(tx(v), ty(f) + (jitter[f][i] - 0.5) * 13, 2.4, 0, 7);
+            ctx.fill();
+          });
+          ctx.globalAlpha = 1;
+          ctx.strokeStyle = C.yellow; ctx.lineWidth = 1.6;
+          const mx = tx(st.m);
+          ctx.beginPath(); ctx.moveTo(mx, ty(f) - 10); ctx.lineTo(mx, ty(f) + 10); ctx.stroke();
+          text(ctx, 'f' + (f + 1), box.l - 18, ty(f), C.text, 'right', 10);
+        }
+        text(ctx, title, box.l, box.t - 12, norm ? C.green : C.magenta, 'left', 12);
+        text(ctx, norm ? '均值≈0　尺度≈1' : '均值各异　尺度不一', box.r, box.t - 12, C.text, 'right', 11);
+      };
+      panel(L, '未归一化', f => cols[f], false);
+      panel(R, 'LayerNorm 之后', f => { const st = stats(cols[f]); return cols[f].map(v => (v - st.m) / st.s); }, true);
+      ctx.strokeStyle = 'rgba(0,212,255,0.65)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(L.r + 8, L.t - 12); ctx.lineTo(R.l - 8, R.t - 12); ctx.stroke();
+      // 箭头中点画一个小三角，方向一目了然（不再叠加文字，避免与两侧标题挤在一起）
+      ctx.fillStyle = 'rgba(0,212,255,0.85)';
+      ctx.beginPath();
+      const ax = R.l - 8, ay = R.t - 12;
+      ctx.moveTo(ax, ay); ctx.lineTo(ax - 7, ay - 4); ctx.lineTo(ax - 7, ay + 4);
+      ctx.closePath(); ctx.fill();
+
+      text(ctx, '输入偏移 = ' + round(shift, 2) + '　黄竖线 = 各特征均值', 70, 32, C.yellow, 'left', 12);
+      text(ctx, '归一化让每层输入稳定 ⇒ 训得动；Dropout/权重衰减/早停 ⇒ 防过拟合，两者互补', 70, H - 16, C.text, 'left', 11);
+    }
+    d.controls.appendChild(makeRange(0, 1.6, 0.05, shift, v => { shift = v; draw(); }, '偏移'));
+    draw();
+  }
+
+  // ============================================================
+  // 基础 · 优化器轨迹
+  // ============================================================
+  function opt(container) {
+    const d = demoShell('优化器 · 峡谷轨迹对比', '狭长峡谷般的损失面上，SGD 左右横跳、Momentum 顺谷底冲、Adam 自适应步长最快到底。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 420);
+    const A = 1.0, B = 0.02;
+    let lr = 0.15;
+    const box = { l: 90, r: 700, t: 76, b: 350 };
+    const cx = (box.l + box.r) / 2, cy = (box.t + box.b) / 2;
+    const SX = (box.r - box.l) / 2 / 3.2, SY = (box.b - box.t) / 2 / 3.2;
+    const toPx = (x, y) => ({ x: cx + x * SX, y: cy - y * SY });
+    function runAll() {
+      const start = { x: 2.9, y: 2.4 };
+      const paths = { sgd: [], mom: [], adam: [] };
+      let p = { x: start.x, y: start.y };
+      paths.sgd.push({ x: p.x, y: p.y });
+      for (let i = 0; i < 60; i++) {
+        p = { x: p.x - lr * A * p.x, y: p.y - lr * B * p.y };
+        if (Math.abs(p.x) > 9 || Math.abs(p.y) > 9) break;
+        paths.sgd.push({ x: p.x, y: p.y });
+      }
+      let v = { x: 0, y: 0 };
+      p = { x: start.x, y: start.y };
+      paths.mom.push({ x: p.x, y: p.y });
+      for (let i = 0; i < 60; i++) {
+        v = { x: 0.9 * v.x - lr * A * p.x, y: 0.9 * v.y - lr * B * p.y };
+        p = { x: p.x + v.x, y: p.y + v.y };
+        if (Math.abs(p.x) > 9 || Math.abs(p.y) > 9) break;
+        paths.mom.push({ x: p.x, y: p.y });
+      }
+      let m = { x: 0, y: 0 }, s = { x: 0, y: 0 };
+      p = { x: start.x, y: start.y };
+      paths.adam.push({ x: p.x, y: p.y });
+      for (let i = 0; i < 60; i++) {
+        const gx = A * p.x, gy = B * p.y;
+        m = { x: 0.9 * m.x + 0.1 * gx, y: 0.9 * m.y + 0.1 * gy };
+        s = { x: 0.999 * s.x + 0.001 * gx * gx, y: 0.999 * s.y + 0.001 * gy * gy };
+        const t = i + 1, b1 = 1 - Math.pow(0.9, t), b2 = 1 - Math.pow(0.999, t);
+        p = {
+          x: p.x - lr * (m.x / b1) / (Math.sqrt(s.x / b2) + 1e-8),
+          y: p.y - lr * (m.y / b1) / (Math.sqrt(s.y / b2) + 1e-8)
+        };
+        if (Math.abs(p.x) > 9 || Math.abs(p.y) > 9) break;
+        paths.adam.push({ x: p.x, y: p.y });
+      }
+      return { start, paths };
+    }
+    let data = runAll();
+    function draw() {
+      clear(ctx, W, H);
+      ctx.strokeStyle = C.axis; ctx.lineWidth = 1; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      // 所有几何内容都裁剪在画框内，避免等高线溢出到框外
+      ctx.save();
+      ctx.beginPath(); ctx.rect(box.l, box.t, box.r - box.l, box.b - box.t); ctx.clip();
+      [0.1, 0.4, 1.0, 2.0, 4.0, 8.0].forEach(c => {
+        ctx.strokeStyle = 'rgba(120,145,200,0.26)';
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, Math.sqrt(2 * c / A) * SX, Math.min(Math.sqrt(2 * c / B) * SY, 4000), 0, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+      ctx.fillStyle = C.white; ctx.beginPath(); ctx.arc(cx, cy, 4, 0, 7); ctx.fill();
+      text(ctx, '最优', cx + 8, cy - 9, C.text, 'left', 10);
+      const tags = [];
+      const drawPath = (pts, col, label, lw, dy) => {
+        if (pts.length < 2) return;
+        ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath();
+        pts.forEach((q, i) => { const s = toPx(clamp(q.x, -9, 9), clamp(q.y, -9, 9)); if (i === 0) ctx.moveTo(s.x, s.y); else ctx.lineTo(s.x, s.y); });
+        ctx.stroke();
+        const last = toPx(clamp(pts[pts.length - 1].x, -9, 9), clamp(pts[pts.length - 1].y, -9, 9));
+        ctx.fillStyle = col; ctx.beginPath(); ctx.arc(last.x, last.y, 4, 0, 7); ctx.fill();
+        tags.push({ col: col, text: label + '  ' + (pts.length - 1) + ' 步' });
+      };
+      drawPath(data.paths.sgd, C.red, 'SGD', 1.6, -14);
+      drawPath(data.paths.mom, C.orange, 'Momentum', 1.8, 14);
+      drawPath(data.paths.adam, C.green, 'Adam', 2, 30);
+      const st = toPx(data.start.x, data.start.y);
+      ctx.strokeStyle = C.white; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(st.x, st.y, 6, 0, 7); ctx.stroke();
+      text(ctx, '起点', st.x, st.y - 13, C.white, 'center', 10);
+      ctx.restore();
+      // 标签在裁剪区之外绘制，保证不会被切掉
+      // 图例卡片（画在框内左上角，不压轨迹）
+      const lgW = 104, lgH = 12 + tags.length * 17;
+      ctx.fillStyle = 'rgba(12,18,36,0.82)';
+      ctx.fillRect(box.l + 10, box.t + 10, lgW, lgH);
+      ctx.strokeStyle = 'rgba(120,145,200,0.35)'; ctx.lineWidth = 1;
+      ctx.strokeRect(box.l + 10, box.t + 10, lgW, lgH);
+      tags.forEach((t, i) => {
+        const ty2 = box.t + 26 + i * 17;
+        ctx.fillStyle = t.col; ctx.fillRect(box.l + 20, ty2 - 1, 12, 3);
+        text(ctx, t.text, box.l + 38, ty2 + 2, t.col, 'left', 10);
+      });
+      text(ctx, '损失面 f = ½(1·x² + 0.02·y²)，条件数 50（狭长峡谷）', 70, 30, C.yellow, 'left', 12);
+      text(ctx, '学习率 = ' + round(lr, 2) + '，三条轨迹同起点、同步数', 70, 50, C.text, 'left', 11);
+      text(ctx, 'SGD 在陡方向震荡、缓方向几乎不动；Adam 为每个参数自适应缩放步长，两个方向同时收敛', 70, H - 24, C.text, 'left', 11);
+    }
+    d.controls.appendChild(makeRange(0.02, 0.3, 0.01, lr, v => { lr = v; data = runAll(); draw(); }, '学习率'));
+    d.controls.appendChild(makeButton('重跑', () => { data = runAll(); draw(); }, true));
+    draw();
+  }
+
+  // ============================================================
+  // 基础 · 激活函数与梯度
+  // ============================================================
+  function act(container) {
+    const d = demoShell('激活函数 · 函数与梯度', '并排看 5 种激活函数及其导数；sigmoid/tanh 两端导数趋 0，这正是深层梯度消失的根源。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 400);
+    const XR = [-4, 4];
+    const gelu = x => 0.5 * x * (1 + Math.tanh(Math.sqrt(2 / Math.PI) * (x + 0.044715 * x ** 3)));
+    const fns = [
+      { name: 'sigmoid', color: C.cyan, f: x => 1 / (1 + Math.exp(-x)), g: x => { const s = 1 / (1 + Math.exp(-x)); return s * (1 - s); } },
+      { name: 'tanh', color: C.magenta, f: x => Math.tanh(x), g: x => 1 - Math.tanh(x) ** 2 },
+      { name: 'ReLU', color: C.green, f: x => Math.max(0, x), g: x => (x > 0 ? 1 : 0) },
+      { name: 'LeakyReLU', color: C.orange, f: x => (x > 0 ? x : 0.1 * x), g: x => (x > 0 ? 1 : 0.1) },
+      { name: 'GELU', color: C.purple, f: gelu, g: x => { const h = 1e-4; return (gelu(x + h) - gelu(x - h)) / (2 * h); } }
+    ];
+    let flip = false;
+    const F = { l: 70, r: 470, t: 76, b: 312 };
+    const G = { l: 520, r: 740, t: 76, b: 312 };
+    function panel(box, title, getter, yr, unit) {
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      const tx = x => box.l + (x - XR[0]) / (XR[1] - XR[0]) * (box.r - box.l);
+      const ty = y => box.b - (y - yr[0]) / (yr[1] - yr[0]) * (box.b - box.t);
+      ctx.strokeStyle = 'rgba(120,145,200,0.3)'; ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
+      if (yr[0] < 0 && yr[1] > 0) { ctx.beginPath(); ctx.moveTo(box.l, ty(0)); ctx.lineTo(box.r, ty(0)); ctx.stroke(); }
+      ctx.beginPath(); ctx.moveTo(tx(0), box.t); ctx.lineTo(tx(0), box.b); ctx.stroke(); ctx.setLineDash([]);
+      fns.forEach(fn => {
+        ctx.strokeStyle = fn.color; ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        let started = false;
+        for (let k = 0; k <= 300; k++) {
+          const x = XR[0] + (XR[1] - XR[0]) * k / 300;
+          const s = { x: tx(x), y: ty(clamp(getter(fn, x), yr[0], yr[1])) };
+          if (!started) { ctx.moveTo(s.x, s.y); started = true; } else ctx.lineTo(s.x, s.y);
+        }
+        ctx.stroke();
+      });
+      text(ctx, title, box.l, box.t - 12, C.text, 'left', 12);
+      text(ctx, unit, box.l + 5, box.t + 14, C.text, 'left', 10);
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const a = { title: '激活函数 f(x)', get: (fn, x) => fn.f(x), yr: [-1.3, 4.3], unit: '输出' };
+      const b = { title: "梯度 f'(x)", get: (fn, x) => fn.g(x), yr: [-0.25, 1.2], unit: '导数' };
+      const p1 = flip ? b : a, p2 = flip ? a : b;
+      panel(F, p1.title, p1.get, p1.yr, p1.unit);
+      panel(G, p2.title, p2.get, p2.yr, p2.unit);
+      fns.forEach((fn, i) => {
+        const x = 70 + i * 120, y = 344;
+        ctx.fillStyle = fn.color; ctx.fillRect(x, y - 4, 14, 3.5);
+        text(ctx, fn.name, x + 19, y, fn.color, 'left', 11);
+      });
+      text(ctx, 'sigmoid / tanh 两端饱和 → 导数趋 0 → 深层回传梯度被层层乘没', 70, 30, C.yellow, 'left', 12);
+      text(ctx, 'ReLU 正区间导数恒为 1（能训深）；GELU 处处平滑，是 Transformer 的默认', 70, 378, C.text, 'left', 11);
+    }
+    d.controls.appendChild(makeSelect([{ value: 'a', label: '函数 | 梯度' }, { value: 'b', label: '梯度 | 函数' }], v => { flip = v === 'b'; draw(); }));
+    draw();
+  }
+
   window.MLDemos = {
     dist: dist, linear: linear, logistic: logistic, tree: tree, forest: forest,
     xgboost: xgboost, svm: svm, kmeans: kmeans, pca: pca, mlp: mlp, rnn: rnn, lstm: lstm, seq: seq,
@@ -3206,6 +3521,7 @@
     resnet: resnet, yolo: yolo, segment: segment, augment: augment, vit: vit,
     vae: vae, diffusion: diffusion, sd: sd, clip: clip,
     word2vec: word2vec, gpt: gpt, lora: lora, rlhf: rlhf, prompt: prompt,
-    rag: rag, agent: agent, multiagent: multiagent
+    rag: rag, agent: agent, multiagent: multiagent,
+    loss: loss, reg: reg, opt: opt, act: act
   };
 })();

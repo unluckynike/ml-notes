@@ -30,7 +30,7 @@ const ROADMAP = [
   {
     title: '优化与泛化',
     color: '#94a3b8',
-    items: ['梯度下降', '损失函数', '过拟合·偏差方差', '正则化 L1/L2']
+    items: ['梯度下降', '损失函数与信息论', '优化器 Adam', '激活函数与初始化', '过拟合·偏差方差', '正则化与归一化']
   },
   {
     title: '回归模型',
@@ -268,6 +268,204 @@ const TOPICS = [
       '理解 <strong>正则化、早停、交叉验证</strong> 分别是如何降低方差的。'
     ],
     demo: { id: 'overfit', title: '过拟合 · 3D 曲面拟合', note: '拖拽旋转；同一批 3D 数据，用 1 次（欠拟合）/ 3 次（合适）/ 6 次（过拟合）多项式曲面去拟合。' }
+  },
+
+  {
+    id: 'loss',
+    num: '03',
+    emoji: '🎯',
+    name: '损失函数与信息论',
+    en: 'Loss Functions & Information Theory',
+    cat: 'found',
+    diff: 2,
+    accent: '#94a3b8',
+    tagline: '训练的全部方向都由它决定——损失函数是模型的「指挥棒」，写错了模型就学歪了。',
+    intro: {
+      what: '损失函数衡量「预测和真实差多远」，是优化的目标函数。信息论则提供了交叉熵、KL 散度这套描述「信息量」的语言，正好是分类损失的理论来源。',
+      problem: '同一个模型，换损失函数会训出完全不同的行为：用 MSE 做分类会被离群点带偏，用交叉熵则会强烈惩罚「自信的错误」。怎么选、为什么？',
+      idea: '回归常用 MSE/MAE（对误差的惩罚形状不同）；分类用交叉熵（等价于最大似然）；度量学习用对比损失。核心区别是「如何惩罚不同大小的错误」。'
+    },
+    principle: {
+      text: [
+        'MSE（L2）：误差平方，对大误差惩罚极重，但对离群点敏感；MAE（L1）：误差绝对值，对离群点稳健但在 0 点不可导；Huber 折中。',
+        '交叉熵：L = −Σ y·log(p)，真实类别的预测概率越低，惩罚越大，且梯度形式极简（p − y），训练稳定。',
+        'KL 散度衡量两个分布的差异，交叉熵 = 熵 + KL：最小化交叉熵等价于让预测分布逼近真实分布。'
+      ],
+      formula: {
+        html: '<span class="fn">CE</span> = − Σ<sub>i</sub> <span class="sym">y</span><sub>i</sub> log <span class="sym">p</span><sub>i</sub>　　<span class="fn">KL</span>(<span class="sym">p</span>‖<span class="sym">q</span>) = Σ <span class="sym">p</span> log <span class="frac"><span class="num">p</span><span class="den">q</span></span>',
+        note: '交叉熵是分类的标准损失；KL 散度衡量分布差异，VAE、蒸馏、RLHF 都用它做约束。'
+      }
+    },
+    example: {
+      analogy: '考试评分：MSE 像「错 1 分扣 1 元、错 10 分扣 100 元」（平方放大）；MAE 像「错几分扣几元」；交叉熵像「只要你说这道题 100% 对却答错了，就重罚」。',
+      mini: '二分类，真实标签=1。预测 p=0.9 → CE=0.105；p=0.5 → CE=0.693；p=0.01（自信地错）→ CE=4.6。可见交叉熵对「自信的错误」惩罚急剧上升。'
+    },
+    pros: ['决定模型行为的核心旋钮，选对事半功倍', '交叉熵+softmax 梯度简洁（p−y），数值稳定', '信息论提供了统一视角，可解释正则化与蒸馏'],
+    cons: ['MSE 用于分类易被离群点/饱和区拖慢', '交叉熵假设标签互斥（多标签需改用 BCE）', '损失下降 ≠ 业务指标提升，需对齐'],
+    history: [
+      { year: '1948', text: '香农提出信息熵，奠定信息论基础。' },
+      { year: '1951', text: 'KL 散度被提出，用于衡量分布差异。' },
+      { year: '1990s', text: '交叉熵成为分类/语言模型的标准损失。' },
+      { year: '2010s+', text: '对比损失、焦点损失（Focal Loss）等针对不平衡与度量学习的新损失出现。' }
+    ],
+    use: ['回归→MSE/Huber；分类→交叉熵；多标签→BCE', '类别极不平衡→Focal Loss', '度量学习→Triplet/InfoNCE'],
+    avoid: ['分类问题直接用 MSE（梯度易饱和）', '有大量离群点时用 MSE 不加处理', '只看 loss 曲线不看业务指标'],
+    learn: [
+      '手算一遍 <strong>二分类交叉熵</strong>，体会「自信的错误」为什么罚得重。',
+      '在演示里拖 <strong>预测概率</strong>，看 CE 曲线如何爆炸。',
+      '理解 <strong>交叉熵 = 熵 + KL</strong>，以及为什么最小化交叉熵等价于最大似然。',
+      '知道 <strong>Focal Loss / Triplet Loss</strong> 分别在解决什么问题。'
+    ],
+    demo: { id: 'loss', title: '损失函数 · 惩罚形状对比', note: '左看 MSE/MAE/Huber 对误差的惩罚曲线，右拖预测概率看交叉熵如何在「自信的错误」处爆炸。' }
+  },
+
+  {
+    id: 'reg',
+    num: '04',
+    emoji: '🧯',
+    name: '正则化与归一化',
+    en: 'Regularization & Normalization',
+    cat: 'found',
+    diff: 3,
+    accent: '#94a3b8',
+    tagline: '一个防「学过头」，一个防「训不动」——深度网络能训起来，靠的就是这两类技术。',
+    intro: {
+      what: '正则化（L1/L2、Dropout、早停、数据增强）限制模型的有效容量以防过拟合；归一化（BatchNorm/LayerNorm）稳定各层激活分布、加速并稳定训练。',
+      problem: '深层网络训练时，各层输入分布会随前面权重更新而漂移（内部协变量偏移），导致必须用极小学习率、极易发散；同时模型容量大又容易记住噪声。',
+      idea: '归一化把每层激活拉回均值 0、方差 1，让每层面对稳定的输入分布；正则化则给「复杂度」加罚（权重惩罚 / 随机丢弃 / 提前停止），逼模型学鲁棒特征。'
+    },
+    principle: {
+      text: [
+        'L2（权重衰减）把权重往 0 拉，得到平滑的解；L1 会把不重要的权重压成恰好 0，天然做特征选择。',
+        'Dropout：训练时以概率 p 随机丢弃神经元，逼网络不依赖单个神经元；推理时按比例缩放。等价于对大量子网络做集成。',
+        'BatchNorm 对每个通道在一个 batch 内标准化，再学一组缩放/平移参数 γ、β；LayerNorm 则在单个样本的特征维上标准化，因此不受 batch 大小影响，是 Transformer 的标配。'
+      ],
+      formula: {
+        html: '<span class="fn">BN</span>(x) = <span class="sym">γ</span> · <span class="frac"><span class="num">x − <span class="sym">μ</span><sub>B</sub></span><span class="den"><span class="rad">√</span><span class="ov"><span class="sym">σ</span><sub>B</sub>² + <span class="sym">ε</span></span></span></span> + <span class="sym">β</span>',
+        note: 'BatchNorm：先标准化（减均值除标准差），再用可学习的 γ、β 恢复表达能力，ε 防除零。'
+      }
+    },
+    example: {
+      analogy: 'Dropout 像团队里随机让人请假：剩下的人必须都能顶上，团队就不依赖某个「明星员工」。BatchNorm 像每层之间加个「音量归一化」，不管前面输出多大声，后面听到的音量都稳定。',
+      mini: '不加归一化的 50 层网络，激活值可能逐层放大 10 倍导致梯度爆炸；加了 LayerNorm 后每层输出都被拉回标准范围，训练立刻稳定。'
+    },
+    pros: ['Dropout/权重衰减显著抑制过拟合', 'BN 允许更大学习率、收敛更快', 'LN 不依赖 batch，适合变长序列与 Transformer'],
+    cons: ['BN 在小 batch 下统计不稳，且训练/推理行为不一致', 'Dropout 会拖慢收敛（训练更久）', '正则化过强会导致欠拟合'],
+    history: [
+      { year: '1990s', text: '权重衰减（L2）作为正则化手段被广泛使用。' },
+      { year: '1996', text: 'Lasso（L1）提出，带来稀疏解与特征选择。' },
+      { year: '2014', text: 'Dropout 提出；同年 BatchNorm 大幅简化深层网络训练。' },
+      { year: '2016', text: 'LayerNorm 提出，成为 RNN/Transformer 的标配。' }
+    ],
+    use: ['过拟合→Dropout / 权重衰减 / 早停 / 数据增强', '深层 CNN→BatchNorm', 'Transformer/RNN→LayerNorm'],
+    avoid: ['小 batch 或在线学习用 BN（改用 GN/LN）', '推理阶段忘记切 eval 模式（BN 统计量不同）', 'Dropout 用在输出层'],
+    learn: [
+      '在演示里拖 <strong>偏移/尺度</strong>，看归一化如何把分布拉回标准区间。',
+      '搞清 <strong>BN vs LN</strong> 的差别：按 batch 标准化 vs 按样本特征标准化。',
+      '理解 <strong>Dropout 训练/推理</strong> 的缩放差异（为什么推理要乘 keep_prob）。',
+      '记住一句话：<strong>过拟合加正则，训不动加归一化</strong>。'
+    ],
+    demo: { id: 'reg', title: '归一化 · 分布拉回演示', note: '左：未归一化的各层激活错位、尺度不一；右：标准化后全部对齐到 0 附近。拖动滑块改输入分布。' }
+  },
+
+  {
+    id: 'opt',
+    num: '05',
+    emoji: '🏃',
+    name: '优化器：动量与 Adam',
+    en: 'Optimizers: Momentum & Adam',
+    cat: 'found',
+    diff: 3,
+    accent: '#94a3b8',
+    tagline: '同样是梯度下降，SGD 在峡谷里来回震荡，Adam 却能顺坡直下——差别在「怎么看历史」。',
+    intro: {
+      what: '在梯度下降的基础上加入历史信息与自适应步长的一类算法：Momentum 用速度累积冲过峡谷，RMSProp/Adam 为每个参数自适应地调整学习率。',
+      problem: '损失面常是狭长峡谷（条件数很大）：SGD 在陡方向震荡、在缓方向爬得极慢；且所有参数共用同一个学习率，稀疏特征几乎学不动。',
+      idea: '动量：把梯度当成「加速度」累积成速度，抑制震荡、加速沿谷底前进；自适应：用梯度平方的滑动平均为每个参数单独缩放步长，梯度大的地方步子小、梯度小的地方步子大。'
+    },
+    principle: {
+      text: [
+        'Momentum：v ← βv + g；θ ← θ − lr·v。β（0.9）让方向一致的分量累积、来回震荡的分量抵消。',
+        'RMSProp/Adam：维护梯度平方的滑动平均 s，用 lr/√s 缩放步长；Adam 再加一阶矩 m，并对两者做偏差校正。',
+        'AdamW 把权重衰减从梯度里解耦出来（直接衰减参数），效果优于原始 Adam 的 L2 实现，是现在训练 Transformer 的默认选择。'
+      ],
+      formula: {
+        html: '<span class="sym">m</span> ← <span class="sym">β</span><sub>1</sub><span class="sym">m</span> + (1−<span class="sym">β</span><sub>1</sub>)<span class="sym">g</span>　<span class="sym">s</span> ← <span class="sym">β</span><sub>2</sub><span class="sym">s</span> + (1−<span class="sym">β</span><sub>2</sub>)<span class="sym">g</span>²　<span class="sym">θ</span> ← <span class="sym">θ</span> − <span class="fn">lr</span>·<span class="frac"><span class="num"><span class="sym">m̂</span></span><span class="den"><span class="rad">√</span><span class="ov"><span class="sym">ŝ</span> + <span class="sym">ε</span></span></span></span>',
+        note: 'Adam = 动量（一阶矩 m）+ 自适应步长（二阶矩 s），m̂、ŝ 是偏差校正后的估计。'
+      }
+    },
+    example: {
+      analogy: '下山：SGD 是每步都只看脚下最陡的方向，在窄山谷里左右横跳；Momentum 像推着一个有惯性的球，横跳被抵消、顺势冲下去；Adam 还额外给每个方向配了「油门大小」。',
+      mini: '在一个 x 方向很陡、y 方向很缓的损失面上，SGD 会沿 x 反复震荡、y 方向几乎不动；Adam 会自动把小步长给 x、大步长给 y，几十步就到底。'
+    },
+    pros: ['Momentum 显著加速并抑制震荡', 'Adam 对学习率不敏感、开箱即用', '自适应步长适合稀疏特征与不同尺度的参数'],
+    cons: ['Adam 泛化有时略逊于调好的 SGD+Momentum', '内存翻倍（要存 m、s）', '超参仍需理解（β、ε、weight decay）'],
+    history: [
+      { year: '1964', text: 'Polyak 提出重球法（Momentum 的前身）。' },
+      { year: '2011', text: 'AdaGrad 引入自适应学习率。' },
+      { year: '2012', text: 'RMSProp 用滑动平均修正 AdaGrad 学习率衰减过快的问题。' },
+      { year: '2014', text: 'Adam 提出，成为深度学习最常用的默认优化器。' },
+      { year: '2017', text: 'AdamW 解耦权重衰减，成为 Transformer 训练的标配。' }
+    ],
+    use: ['默认起点：Adam/AdamW', '追求极致精度：SGD + Momentum + 学习率调度', '大模型训练：AdamW + warmup + cosine 衰减'],
+    avoid: ['以为 Adam 不需要调学习率', '小数据上直接用大 lr（先 warmup）', '把 weight decay 与 L2 混为一谈（AdamW 下不同）'],
+    learn: [
+      '在演示里对比 <strong>SGD / Momentum / Adam</strong> 三条轨迹，看震荡与收敛速度。',
+      '理解动量的 <strong>β 在抵消什么</strong>（方向震荡的分量）。',
+      '搞清 <strong>Adam 的偏差校正</strong>为什么必要（初期 m、s 接近 0）。',
+      '知道 <strong>warmup + cosine 衰减</strong> 为什么对大模型很重要。'
+    ],
+    demo: { id: 'opt', title: '优化器 · 峡谷轨迹对比', note: '狭长损失面上，SGD 左右横跳、Momentum 顺着谷底冲、Adam 自适应步长最快到底。' }
+  },
+
+  {
+    id: 'act',
+    num: '06',
+    emoji: '⚡',
+    name: '激活函数与初始化',
+    en: 'Activation Functions & Initialization',
+    cat: 'found',
+    diff: 2,
+    accent: '#94a3b8',
+    tagline: '没有非线性，一百层网络也只等价于一层——激活函数决定了网络能表达什么。',
+    intro: {
+      what: '激活函数给神经元引入非线性（sigmoid/tanh/ReLU/GELU…）；初始化决定训练开始时权重的尺度，直接影响梯度能否顺畅回传。',
+      problem: '不加非线性，多层线性变换叠加仍是线性变换；而 sigmoid/tanh 在两端饱和导致梯度消失；初始化太大梯度爆炸、太小梯度消失。',
+      idea: '选一个导数性质好的非线性（ReLU 系列在正区间导数为 1，缓解梯度消失）；初始化时让每层输出的方差保持稳定（Xavier 按 fan-in/fan-out 缩放，He 针对 ReLU 再乘 √2）。'
+    },
+    principle: {
+      text: [
+        'sigmoid：输出 (0,1)，两端导数趋近 0 → 深层梯度消失；tanh：输出 (−1,1) 零中心，仍会饱和。',
+        'ReLU：max(0,x)，正区间导数恒为 1，计算极快、缓解梯度消失；缺点是「死亡 ReLU」（负区间梯度恒 0）。LeakyReLU/GELU/Swish 都是它的改良。',
+        '初始化：Xavier（Glorot）让前向/反向方差都稳定，适合 tanh；He 初始化在 ReLU 下乘 √2，因为 ReLU 丢掉了一半激活。'
+      ],
+      formula: {
+        html: '<span class="fn">ReLU</span>(x) = max(0, x)　　<span class="fn">He</span>: <span class="sym">W</span> ~ <span class="fn">N</span>(0, <span class="frac"><span class="num">2</span><span class="den">n<sub>in</sub></span></span>)',
+        note: 'ReLU 与其对应的 He 初始化：方差取 2/n_in，正好补偿 ReLU 把一半神经元置零造成的方差损失。'
+      }
+    },
+    example: {
+      analogy: '激活函数像水管的阀门：sigmoid 是「怎么拧都只能开一半」的阀门（两端饱和），ReLU 是「要么全开要么全关」的开关（简单但高效）。初始化像给每层水管定初始水压——压力不对，末端就没水了。',
+      mini: '50 层全用 sigmoid：每层梯度最多 0.25，回传 50 层后约 0.25⁵⁰ ≈ 10⁻³⁰，浅层完全学不动。换成 ReLU + He 初始化后，梯度尺度基本保持。'
+    },
+    pros: ['ReLU 计算快、缓解梯度消失，是 CNN/MLP 默认', 'GELU 平滑可导，是 Transformer 的标配', '合理初始化能让很深的网络直接训起来'],
+    cons: ['sigmoid/tanh 深层易梯度消失', 'ReLU 可能「死亡」（负区间永不复活）', '初始化不当会直接训崩，且不易察觉'],
+    history: [
+      { year: '1950s', text: '感知机使用阶跃函数。' },
+      { year: '1990s', text: 'sigmoid/tanh 成为主流，但深层网络难以训练。' },
+      { year: '2010', text: 'Xavier 初始化提出，配合 tanh 显著改善深层训练。' },
+      { year: '2011', text: 'ReLU 被重新重视，成为深度网络的默认激活。' },
+      { year: '2015', text: 'He 初始化针对 ReLU 提出；2016 GELU 出现，后被 Transformer 采用。' }
+    ],
+    use: ['CNN/MLP→ReLU / LeakyReLU + He 初始化', 'Transformer→GELU + LayerNorm', '输出层→按任务选（回归无激活 / 分类 softmax / 二分类 sigmoid）'],
+    avoid: ['深层网络全程用 sigmoid/tanh', '用零初始化（对称性无法打破）', '忘了输出层的激活要与损失匹配'],
+    learn: [
+      '在演示里切换 <strong>函数 / 导数</strong>，看 sigmoid 两端为什么梯度趋 0。',
+      '对比 <strong>ReLU 与 GELU</strong> 的形状差异（负区间是否完全为 0）。',
+      '理解 <strong>Xavier vs He</strong> 差在哪里（是否补偿 ReLU 的一半损失）。',
+      '记住：<strong>输出层的激活必须和损失函数匹配</strong>（softmax+CE、sigmoid+BCE）。'
+    ],
+    demo: { id: 'act', title: '激活函数 · 函数与梯度', note: '切换查看 5 种激活函数本身与它们的导数，直观看到 sigmoid 两端梯度趋近 0。' }
   },
 
   {
