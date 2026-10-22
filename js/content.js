@@ -75,7 +75,7 @@ const ROADMAP = [
   {
     title: '大语言模型',
     color: '#34d399',
-    items: ['Tokenization 分词', '词嵌入 Word2Vec', 'BERT 编码器', 'GPT 架构与预训练', '微调与 LoRA', 'RLHF 对齐', '提示工程']
+    items: ['Tokenization 分词', '词嵌入 Word2Vec', 'BERT 编码器', 'GPT 架构与预训练', '位置编码与长上下文', '微调与 LoRA', 'RLHF 对齐', '提示工程', '推理优化与部署']
   },
   {
     title: '智能体 Agent',
@@ -85,7 +85,7 @@ const ROADMAP = [
   {
     title: '工程方法论',
     color: '#f59e0b',
-    items: ['特征工程', '模型评估与调参', '因果推断', '序列预测·时间序列', 'MLOps 与监控']
+    items: ['特征工程', '模型评估与调参', '因果推断', '序列预测·时间序列', '时间序列 ARIMA', 'MLOps 与监控']
   }
 ];
 
@@ -1751,6 +1751,55 @@ const TOPICS = [
   },
 
   {
+    id: 'arima',
+    num: '62',
+    emoji: '📉',
+    name: '时间序列分析：ARIMA',
+    en: 'Time Series: ARIMA & Decomposition',
+    cat: 'stat',
+    diff: 3,
+    accent: '#5c9bff',
+    tagline: '先把序列「拆开、差分平稳」，再用过去的自己预测未来——经典时序的看家本领。',
+    intro: {
+      what: '处理时间序列的经典统计方法族：用分解（趋势/季节/残差）、差分与 AR/MA 结构建模自相关，ARIMA(p,d,q) 是其代表。与深度学习的序列预测互补。',
+      problem: '时序数据有趋势和季节性，直接用回归会「预测永远滞后」；且观测值彼此相关，违反独立同分布假设。',
+      idea: '先通过差分把非平稳序列变成平稳（d），再用 AR（过去的自己）与 MA（过去的误差）解释剩下结构，必要时叠加季节项（SARIMA）。'
+    },
+    principle: {
+      text: [
+        '平稳性：均值/方差不随时间变化。有趋势就差分一次（d=1），有季节就先做季节差分。',
+        'AR(p)：用前 p 期的值预测当前；MA(q)：用前 q 期的预测误差；ARIMA = 差分 + AR + MA。',
+        '定阶：看 ACF（自相关）与 PACF（偏自相关）的截尾/拖尾形态，或用 AIC/BIC 自动搜索。'
+      ],
+      formula: {
+        html: '<span class="sym">y</span><sub>t</sub> = <span class="sym">c</span> + Σ<sub>i=1</sub><sup>p</sup> <span class="sym">φ</span><sub>i</sub><span class="sym">y</span><sub>t−i</sub> + Σ<sub>j=1</sub><sup>q</sup> <span class="sym">θ</span><sub>j</sub><span class="sym">ε</span><sub>t−j</sub> + <span class="sym">ε</span><sub>t</sub>',
+        note: 'ARMA(p,q)：当前值 = 常数 + 过去 p 期的值（AR）+ 过去 q 期的误差（MA）+ 新噪声。'
+      }
+    },
+    example: {
+      analogy: '预测明天温度：既看「最近的温度」（AR，有惯性），也看「最近几次预报错了多少」（MA，修正系统性偏差）；如果把长期升温趋势先减掉，剩下的才好预测。',
+      mini: '某电商月销量有明显上升趋势 + 每年双十一的尖峰。先做一阶差分去掉趋势，再做季节差分去掉 12 个月的周期，剩下的才是 ARIMA 能建模的平稳部分。'
+    },
+    pros: ['可解释强：趋势/季节/残差能分开看', '小样本即可用，计算快', '有成熟的定阶与检验流程（ACF/PACF/AIC）'],
+    cons: ['要求（近似）线性与平稳，非线性关系建模弱', '长预测期误差累积', '多变量/高维场景不如深度模型灵活'],
+    history: [
+      { year: '1970', text: 'Box 与 Jenkins 系统提出 ARIMA 建模方法论。' },
+      { year: '1980s', text: 'SARIMA、状态空间模型扩展了季节性建模。' },
+      { year: '2017', text: 'Prophet 用可加分解 + 变点检测降低调参门槛。' },
+      { year: '2020s', text: '与深度学习融合（N-BEATS、时序 Transformer）成为主流方向。' }
+    ],
+    use: ['销量/流量/库存等业务预测', '有明显趋势与季节性的指标', '需要可解释分解的诊断分析'],
+    avoid: ['强非线性或长依赖场景（改用深度模型）', '非平稳且差分后仍不平稳', '多变量强耦合（考虑 VAR/深度模型）'],
+    learn: [
+      '在演示里拖「差分阶数」，看序列如何变平稳（均值/方差稳定）。',
+      '理解 <strong>平稳性</strong> 为什么是 ARIMA 的前提。',
+      '搞清 <strong>ACF vs PACF</strong> 分别用来定哪个阶。',
+      '知道 <strong>ARIMA 与深度学习时序模型</strong> 的取舍。'
+    ],
+    demo: { id: 'arima', title: '时序 · 差分平稳化演示', note: '拖动差分阶数，看上图带趋势与季节的原始序列如何在下图被「压平」成平稳序列。' }
+  },
+
+  {
     id: 'gan',
     num: '25',
     emoji: '🎭',
@@ -2877,6 +2926,105 @@ const TOPICS = [
       '了解 <strong>ReAct</strong>（思考+行动）如何与工具结合。'
     ],
     demo: { id: 'prompt', title: '提示工程 · 策略对比演示', note: '同一道题，切换「直接问 / 给例子 / 思维链」，看模型答案如何从错到对。' }
+  },
+
+  {
+    id: 'posenc',
+    num: '63',
+    emoji: '📐',
+    name: '位置编码与长上下文',
+    en: 'Positional Encoding & Long Context',
+    cat: 'llm',
+    diff: 4,
+    accent: '#34d399',
+    tagline: '注意力天生「无序」——不给位置信息，模型眼里的句子就是一袋词。',
+    intro: {
+      what: '给 Transformer 注入「谁在前谁在后」的机制。从绝对位置编码（正弦/可学习）演进到相对位置编码（RoPE、ALiBi），并决定了模型能支撑多长的上下文。',
+      problem: '自注意力对所有位置一视同仁（置换等变），不加位置信息就无法区分「狗咬人」和「人咬狗」。',
+      idea: '绝对编码给每个位置一个向量；相对编码让注意力分数只依赖两者距离，从而天然支持外推到更长序列。'
+    },
+    principle: {
+      text: [
+        '正弦编码：用不同频率的 sin/cos 给每个位置生成唯一向量，无需训练但外推能力有限。',
+        'RoPE：把 query/key 按位置做旋转，使内积只依赖相对距离——这是当前主流 LLM 的标配。',
+        'ALiBi：不加编码，直接在注意力分数上按距离加线性惩罚，简单且外推好。',
+        '长上下文的关键：位置外推（RoPE 的 NTK/YaRN 插值）+ 注意力加速（FlashAttention）。'
+      ],
+      formula: {
+        html: '<span class="fn">PE</span>(<span class="sym">pos</span>, 2i) = <span class="fn">sin</span>(<span class="frac"><span class="num">pos</span><span class="den">10000<sup>2i/d</sup></span></span>)',
+        note: '正弦位置编码：不同维度用不同频率，位置越靠后波形变化越快，从而形成唯一指纹。'
+      }
+    },
+    example: {
+      analogy: '给一队人编号：正弦编码像「每人发一张写满不同频率波形的胸牌」；RoPE 像「按编号旋转每个人的朝向」，两人对视的角度只取决于编号差。',
+      mini: '训练长度 4K 的模型直接喂 32K 文本会崩（位置没训过）。用 RoPE 插值把位置「压缩」到训练范围内，再微调少量步数，就能扩展到 32K。'
+    },
+    pros: ['相对编码天然支持长上下文外推', 'RoPE 可与注意力高效融合，几乎零额外开销', 'ALiBi 实现极简、外推稳定'],
+    cons: ['外推仍需微调，不是免费的', '超长上下文注意力成本随长度平方增长', '不同编码对「位置敏感任务」表现差异大'],
+    history: [
+      { year: '2017', text: 'Transformer 提出正弦位置编码。' },
+      { year: '2020', text: '可学习绝对编码成为 BERT/GPT 的常见选择。' },
+      { year: '2021', text: 'RoPE 提出，用旋转实现相对位置。' },
+      { year: '2023', text: '长上下文技术爆发：NTK 插值、YaRN、FlashAttention。' }
+    ],
+    use: ['所有 Transformer 模型的基础组件', '长文档/长对话（32K~1M 上下文）', '需要位置泛化的任务（代码、表格）'],
+    avoid: ['以为「支持 128K」就等于「能理解 128K」', '不做外推微调直接用超长输入', '忽略长上下文的显存与延迟成本'],
+    learn: [
+      '在演示里看正弦编码的波形矩阵，理解「不同维度不同频率」。',
+      '理解 <strong>绝对编码 vs 相对编码</strong> 的本质差别。',
+      '搞清 <strong>RoPE 为什么能让内积只依赖相对距离</strong>。',
+      '知道长上下文要靠 <strong>外推微调 + 注意力加速</strong> 两件事。'
+    ],
+    demo: { id: 'posenc', title: '位置编码 · 波形与衰减', note: '左侧是正弦位置编码的波形矩阵，右侧对比三种编码下注意力随距离的衰减。' }
+  },
+
+  {
+    id: 'inference',
+    num: '64',
+    emoji: '🚀',
+    name: '推理优化与部署',
+    en: 'LLM Inference Optimization',
+    cat: 'llm',
+    diff: 4,
+    accent: '#34d399',
+    tagline: '训练一次，推理亿万次——把 KV Cache、批处理、量化用对，成本能差十倍。',
+    intro: {
+      what: '让大模型又快又省地跑起来的一整套技术：KV Cache、连续批处理、量化（INT8/4bit）、投机解码、张量并行，以及 vLLM/TensorRT-LLM 等推理框架。',
+      problem: '自回归生成要逐个 token 前向，若不缓存就会重复计算；显存被 KV Cache 吃掉后 batch 上不去，吞吐上不来，成本居高不下。',
+      idea: '两阶段优化：prefill 阶段并行处理整个 prompt（算力密集），decode 阶段逐 token 生成（访存密集）。用 KV Cache 避免重复计算，用连续批处理把显存利用率拉满，用重量化降低带宽压力。'
+    },
+    principle: {
+      text: [
+        'KV Cache：缓存历史 token 的 K/V，生成第 n 个 token 时只需算新 token 的注意力，代价是显存随序列长度线性增长。',
+        '连续批处理（continuous batching）：请求随到随拼批，不等最长序列结束，显著提升吞吐。',
+        '量化：权重/激活从 FP16 降到 INT8/INT4，显存和带宽降 2~4 倍，精度损失通常很小。'
+      ],
+      formula: {
+        html: '<span class="fn">KV</span> = 2 · <span class="sym">L</span> · <span class="sym">H</span> · <span class="sym">d</span><sub>head</sub> · <span class="sym">S</span> · <span class="sym">B</span> · <span class="sym">bytes</span>',
+        note: 'KV Cache 显存估算：2（K 和 V）× 层数 × 头数 × 每头维度 × 序列长度 × batch × 每元素字节数。'
+      }
+    },
+    example: {
+      analogy: '像写长文时不断回看前文：KV Cache 就是把「已经读过的部分」做成笔记，而不是每写一句都从头重读一遍。',
+      mini: '7B 模型、32 层、32 头、head_dim 128、FP16：单条 8K 上下文的 KV Cache 约 4GB。想 batch=8 就需要 32GB 显存——这就是长上下文吃显存的原因。'
+    },
+    pros: ['吞吐可提升数倍到数十倍，直接降成本', '配合量化能在单卡跑更大模型', '开源框架（vLLM）已高度工程化'],
+    cons: ['KV Cache 显存随长度线性增长', '量化可能影响长尾任务精度', '分布式推理带来通信与调度复杂度'],
+    history: [
+      { year: '2019', text: 'KV Cache 成为自回归生成的标配优化。' },
+      { year: '2022', text: 'FlashAttention 用分块计算降低显存与访存。' },
+      { year: '2023', text: 'vLLM 的 PagedAttention 与连续批处理大幅提升吞吐。' },
+      { year: '2024+', text: '投机解码、4bit 量化、MoE 推理优化成为主流。' }
+    ],
+    use: ['线上 LLM 服务的吞吐与成本优化', '本地/端侧部署（量化 + 小模型）', '长上下文产品的显存规划'],
+    avoid: ['只看单次延迟不看吞吐（服务场景看 P99 与 QPS）', '不做压测就拍显存预算', '量化后不回归评测'],
+    learn: [
+      '在演示里拖序列长度与 batch，看 KV Cache 显存如何增长。',
+      '理解 <strong>prefill 与 decode</strong> 两个阶段的瓶颈不同。',
+      '搞清 <strong>KV Cache 显存公式</strong> 里每一项的含义。',
+      '知道 <strong>连续批处理 / 量化 / 投机解码</strong> 各自优化什么。'
+    ],
+    demo: { id: 'inference', title: '推理 · KV Cache 显存估算', note: '拖动序列长度与 batch，实时估算 KV Cache 显存占用，并判断能否放进给定显卡。' }
   },
 
   {

@@ -3956,7 +3956,7 @@
       text(ctx, '横轴 = 混淆变量 Z　纵轴 = 结果 Y（绿 = 处理组 T=1，粉 = 对照组 T=0）', box.l, box.t - 12, C.text, 'left', 11);
 
       // 右：三种估计
-      const rx = 480, ry = 110, bw = 210;
+      const rx = 450, ry = 110, bw = 160;
       const items = [
         { label: '真实因果效应', v: TRUE, col: C.white },
         { label: '未调整（只看相关）', v: naive, col: C.red },
@@ -4061,6 +4061,213 @@
     draw();
   }
 
+  // ============================================================
+  // 统计 · 时间序列差分平稳化
+  // ============================================================
+  function arima(container) {
+    const d = demoShell('时序 · 差分平稳化演示', '上图是带趋势与季节的原始序列；拖动差分阶数，看它在下方被「压平」成平稳序列（均值稳定）。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 460);
+    const rng = makeRng(3141);
+    const N = 120;
+    const raw = [];
+    for (let t = 0; t < N; t++) {
+      raw.push(0.15 * t + 2.6 * Math.sin(2 * Math.PI * t / 12) + gauss(rng) * 0.55);
+    }
+    let order = 1;
+    const diffN = (arr, n) => {
+      let a = arr.slice();
+      for (let k = 0; k < n; k++) { const b = []; for (let i = 1; i < a.length; i++) b.push(a[i] - a[i - 1]); a = b; }
+      return a;
+    };
+    const stat = a => {
+      const m = a.reduce((s, v) => s + v, 0) / a.length;
+      const sd = Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / a.length);
+      return { m: m, sd: sd };
+    };
+    function panel(box, series, title, color) {
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      if (!series.length) return;
+      let mn = Math.min.apply(null, series), mx = Math.max.apply(null, series);
+      if (Math.abs(mx - mn) < 1e-6) { mx += 1; mn -= 1; }
+      const pad = (mx - mn) * 0.12;
+      const tx = i => box.l + i / (series.length - 1) * (box.r - box.l);
+      const ty = v => box.b - (v - (mn - pad)) / ((mx - mn) + 2 * pad) * (box.b - box.t);
+      // 零线
+      ctx.strokeStyle = 'rgba(255,224,102,0.35)'; ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
+      if (mn - pad < 0 && mx + pad > 0) { ctx.beginPath(); ctx.moveTo(box.l, ty(0)); ctx.lineTo(box.r, ty(0)); ctx.stroke(); }
+      ctx.setLineDash([]);
+      ctx.strokeStyle = color; ctx.lineWidth = 1.8; ctx.beginPath();
+      series.forEach((v, i) => { if (i === 0) ctx.moveTo(tx(i), ty(v)); else ctx.lineTo(tx(i), ty(v)); });
+      ctx.stroke();
+      text(ctx, title, box.l, box.t - 12, color, 'left', 12);
+      const s = stat(series);
+      text(ctx, '均值 ' + round(s.m, 2) + '　标准差 ' + round(s.sd, 2), box.r, box.t - 12, C.text, 'right', 11);
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const dif = diffN(raw, order);
+      panel({ l: 70, r: 730, t: 74, b: 226 }, raw, '原始序列（趋势 + 季节 + 噪声）', C.cyan);
+      panel({ l: 70, r: 730, t: 296, b: 412 }, dif, order === 0 ? '未差分（同上）' : order + ' 阶差分后', C.magenta);
+
+      const s0 = stat(raw), s1 = stat(dif);
+      let verdict;
+      if (order === 0) verdict = '均值随 t 一路抬升 → 非平稳，ARIMA 无法直接建模';
+      else if (order === 1) verdict = '趋势被消掉，均值不再随时间漂移 → 近似平稳 ✓';
+      else verdict = '再过一次差分：均值归零，但方差被放大、噪声被强调 → 过差分';
+      text(ctx, verdict, 70, 30, order === 2 ? C.orange : C.yellow, 'left', 12);
+      text(ctx, '原始均值 ' + round(s0.m, 2) + ' → 差分后均值 ' + round(s1.m, 2), 70, 48, C.text, 'left', 11);
+      text(ctx, '差分阶数 d = ' + order + '　（ARIMA(p,d,q) 里的 d 就是它）', 70, 442, C.text, 'left', 11);
+    }
+    d.controls.appendChild(makeRange(0, 2, 1, order, v => { order = v; draw(); }, '差分阶数'));
+    draw();
+  }
+
+  // ============================================================
+  // LLM · 位置编码
+  // ============================================================
+  function posenc(container) {
+    const d = demoShell('位置编码 · 波形与相对性', '左侧是正弦位置编码的「指纹」矩阵；右侧对比绝对编码与 RoPE 的注意力矩阵：RoPE 只依赖相对距离（沿对角线相同）。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 420);
+    const NP = 32, ND = 12, NQ = 12;
+    // 正弦位置编码矩阵
+    const pe = [];
+    for (let p = 0; p < NP; p++) {
+      const row = [];
+      for (let i = 0; i < ND; i++) {
+        const freq = 1 / Math.pow(10000, (2 * Math.floor(i / 2)) / ND);
+        row.push(i % 2 === 0 ? Math.sin(p * freq) : Math.cos(p * freq));
+      }
+      pe.push(row);
+    }
+    const colorOf = v => {
+      const t = (clamp(v, -1, 1) + 1) / 2;
+      return 'rgb(' + Math.round(30 + t * 190) + ',' + Math.round(120 + t * 60) + ',' + Math.round(230 - t * 120) + ')';
+    };
+    function heat(box, rows, cols, val, title, note) {
+      const cw = (box.r - box.l) / cols, ch = (box.b - box.t) / rows;
+      for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+        ctx.fillStyle = colorOf(val(r, c));
+        ctx.fillRect(box.l + c * cw, box.t + r * ch, Math.ceil(cw), Math.ceil(ch));
+      }
+      ctx.strokeStyle = C.axis; ctx.lineWidth = 1;
+      ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      text(ctx, title, box.l, box.t - 12, C.cyan, 'left', 12);
+      if (note) text(ctx, note, box.l, box.b + 18, C.text, 'left', 10);
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      heat({ l: 70, r: 350, t: 76, b: 316 }, NP, ND, (r, c) => pe[r][c],
+        '正弦位置编码（行 = 位置，列 = 维度）', '每一行是唯一指纹；低频维度变化慢，高频维度变化快');
+
+      // 绝对编码：权重带位置相关的整体缩放 → 每行亮度不同
+      heat({ l: 420, r: 570, t: 76, b: 226 }, NQ, NQ,
+        (i, j) => Math.exp(-((i - j) ** 2) / 18) * (0.55 + 0.45 * Math.sin(i * 0.9)),
+        '绝对编码', '同一对角线的亮度随行变化');
+
+      // RoPE：只依赖相对距离 → Toeplitz，沿对角线完全相同
+      heat({ l: 600, r: 750, t: 76, b: 226 }, NQ, NQ,
+        (i, j) => Math.exp(-((i - j) ** 2) / 18),
+        'RoPE', '沿每条对角线完全一致');
+
+      text(ctx, '位置编码 · 相对性演示', 70, 34, C.yellow, 'left', 13);
+      text(ctx, '关键差别：绝对编码的注意力会随「绝对位置」漂移，换到更长序列就不认识了；', 70, 350, C.text, 'left', 11);
+      text(ctx, 'RoPE 把位置做成旋转，使 q·k 只依赖两者的距离差 → 天然具备长度外推的基础。', 70, 368, C.text, 'left', 11);
+      text(ctx, '（右侧两图是结构示意：绝对编码每行亮度不同，RoPE 严格 Toeplitz）', 70, 392, C.text, 'left', 10);
+    }
+    draw();
+  }
+
+  // ============================================================
+  // LLM · KV Cache 显存估算
+  // ============================================================
+  function inference(container) {
+    const d = demoShell('推理 · KV Cache 显存估算', '拖动序列长度与 batch，实时估算 KV Cache 显存占用，并判断能否塞进 24GB 显卡。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 420);
+    const LAYERS = 32, HEADS = 32, DH = 128, BYTES = 2;   // 7B 模型，FP16
+    let seqExp = 0.45, batch = 1;                          // seqExp → 256..32768
+    const seqOf = e => Math.round(256 * Math.pow(2, e * 7));  // 256 * 2^(0..7)
+    const GPU = 24, WEIGHTS = 14, OTHER = 2;
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const S = seqOf(seqExp);
+      const kvBytes = 2 * LAYERS * HEADS * DH * S * batch * BYTES;
+      const kvGB = kvBytes / 1e9;
+      const total = WEIGHTS + kvGB + OTHER;
+      const fits = total <= GPU;
+
+      // 左：显存构成条
+      const bx = 70, by = 110, bw = 300, bh = 210;
+      ctx.strokeStyle = C.axis; ctx.strokeRect(bx, by, bw, bh);
+      const maxGB = Math.max(GPU * 1.3, total * 1.15);
+      const hOf = g => g / maxGB * bh;
+      // 堆叠：权重 / KV / 其它
+      let y = by + bh;
+      const seg = (g, col, label) => {
+        const hh = hOf(g);
+        y -= hh;
+        ctx.fillStyle = col; ctx.globalAlpha = 0.75;
+        ctx.fillRect(bx + 6, y, bw - 12, hh);
+        ctx.globalAlpha = 1;
+        if (hh > 16) text(ctx, label + ' ' + round(g, 1) + ' GB', bx + 14, y + hh / 2, C.white, 'left', 10);
+      };
+      seg(WEIGHTS, C.blue, '模型权重');
+      seg(OTHER, C.axis, '激活/碎片');
+      seg(kvGB, fits ? C.green : C.red, 'KV Cache');
+      // 24GB 上限线
+      if (maxGB > GPU) {
+        const ly = by + bh - hOf(GPU);
+        ctx.strokeStyle = C.yellow; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(bx - 6, ly); ctx.lineTo(bx + bw + 6, ly); ctx.stroke(); ctx.setLineDash([]);
+        text(ctx, '24GB 上限', bx + bw + 8, ly, C.yellow, 'left', 10);
+      }
+      text(ctx, '显存占用构成', bx, by - 12, C.text, 'left', 11);
+
+      // 右：KV Cache 随序列长度的曲线
+      const rx = 440, ry = 110, rw = 290, rh = 210;
+      ctx.strokeStyle = C.axis; ctx.strokeRect(rx, ry, rw, rh);
+      const kx = e => rx + e / 1 * rw;
+      const maxKV = 2 * LAYERS * HEADS * DH * seqOf(1) * 16 * BYTES / 1e9;
+      const ky = g => ry + rh - clamp(g / maxKV, 0, 1) * rh;
+      ctx.strokeStyle = C.purple; ctx.lineWidth = 1.4;
+      [1, 2, 4, 8, 16].forEach(b => {
+        ctx.beginPath();
+        for (let k = 0; k <= 60; k++) {
+          const e = k / 60;
+          const g = 2 * LAYERS * HEADS * DH * seqOf(e) * b * BYTES / 1e9;
+          if (k === 0) ctx.moveTo(kx(e), ky(g)); else ctx.lineTo(kx(e), ky(g));
+        }
+        ctx.stroke();
+      });
+      // 当前点
+      ctx.fillStyle = fits ? C.green : C.red;
+      ctx.beginPath(); ctx.arc(kx(seqExp), ky(kvGB), 6, 0, 7); ctx.fill();
+      text(ctx, 'batch = 1 / 2 / 4 / 8 / 16（自上而下）', rx, ry - 12, C.text, 'left', 11);
+      text(ctx, '横轴 = 序列长度 256 → 32K', rx + rw, ry + rh + 16, C.text, 'right', 10);
+
+      // 结论
+      const cy = 344;
+      ctx.fillStyle = fits ? 'rgba(0,230,160,0.14)' : 'rgba(255,107,107,0.16)';
+      ctx.fillRect(70, cy, 660, 44);
+      ctx.strokeStyle = fits ? C.green : C.red; ctx.lineWidth = 1.5;
+      ctx.strokeRect(70, cy, 660, 44);
+      text(ctx, (fits ? '✓ 可以放下' : '✗ 超出显存') + '　合计 ' + round(total, 1) + ' GB / ' + GPU + ' GB',
+        84, cy + 22, fits ? C.green : C.red, 'left', 13);
+      text(ctx, 'KV Cache ' + round(kvGB, 1) + ' GB　序列 ' + S.toLocaleString() + ' tokens　batch ' + batch,
+        380, cy + 22, C.text, 'left', 11);
+
+      text(ctx, 'KV = 2 × 层数(' + LAYERS + ') × 头数(' + HEADS + ') × head_dim(' + DH + ') × 序列 × batch × ' + BYTES + 'B',
+        70, 34, C.yellow, 'left', 12);
+      text(ctx, '这就是长上下文「吃显存」的根源：长度翻倍，KV Cache 也翻倍——batch 想上去就得用量化或 GQA/MLA 压 KV。',
+        70, H - 16, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeRange(0, 1, 0.02, seqExp, v => { seqExp = v; draw(); }, '序列长度'));
+    d.controls.appendChild(makeRange(1, 16, 1, batch, v => { batch = v; draw(); }, 'batch'));
+    draw();
+  }
+
   window.MLDemos = {
     dist: dist, linear: linear, logistic: logistic, tree: tree, forest: forest,
     xgboost: xgboost, svm: svm, kmeans: kmeans, pca: pca, mlp: mlp, rnn: rnn, lstm: lstm, seq: seq,
@@ -4074,6 +4281,7 @@
     rag: rag, agent: agent, multiagent: multiagent,
     loss: loss, reg: reg, opt: opt, act: act,
     token: token, bert: bert, ssl: ssl, gnn: gnn,
-    distill: distill, moe: moe, causal: causal, mlops: mlops
+    distill: distill, moe: moe, causal: causal, mlops: mlops,
+    arima: arima, posenc: posenc, inference: inference
   };
 })();
