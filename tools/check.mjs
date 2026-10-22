@@ -184,7 +184,9 @@ if (hasDemos) {
     try {
       fn(makeEl());
       const dt = Date.now() - t0;
-      if (dt > 400) warn(`演示 "${k}" 初始化较慢：${dt}ms（滚到该主题时会卡一下）`);
+      // 阈值放宽到 800ms：真实浏览器里 400ms 左右的波动很常见（机器负载、GC），
+      // 只有明显卡顿（旧版 autoencoder 曾到 1.7s）才值得提示
+      if (dt > 800) warn(`演示 "${k}" 初始化较慢：${dt}ms（滚到该主题时会卡一下）`);
     } catch (e) {
       err(`演示 "${k}" 初始化报错：${e.message}`);
     }

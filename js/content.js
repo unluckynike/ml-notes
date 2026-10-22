@@ -55,7 +55,7 @@ const ROADMAP = [
   {
     title: '深度学习',
     color: '#ff7ac6',
-    items: ['神经网络 MLP', 'CNN 卷积网络', '自编码器', 'RNN / LSTM / GRU', 'Transformer 注意力']
+    items: ['神经网络 MLP', 'CNN 卷积网络', '自编码器', 'RNN / LSTM / GRU', 'Transformer 注意力', '自监督与对比学习', '图神经网络']
   },
   {
     title: '进阶与应用',
@@ -75,7 +75,7 @@ const ROADMAP = [
   {
     title: '大语言模型',
     color: '#34d399',
-    items: ['词嵌入 Word2Vec', 'GPT 架构与预训练', '微调与 LoRA', 'RLHF 对齐', '提示工程']
+    items: ['Tokenization 分词', '词嵌入 Word2Vec', 'BERT 编码器', 'GPT 架构与预训练', '微调与 LoRA', 'RLHF 对齐', '提示工程']
   },
   {
     title: '智能体 Agent',
@@ -1505,6 +1505,104 @@ const TOPICS = [
   },
 
   {
+    id: 'ssl',
+    num: '54',
+    emoji: '🧲',
+    name: '自监督与对比学习',
+    en: 'Self-Supervised & Contrastive Learning',
+    cat: 'dl',
+    diff: 4,
+    accent: '#ff7ac6',
+    tagline: '不需要标注就能学表示——把「数据本身」变成监督信号，这是大模型时代的燃料。',
+    intro: {
+      what: '自监督：从无标注数据自动构造监督任务（预测被遮的部分、判断两张图是否同源）。对比学习是其中最成功的一类：拉近「正样本对」、推远「负样本」。',
+      problem: '标注昂贵且有限，而互联网上的无标注数据近乎无限。如何不靠人工标签学到好表示？',
+      idea: '同一张图的两个增广视图 = 正样本；其它图 = 负样本。训练编码器让正样本在向量空间靠近、负样本远离，学到的表示天然具有判别性。'
+    },
+    principle: {
+      text: [
+        '正样本构造：对同一图像做两次随机增强（裁剪/翻转/变色），模型应给出相近的表示。',
+        'InfoNCE 损失：把「正样本相似度」放进 softmax，与一批负样本竞争；温度 τ 控制分布的锐度。',
+        '代表方法：SimCLR（大 batch + 强增广）、MoCo（动量编码器 + 队列）、MAE（遮住大部分 patch 再重建）。'
+      ],
+      formula: {
+        html: '<span class="fn">L</span> = − log <span class="frac"><span class="num">exp(sim(<span class="sym">z</span><sub>i</sub>,<span class="sym">z</span><sub>j</sub>)/<span class="sym">τ</span>)</span><span class="den">Σ<sub>k</sub> exp(sim(<span class="sym">z</span><sub>i</sub>,<span class="sym">z</span><sub>k</sub>)/<span class="sym">τ</span>)</span></span>',
+        note: 'InfoNCE：分子是正样本对，分母是本样本与所有负样本的相似度之和；τ 越小越「尖锐」。'
+      }
+    },
+    example: {
+      analogy: '认人：同一个人的正面照和侧面照是「正样本」，别人是「负样本」。看多了，你自然学会抓「长相特征」而不是「今天穿什么」。',
+      mini: 'SimCLR 在 ImageNet 上不做任何标注预训练，学到的表示接一个线性分类器就能接近有监督训练的精度。'
+    },
+    pros: ['完全不需要人工标注，可扩展到海量数据', '学到的表示迁移性强', '是对比学习/多模态对齐（CLIP）的基础'],
+    cons: ['依赖强数据增强与大批量负样本', '训练成本高、对超参敏感', '可能存在「捷径」特征（如只利用颜色）'],
+    history: [
+      { year: '2018', text: 'CPC 提出用预测未来做自监督。' },
+      { year: '2020', text: 'SimCLR、MoCo 把对比学习推上主流。' },
+      { year: '2021', text: 'CLIP 用 4 亿图文对做跨模态对比学习。' },
+      { year: '2022', text: 'MAE 用「遮罩重建」把自监督带回视觉，训练更高效。' }
+    ],
+    use: ['无标注预训练（视觉/语音/文本）', '多模态对齐（CLIP）', '小样本下游任务的表示学习'],
+    avoid: ['数据量小（对比学习需要大量负样本）', '下游任务与预训练增广不匹配', '要求精确预测而非表示学习的场景'],
+    learn: [
+      '在演示里拖动锚点，看正/负样本的相似度与损失如何变化。',
+      '理解 <strong>InfoNCE 与温度 τ</strong> 的作用。',
+      '搞清 <strong>SimCLR vs MoCo vs MAE</strong> 三条技术路线。',
+      '知道 CLIP 就是把对比学习用到图文对上。'
+    ],
+    demo: { id: 'ssl', title: '对比学习 · InfoNCE 演示', note: '拖动锚点向量，看正样本被拉近、负样本被推远，以及 InfoNCE 损失随之变化。' }
+  },
+
+  {
+    id: 'gnn',
+    num: '55',
+    emoji: '🕸️',
+    name: '图神经网络 GNN',
+    en: 'Graph Neural Network',
+    cat: 'dl',
+    diff: 4,
+    accent: '#ff7ac6',
+    tagline: '让神经网络读懂「关系」——社交网络、分子结构、知识图谱，都是图。',
+    intro: {
+      what: '在图结构数据上做深度学习的模型族：每个节点聚合邻居的信息来更新自己的表示（消息传递），堆几层就能看到多跳邻居。',
+      problem: 'CNN 处理网格（图像）、RNN 处理序列，但图没有固定顺序、每个节点邻居数不同，传统卷积无法直接套用。',
+      idea: '消息传递：每一层，节点收集所有邻居的表示 → 聚合（求和/均值/注意力）→ 与自身表示结合 → 过一层网络。'
+    },
+    principle: {
+      text: [
+        '消息传递：h_v^(k+1) = UPDATE(h_v^(k), AGGREGATE({h_u^(k) : u ∈ N(v)}))。',
+        '层数 = 感受野跳数：1 层看直接邻居，k 层看 k 跳内的节点。',
+        '代表变体：GCN 用归一化邻接矩阵做平均聚合；GAT 用注意力给邻居加权；GraphSAGE 用采样+多种聚合器。'
+      ],
+      formula: {
+        html: '<span class="sym">h</span><sub>v</sub><sup>(k+1)</sup> = <span class="sym">σ</span><span class="op">(</span><span class="fn">W</span> · <span class="fn">MEAN</span>({ <span class="sym">h</span><sub>u</sub><sup>(k)</sup> : u ∈ <span class="fn">N</span>(v) ∪ {v} })<span class="op">)</span>',
+        note: 'GCN 风格的一层更新：取「邻居 + 自己」的均值，乘权重再过激活。'
+      }
+    },
+    example: {
+      analogy: '朋友圈：想了解一个人（节点），就去问他的朋友（邻居）；问完一层朋友、再问朋友的朋友，信息就传开了。',
+      mini: '分子性质预测：把原子当节点、化学键当边，几层 GNN 后每个原子都融合了局部化学环境，再做图级池化预测毒性/溶解度。'
+    },
+    pros: ['原生处理关系型数据，不受节点顺序/数量限制', '能利用结构信息（比只看节点特征强）', '在分子、推荐、风控等场景效果显著'],
+    cons: ['深了会「过平滑」（所有节点表示趋同）', '大图的全图训练显存吃紧，需要采样', '对图结构噪声敏感'],
+    history: [
+      { year: '2016', text: 'GCN 用谱方法简化出可扩展的图卷积。' },
+      { year: '2017', text: 'GraphSAGE 引入采样聚合，支持归纳式学习。' },
+      { year: '2018', text: 'GAT 引入注意力权重，成为最常用的变体之一。' },
+      { year: '2020s', text: 'GNN 用于药物发现、推荐、芯片布局；图基础模型兴起。' }
+    ],
+    use: ['分子/材料性质预测', '社交网络与风控（关系推断）', '推荐系统（用户-物品二部图）、知识图谱补全'],
+    avoid: ['数据本身没有关系结构（用普通 MLP）', '极深网络（过平滑）', '动态图且更新极频繁的场景'],
+    learn: [
+      '在演示里逐步做「消息传递」，看节点表示如何吸收邻居信息。',
+      '理解 <strong>层数 = 感受野跳数</strong> 这个直觉。',
+      '对比 <strong>GCN / GAT / GraphSAGE</strong> 的聚合方式。',
+      '知道 <strong>过平滑</strong> 是 GNN 加深的主要障碍。'
+    ],
+    demo: { id: 'gnn', title: 'GNN · 消息传递演示', note: '点「下一层」，看每个节点如何聚合邻居表示；层数越多，感受野越大。' }
+  },
+
+  {
     id: 'seq',
     num: '12',
     emoji: '⏳',
@@ -2386,6 +2484,104 @@ const TOPICS = [
       '了解 Word2Vec → GloVe → BERT 的演进。'
     ],
     demo: { id: 'word2vec', title: 'Word2Vec · 词向量空间演示', note: '在 2D 词向量空间里做「国王 − 男人 + 女人」，看结果落点如何接近「女王」。' }
+  },
+
+  {
+    id: 'token',
+    num: '56',
+    emoji: '✂️',
+    name: 'Tokenization 分词',
+    en: 'Tokenization (BPE / WordPiece)',
+    cat: 'llm',
+    diff: 2,
+    accent: '#34d399',
+    tagline: '模型眼里没有「字」，只有 token——分词器决定了你花多少钱、模型能看多远。',
+    intro: {
+      what: '把原始文本切成模型处理的最小单位（token）的过程。主流做法是子词（subword）：从字符出发不断合并高频片段，得到大小可控的词表。',
+      problem: '按词切：词表爆炸、未登录词无法处理；按字符切：序列太长、单字符语义太弱。需要折中。',
+      idea: '高频整词保留、低频词拆成子词——常见词一个 token，罕见词由几个子词拼出来，既控制词表大小又不丢信息。'
+    },
+    principle: {
+      text: [
+        'BPE：从字符表开始，反复统计相邻符号对，把出现最多的对合并成新符号，重复到词表达到目标大小。',
+        'WordPiece（BERT 用）：合并准则换成「似然增益」而非频率，倾向选择能提升语言模型概率的组合。',
+        '代价：token 数决定上下文长度与 API 计费；中文与罕见术语常被切成多个 token，比英文更费。'
+      ],
+      formula: {
+        html: '<span class="fn">merge</span>(a, b) = <span class="fn">argmax</span><sub>(x,y)</sub> <span class="fn">count</span>(x, y)',
+        note: 'BPE 每一步都选「出现次数最多的相邻符号对」合并，直到词表达到设定大小。'
+      }
+    },
+    example: {
+      analogy: '像拼音缩写：常见词（「机器学习」）一个记号；生僻词（「萜烯」）拆成几个已知部件拼起来。字典不必无限大，却能表示任何词。',
+      mini: '「tokenization」常被切成 token + ization 两个 token，而 the 只占一个。同样长度，中文往往比英文多消耗 1.5~2 倍 token。'
+    },
+    pros: ['词表可控（3 万~15 万），能表示任意未见词', '罕见词由子词拼出，缓解 OOV', '多语言可共享一个词表'],
+    cons: ['切分结果不直观，调试困难', '中文/代码/罕见术语 token 效率低、更费钱', '切分差异会让字符级任务表现变差'],
+    history: [
+      { year: '1994', text: 'BPE 最早用于数据压缩。' },
+      { year: '2016', text: 'Sennrich 等把 BPE 引入神经机器翻译，解决 OOV。' },
+      { year: '2018', text: 'BERT 采用 WordPiece；GPT-2 用 BPE 并推广到通用语言模型。' },
+      { year: '2020s', text: 'SentencePiece、tiktoken 让分词与模型解耦。' }
+    ],
+    use: ['所有 LLM 的输入预处理', '估算上下文与 API 成本', '多语言/代码场景的词表设计'],
+    avoid: ['以为 token 等于「字」或「词」（会误判上下文长度）', '对 token 边界敏感的字符级任务', '直接用字符级模型处理长文本'],
+    learn: [
+      '在演示里输入文本，看它被切成哪些 token、共几个。',
+      '理解 BPE 的「从字符开始、反复合并高频对」这一过程。',
+      '记住实用结论：<strong>中文通常比英文更费 token</strong>。',
+      '知道 <strong>BPE / WordPiece / SentencePiece</strong> 三者的定位差异。'
+    ],
+    demo: { id: 'token', title: 'Tokenization · 分词演示', note: '输入一段中英混合文本，按子词规则切分，实时显示 token 块与数量。' }
+  },
+
+  {
+    id: 'bert',
+    num: '57',
+    emoji: '🧩',
+    name: 'BERT 与编码器模型',
+    en: 'BERT & Encoder-only Models',
+    cat: 'llm',
+    diff: 4,
+    accent: '#34d399',
+    tagline: 'GPT 只会「往后接」，BERT 能「左右都看」——理解型任务的半边天。',
+    intro: {
+      what: '基于 Transformer 编码器的预训练模型：双向自注意力 + 掩码语言模型（MLM），产出上下文相关的词表示，擅长理解类任务。',
+      problem: '自回归模型只能看左侧上下文，做填空/分类/抽取时看不到后文；而很多理解任务需要双向信息。',
+      idea: '随机遮住输入中的一些词（15%），让模型用左右两侧的上下文去猜——这样训练出的表示天然是双向的。'
+    },
+    principle: {
+      text: [
+        '双向注意力：每个位置可同时看到左右所有位置（无因果掩码），这是与 GPT 最本质的区别。',
+        'MLM 预训练：随机 mask 15% 的 token（80% 换 [MASK]、10% 换随机词、10% 保持不变），让模型预测原词。',
+        '用法差异：BERT 输出「表示」，通常在 [CLS] 上接分类头微调；GPT 输出「下一个词的概率」，用于生成。'
+      ],
+      formula: {
+        html: '<span class="fn">L</span><sub>MLM</sub> = − Σ<sub>i∈mask</sub> log <span class="sym">P</span>(<span class="sym">w</span><sub>i</sub> | <span class="sym">w</span><sub>&lt;i</sub>, <span class="sym">w</span><sub>&gt;i</sub>)',
+        note: 'MLM 损失只算在被遮住的位置上，条件是左右两侧的完整上下文。'
+      }
+    },
+    example: {
+      analogy: '做完形填空：中间挖掉一个词，必须同时看前半句和后半句才能猜对。GPT 像只能看前半句的「接龙」，BERT 是能看整句的「完形填空」。',
+      mini: '输入「巴黎是[MASK]的首都」，BERT 结合「巴黎」与「的首都」两侧信息，能高置信度填出「法国」。'
+    },
+    pros: ['双向上下文，理解类任务（分类/NER/抽取）强', '预训练+微调范式成熟，小数据也能用好', '表示质量高，是 embedding/检索的常用底座'],
+    cons: ['不能直接做生成（无自回归结构）', '[MASK] 在预训练与微调间存在不一致', '同规模下通用能力不如 decoder-only 大模型'],
+    history: [
+      { year: '2018', text: 'Google 发布 BERT，刷新 11 项 NLP 任务，开启「预训练+微调」时代。' },
+      { year: '2019', text: 'RoBERTa 改进训练策略；ALBERT 参数共享降本。' },
+      { year: '2019', text: 'Sentence-BERT 让 BERT 高效产出句向量，成为检索与 RAG 的基础。' },
+      { year: '2020s', text: 'LLM 时代，BERT 类模型转向 embedding、重排、信息抽取等专用角色。' }
+    ],
+    use: ['文本分类、情感分析', '命名实体识别、信息抽取', '句向量 / 向量检索（RAG 的 embedding 模型）'],
+    avoid: ['需要生成长文本', '要求强推理与开放域对话', '超长文本（原生 512 token 上限）'],
+    learn: [
+      '在演示里点一个词遮住它，对比「只看左边」与「左右都看」的预测差异。',
+      '理解 <strong>双向注意力 vs 因果注意力</strong> 的本质区别。',
+      '搞清 <strong>[CLS] / [SEP] / [MASK]</strong> 三个特殊 token 的作用。',
+      '知道 BERT 在 LLM 时代的新定位：<strong>embedding 与重排模型</strong>。'
+    ],
+    demo: { id: 'bert', title: 'BERT · 完形填空演示', note: '点一个词把它遮住，对比「只能看左边」与「左右都能看」两种上下文下的预测。' }
   },
 
   {

@@ -884,8 +884,8 @@
     const randM = (r, c, s) => Array.from({ length: r }, () => Array.from({ length: c }, () => (rng() * 2 - 1) * s));
     let Wxh = randM(Hn, V, 0.12), Whh = randM(Hn, Hn, 0.08), Why = randM(V, Hn, 0.12);
     let bh = zeros(Hn), by = zeros(V);
-    // 训练（350 轮交叉熵≈0.05，再训收益很小但会明显拖慢初始化）
-    for (let e = 0; e < 350; e++) {
+    // 训练（300 轮交叉熵≈0.07，视觉上足够，且初始化更快）
+    for (let e = 0; e < 300; e++) {
       const T = corpus.length - 1;
       const hs = [], xs = [], ps = [];
       let h = zeros(Hn);
@@ -1809,7 +1809,7 @@
     }
     function loop() { if (!state.dragging) state.yaw += 0.004; draw(); requestAnimationFrame(loop); }
     makeOrbit(d.canvas, state, draw);
-    init(); trainEpochs(700); // 预训练到收敛（700 轮 MSE≈0.008，再训收益极小但明显更慢）
+    init(); trainEpochs(500); // 预训练到收敛（500 轮 MSE≈0.01，视觉上已足够，且初始化更快）
     d.controls.appendChild(makeButton('训练 200 步', () => { trainEpochs(200); }, true));
     d.controls.appendChild(makeButton('重置', () => { init(); compute(); draw(); }));
     draw();
@@ -3511,6 +3511,269 @@
     draw();
   }
 
+  // ============================================================
+  // LLM · Tokenization 子词切分
+  // ============================================================
+  function token(container) {
+    const d = demoShell('Tokenization · 子词切分演示', '输入一段中英混合文本，按「贪心最长匹配」的子词规则切分，实时看到 token 块与数量。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 300);
+    const VOCAB = ['transformer', 'attention', 'embedding', 'machine', 'learning', 'neural', 'network',
+      'token', 'ization', 'model', 'data', 'deep', 'learn', 'the', 'is', 'of', 'and', 'ing', 'ed', 'er', 's',
+      '神经网络', '机器学习', '注意力', '分词', '我们', '机器', '学习', '深度', '数据', '模型', '一个',
+      '的', '是', '在', '和'];
+    const SORTED = VOCAB.slice().sort((a, b) => b.length - a.length);
+    let rawText = 'machine learning 模型 tokenization 机器学习';
+    function cut(s) {
+      const out = [];
+      let i = 0;
+      while (i < s.length) {
+        const ch = s[i];
+        if (ch === ' ') { out.push({ t: ' ', space: true }); i++; continue; }
+        let hit = null;
+        for (const v of SORTED) { if (s.startsWith(v, i)) { hit = v; break; } }
+        if (hit) { out.push({ t: hit }); i += hit.length; }
+        else { out.push({ t: ch }); i++; }
+      }
+      return out;
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const toks = cut(rawText);
+      const nTok = toks.filter(o => !o.space).length;
+      const px = 60, maxW = W - 120, gap = 4;
+      let x = px, y = 100;
+      ctx.font = '13px "SF Mono", Menlo, Consolas, monospace';
+      // measureText 在某些环境不可用，退化到按字符数估算
+      const textW = str => {
+        try {
+          const m = ctx.measureText(str);
+          if (m && typeof m.width === 'number' && m.width > 0) return m.width;
+        } catch (e) { /* 忽略 */ }
+        let w = 0;
+        for (const ch of String(str)) w += /[\u4e00-\u9fa5]/.test(ch) ? 13 : 8;
+        return w;
+      };
+      let shown = 0;
+      toks.forEach(o => {
+        if (o.space) { x += 6; return; }
+        const w = Math.max(16, textW(o.t) + 14);
+        if (x + w > px + maxW) { x = px; y += 34; }
+        if (y > H - 90) return;
+        const col = [C.cyan, C.magenta, C.green, C.orange, C.purple][shown % 5];
+        ctx.fillStyle = col; ctx.globalAlpha = 0.16;
+        ctx.fillRect(x, y - 16, w, 24);
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = col; ctx.lineWidth = 1;
+        ctx.strokeRect(x, y - 16, w, 24);
+        text(ctx, o.t, x + w / 2, y - 3, col, 'center', 13);
+        x += w + gap; shown++;
+      });
+      const nChar = rawText.replace(/\s/g, '').length;
+      text(ctx, '共 ' + nTok + ' 个 token　·　字符数 ' + nChar, 60, 42, C.yellow, 'left', 13);
+      // 与「按字符切」对比：子词把序列长度压下来，但换来了更强的语义单元
+      text(ctx, '若按字符切：' + nChar + ' 个 token（是子词方案的 ' + round(nChar / Math.max(1, nTok), 1) + ' 倍）',
+        60, H - 60, C.orange, 'left', 12);
+      text(ctx, '常见整词 = 1 个 token；未登录片段被拆成更小的子词，每个子词单独计费、单独占上下文位置',
+        60, H - 30, C.text, 'left', 11);
+    }
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.value = rawText;
+    inp.style.cssText = 'background:var(--surface-2);border:1px solid var(--border);border-radius:8px;' +
+      'color:var(--text);padding:6px 10px;font-size:13px;width:380px;font-family:inherit';
+    inp.addEventListener('input', () => { rawText = inp.value; draw(); });
+    d.controls.appendChild(inp);
+    draw();
+  }
+
+  // ============================================================
+  // LLM · BERT 完形填空
+  // ============================================================
+  function bert(container) {
+    const d = demoShell('BERT · 完形填空演示', '点一个词把它遮住，对比「只能看左边」（GPT 式）与「左右都能看」（BERT 式）的候选分布。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 400);
+    const SENT = ['巴黎', '是', '法国', '的', '首都'];
+    const CANDS = ['法国', '欧洲', '城市', '一个', '德国'];
+    const ASSOC = {
+      '法国': { '巴黎': 0.95, '首都': 1.20, '是': 0.10, '的': 0.15, '欧洲': 0.40 },
+      '欧洲': { '巴黎': 0.60, '首都': 0.15, '是': 0.15, '的': 0.20, '欧洲': 0.10 },
+      '城市': { '巴黎': 0.50, '首都': 0.35, '是': 0.20, '的': 0.40, '欧洲': 0.10 },
+      '一个': { '巴黎': 0.10, '首都': 0.30, '是': 0.70, '的': 0.50, '欧洲': 0.10 },
+      '德国': { '巴黎': 0.15, '首都': 0.60, '是': 0.10, '的': 0.15, '欧洲': 0.20 }
+    };
+    let mask = 2;
+    const score = (cand, words) => words.reduce((s, w) => s + (ASSOC[cand][w] || 0.05), 0);
+    function softmax(v, T) {
+      const m = Math.max.apply(null, v);
+      const e = v.map(x => Math.exp((x - m) / T));
+      const z = e.reduce((a, b) => a + b, 0);
+      return e.map(x => x / z);
+    }
+    function panel(box, title, words, color) {
+      const p = softmax(CANDS.map(c => score(c, words)), 0.35);
+      const order = CANDS.map((c, i) => ({ c: c, p: p[i] })).sort((a, b) => b.p - a.p);
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      text(ctx, title, box.l, box.t - 12, color, 'left', 12);
+      const maxW = box.r - box.l - 100;
+      order.forEach((o, i) => {
+        const y = box.t + 26 + i * 28;
+        ctx.fillStyle = color; ctx.globalAlpha = 0.75;
+        ctx.fillRect(box.l + 50, y - 8, Math.max(2, o.p * maxW), 14);
+        ctx.globalAlpha = 1;
+        text(ctx, o.c, box.l + 42, y - 1, C.text, 'right', 12);
+        text(ctx, (o.p * 100).toFixed(0) + '%', box.l + 56 + Math.max(2, o.p * maxW), y - 1, C.text, 'left', 11);
+      });
+      text(ctx, '上下文：' + (words.length ? words.join(' ') : '（空）'), box.l, box.b + 18, C.text, 'left', 10);
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const y0 = 62;
+      let x = 96;
+      text(ctx, '[CLS]', 58, y0, C.text, 'left', 10);
+      SENT.forEach((w, i) => {
+        const isMask = i === mask;
+        const bw = Math.max(52, w.length * 16 + 18);
+        ctx.fillStyle = isMask ? 'rgba(255,224,102,0.18)' : 'rgba(0,212,255,0.12)';
+        ctx.fillRect(x, y0 - 15, bw, 28);
+        ctx.strokeStyle = isMask ? C.yellow : C.cyan; ctx.lineWidth = isMask ? 2 : 1;
+        ctx.strokeRect(x, y0 - 15, bw, 28);
+        text(ctx, isMask ? '[MASK]' : w, x + bw / 2, y0, isMask ? C.yellow : C.white, 'center', 12);
+        x += bw + 6;
+      });
+      text(ctx, '[SEP]', x + 4, y0, C.text, 'left', 10);
+      text(ctx, '↑ 点击句子中的词把它遮住', 96, y0 + 32, C.text, 'left', 10);
+
+      panel({ l: 60, r: 380, t: 152, b: 316 }, '只看左边（GPT 式，因果注意力）', SENT.slice(0, mask), C.orange);
+      panel({ l: 430, r: 740, t: 152, b: 316 }, '左右都看（BERT 式，双向注意力）',
+        SENT.filter((_, i) => i !== mask), C.green);
+      text(ctx, '信息越全，候选越集中——这正是双向注意力在理解类任务上的优势（示意分布，用关键词关联度模拟）', 60, H - 30, C.text, 'left', 11);
+    }
+    d.canvas.addEventListener('click', e => {
+      const r = d.canvas.getBoundingClientRect();
+      const px = (e.clientX - r.left) / r.width * W, py = (e.clientY - r.top) / r.height * H;
+      if (py < 40 || py > 96) return;
+      let x = 96;
+      for (let i = 0; i < SENT.length; i++) {
+        const bw = Math.max(52, SENT[i].length * 16 + 18);
+        if (px >= x && px <= x + bw) { mask = i; draw(); return; }
+        x += bw + 6;
+      }
+    });
+    draw();
+  }
+
+  // ============================================================
+  // 深度学习 · 自监督对比学习
+  // ============================================================
+  function ssl(container) {
+    const d = demoShell('对比学习 · InfoNCE 演示', '拖动「正样本距离」与「温度 τ」，看正样本被拉近、负样本被推远，以及 InfoNCE 损失如何变化。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 400);
+    let dist = 0.7, tau = 0.3;
+    const box = { l: 60, r: 470, t: 70, b: 330 };
+    const cx = (box.l + box.r) / 2, cy = (box.t + box.b) / 2, SC = 88;
+    const NEG = [[1.6, 0.9], [1.4, -1.0], [-1.3, 1.3], [-1.5, -0.8], [0.2, 1.8]];
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      const P = (x, y) => ({ x: cx + x * SC, y: cy - y * SC });
+      const pos = { x: Math.cos(0.6) * dist, y: Math.sin(0.6) * dist };
+      const aa = P(0, 0);
+      const sims = [];
+      NEG.forEach((n, i) => {
+        const p = P(n[0], n[1]);
+        ctx.strokeStyle = 'rgba(255,107,107,0.3)'; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.moveTo(aa.x, aa.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+        ctx.fillStyle = C.red; ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, 7); ctx.fill();
+        text(ctx, 'neg' + (i + 1), p.x + 9, p.y, C.red, 'left', 10);
+        sims.push({ s: -Math.hypot(n[0], n[1]), pos: false });
+      });
+      const pp = P(pos.x, pos.y);
+      ctx.strokeStyle = C.green; ctx.lineWidth = 2.4;
+      ctx.beginPath(); ctx.moveTo(aa.x, aa.y); ctx.lineTo(pp.x, pp.y); ctx.stroke();
+      ctx.fillStyle = C.green; ctx.beginPath(); ctx.arc(pp.x, pp.y, 8, 0, 7); ctx.fill();
+      text(ctx, '正样本', pp.x + 11, pp.y - 4, C.green, 'left', 11);
+      ctx.fillStyle = C.white; ctx.beginPath(); ctx.arc(aa.x, aa.y, 7, 0, 7); ctx.fill();
+      text(ctx, '锚点', aa.x, aa.y + 20, C.white, 'center', 11);
+
+      const posSim = -dist;
+      const all = [posSim].concat(sims.map(o => o.s));
+      const e = all.map(v => Math.exp(v / tau));
+      const z = e.reduce((a, b) => a + b, 0);
+      const probPos = e[0] / z;
+      const loss = -Math.log(probPos);
+
+      const rx = 510;
+      text(ctx, '正样本相似度', rx, 92, C.text, 'left', 11);
+      text(ctx, round(posSim, 2), rx + 112, 92, C.green, 'left', 12);
+      text(ctx, '正样本被选中概率', rx, 124, C.text, 'left', 11);
+      text(ctx, (probPos * 100).toFixed(1) + '%', rx + 148, 124, probPos > 0.35 ? C.green : C.orange, 'left', 12);
+      text(ctx, 'InfoNCE 损失', rx, 156, C.text, 'left', 11);
+      text(ctx, round(loss, 3), rx + 112, 156, loss < 1 ? C.green : C.red, 'left', 12);
+      ctx.fillStyle = C.axis; ctx.fillRect(rx, 182, 210, 14);
+      ctx.fillStyle = C.green; ctx.fillRect(rx, 182, 210 * probPos, 14);
+      text(ctx, '条越满 ⇒ 正样本越容易被选中 ⇒ 损失越小', rx, 214, C.text, 'left', 10);
+
+      text(ctx, 'τ = ' + round(tau, 2) + '　正样本距离 = ' + round(dist, 2), 60, 36, C.yellow, 'left', 13);
+      text(ctx, '绿点 = 同一张图的另一视图（正样本），红点 = 其它图（负样本）；目标是把绿点拉近、红点推远', 60, H - 40, C.text, 'left', 11);
+      text(ctx, 'τ 越小 softmax 越尖锐：梯度集中到最难的负样本上；τ 太大则几乎所有样本「一视同仁」', 60, H - 18, C.text, 'left', 11);
+    }
+    d.controls.appendChild(makeRange(0.15, 2.2, 0.05, dist, v => { dist = v; draw(); }, '正样本距离'));
+    d.controls.appendChild(makeRange(0.05, 1, 0.01, tau, v => { tau = v; draw(); }, '温度 τ'));
+    draw();
+  }
+
+  // ============================================================
+  // 深度学习 · GNN 消息传递
+  // ============================================================
+  function gnn(container) {
+    const d = demoShell('GNN · 消息传递演示', '点「下一层」，看每个节点如何吸收邻居的信息；层数越多，感受野越大。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 400);
+    const INIT = [1.0, 0.2, 0.8, 0.1, 0.9, 0.3];
+    const EDGES = [[0, 1], [0, 2], [1, 3], [2, 3], [2, 4], [3, 5], [4, 5]];
+    const POS = [[170, 195], [285, 125], [300, 265], [430, 195], [540, 115], [555, 275]];
+    let h = INIT.slice(), layer = 0;
+    function step() {
+      const nh = h.slice();
+      for (let v = 0; v < 6; v++) {
+        const nb = [];
+        EDGES.forEach(([a, b]) => { if (a === v) nb.push(b); else if (b === v) nb.push(a); });
+        let s = h[v];
+        nb.forEach(u => { s += h[u]; });
+        nh[v] = s / (nb.length + 1);
+      }
+      h = nh; layer++;
+    }
+    const colorOf = v => {
+      const t = clamp(v, 0, 1);
+      return 'rgb(' + Math.round(40 + t * 200) + ',' + Math.round(140 + t * 60) + ',' + Math.round(255 - t * 190) + ')';
+    };
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      EDGES.forEach(([a, b]) => {
+        ctx.strokeStyle = 'rgba(120,145,200,0.45)'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(POS[a][0], POS[a][1]); ctx.lineTo(POS[b][0], POS[b][1]); ctx.stroke();
+      });
+      for (let v = 0; v < 6; v++) {
+        const p = POS[v];
+        ctx.fillStyle = colorOf(h[v]);
+        ctx.beginPath(); ctx.arc(p[0], p[1], 26, 0, 7); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 1.5; ctx.stroke();
+        text(ctx, round(h[v], 2), p[0], p[1], '#08111f', 'center', 11);
+        text(ctx, 'v' + (v + 1), p[0], p[1] + 42, C.text, 'center', 10);
+      }
+      text(ctx, '第 ' + layer + ' 层　每个节点已融合 ' + layer + ' 跳内的邻居信息', 60, 36, C.yellow, 'left', 13);
+      text(ctx, '颜色 = 节点特征值（蓝 → 红）。每层做一次「邻居 + 自己」的平均，信息就这样一跳跳传开', 60, H - 56, C.text, 'left', 11);
+      text(ctx, '层数太深会「过平滑」：所有节点特征趋同，反而失去区分度', 60, H - 32, C.text, 'left', 11);
+    }
+    d.controls.appendChild(makeButton('下一层', () => { if (layer < 6) { step(); draw(); } }, true));
+    d.controls.appendChild(makeButton('重置', () => { h = INIT.slice(); layer = 0; draw(); }));
+    draw();
+  }
+
   window.MLDemos = {
     dist: dist, linear: linear, logistic: logistic, tree: tree, forest: forest,
     xgboost: xgboost, svm: svm, kmeans: kmeans, pca: pca, mlp: mlp, rnn: rnn, lstm: lstm, seq: seq,
@@ -3522,6 +3785,7 @@
     vae: vae, diffusion: diffusion, sd: sd, clip: clip,
     word2vec: word2vec, gpt: gpt, lora: lora, rlhf: rlhf, prompt: prompt,
     rag: rag, agent: agent, multiagent: multiagent,
-    loss: loss, reg: reg, opt: opt, act: act
+    loss: loss, reg: reg, opt: opt, act: act,
+    token: token, bert: bert, ssl: ssl, gnn: gnn
   };
 })();
