@@ -25,7 +25,7 @@ const ROADMAP = [
   {
     title: '统计与数学地基',
     color: '#5c9bff',
-    items: ['概率与分布', '均值·方差·假设检验', '线性代数·微积分', 'Python / NumPy']
+    items: ['概率与分布', '概率图模型', '采样与 MCMC', '均值·方差·假设检验', '线性代数·微积分', 'Python / NumPy']
   },
   {
     title: '优化与泛化',
@@ -55,37 +55,37 @@ const ROADMAP = [
   {
     title: '深度学习',
     color: '#ff7ac6',
-    items: ['神经网络 MLP', 'CNN 卷积网络', '自编码器', 'RNN / LSTM / GRU', 'Transformer 注意力', '自监督与对比学习', '图神经网络', '知识蒸馏与 MoE']
+    items: ['神经网络 MLP', 'CNN 卷积网络', '自编码器', 'RNN / LSTM / GRU', 'Transformer 注意力', '状态空间模型 Mamba', '自监督与对比学习', '图神经网络', '知识蒸馏与 MoE']
   },
   {
     title: '进阶与应用',
     color: '#c084fc',
-    items: ['GAN 生成模型', '强化学习 · 策略梯度 · DQN', '迁移学习', '推荐系统', '异常检测', '联邦学习', '差分隐私', '语音合成 TTS']
+    items: ['GAN 生成模型', '强化学习 · 策略梯度 · DQN', '迁移学习', '推荐系统', '异常检测', '联邦学习', '差分隐私', '具身智能', '语音合成 TTS']
   },
   {
     title: '计算机视觉',
     color: '#38bdf8',
-    items: ['ResNet 残差网络', '目标检测 YOLO', '图像分割 U-Net', '数据增强', '对抗鲁棒性', '视觉 Transformer']
+    items: ['ResNet 残差网络', '目标检测 YOLO', '图像分割 U-Net', 'OCR 文档智能', '数据增强', '对抗鲁棒性', '3D 视觉 NeRF', '视觉 Transformer']
   },
   {
     title: '生成模型',
     color: '#c084fc',
-    items: ['VAE 变分自编码器', '扩散模型 DDPM', '扩散加速采样 DDIM', '文生图 Stable Diffusion', 'CLIP 多模态']
+    items: ['VAE 变分自编码器', '扩散模型 DDPM', '扩散加速采样 DDIM', '文生图 Stable Diffusion', '图像控制编辑 ControlNet', '视频生成', 'CLIP 多模态']
   },
   {
     title: '大语言模型',
     color: '#34d399',
-    items: ['Tokenization 分词', '词嵌入 Word2Vec', 'BERT 编码器', 'GPT 架构与预训练', '位置编码与长上下文', '微调与 LoRA', 'RLHF 对齐', '提示工程', '推理优化与部署', '模型量化', '思维链与推理模型', '多模态 VLM', '评测基准与数据污染']
+    items: ['Tokenization 分词', '词嵌入 Word2Vec', 'BERT 编码器', 'GPT 架构与预训练', '位置编码与长上下文', '微调与 LoRA', 'RLHF 对齐', '分布式训练与并行', '提示工程', '推理优化与部署', '模型量化', '思维链与推理模型', '多模态 VLM', '评测基准与数据污染', 'AI 安全与对齐']
   },
   {
     title: '智能体 Agent',
     color: '#fb7185',
-    items: ['RAG 检索增强生成', 'Agent 与工具调用', '多智能体协作']
+    items: ['RAG 检索增强生成', 'Agent 与工具调用', '计算机使用 CUA', '多智能体协作']
   },
   {
     title: '工程方法论',
     color: '#f59e0b',
-    items: ['特征工程', '模型评估与调参', '共形预测', '因果推断', '序列预测·时间序列', '时间序列 ARIMA', 'MLOps 与监控']
+    items: ['AI 历史与流派', '特征工程', '模型评估与调参', '共形预测', '因果推断', '序列预测·时间序列', '时间序列 ARIMA', 'MLOps 与监控']
   }
 ];
 
@@ -173,8 +173,104 @@ const TOPICS = [
   },
 
   {
-    id: 'gd',
+    id: 'pgm',
     num: '01',
+    emoji: '🕸️',
+    name: '概率图模型',
+    en: 'Probabilistic Graphical Models',
+    cat: 'stat',
+    diff: 4,
+    accent: '#5c9bff',
+    tagline: '把「谁影响谁」画成图、把「有多影响」填成表——贝叶斯网络让复杂系统的概率推理变成图上的乘加。',
+    intro: {
+      what: '用图结构表示随机变量间条件依赖关系的概率模型：有向图（贝叶斯网络）表示因果关系，无向图（马尔可夫随机场）表示软约束；参数是各节点的条件概率表（CPT）。',
+      problem: '多变量的联合分布随变量数指数爆炸（10 个二值变量就要 1024 个参数）；但实际系统中大部分变量间条件独立——需要一种语言把独立结构写下来，让推断只算「有用的项」。',
+      idea: '图 = 独立性结构的语言：边连接「直接依赖」，没有边 = 条件独立。联合分布按图分解为「每个节点只看父节点」的连乘——参数量从指数级降到局部。'
+    },
+    principle: {
+      text: [
+        '贝叶斯网络的分解：P(X₁,…,Xₙ) = ∏ P(Xᵢ | Parents(Xᵢ))——每个节点只需一张「给定父节点的条件概率表」。',
+        '推断 = 条件化与边际化：给了证据后算其它节点的后验。精确推断（变量消除/信念传播）利用条件独立跳过无关项；近似推断用采样（见 MCMC）。',
+        '两个经典现象：「解释消除」（observing away）——证据让竞争原因互相削弱；d-分离给出图上判断条件独立的形式化规则。'
+      ],
+      formula: {
+        html: '<span class="sym">P</span>(<span class="sym">X</span>₁, …, <span class="sym">X</span>ₙ) = <span class="sym">∏</span><sub>i</sub> <span class="sym">P</span>(<span class="sym">X</span>ᵢ | <span class="fn">Pa</span>(<span class="sym">X</span>ᵢ))',
+        note: '链式法则按图结构「截断」：每个变量只依赖它的父节点——这张图就是整个联合分布的压缩编码。'
+      }
+    },
+    example: {
+      analogy: '公司组织架构图：跨部门的事不需要人人知道，只要沿「汇报线」（边）传递——图决定了信息（影响）能流到哪里、在哪里断开（条件独立）。',
+      mini: '「雨天-洒水器-路湿-路滑」网络：观察到路湿时洒水器概率升；再观察到下雨，洒水器概率反而降（下雨解释了路湿）——因果直觉被 CPT 精确复现，演示里可实时枚举验证。'
+    },
+    pros: ['小参数量表达复杂联合分布（独立结构显式可解释）', '支持「任意子集为证据」的灵活推断与因果追问', '是 HMM、卡尔曼滤波、LDA、变分推断的共同语言'],
+    cons: ['精确推断一般情形是 NP 难（结构利用得好才行）', '结构学习（从数据反推图）非常困难', '离散大状态空间/连续变量需近似或专门结构'],
+    history: [
+      { year: '1985~88', text: 'Pearl 提出贝叶斯网络与 d-分离，奠定图模型语言（2011 图灵奖）。' },
+      { year: '1990s', text: '变量消除/信念传播等推断算法成熟；HMM（语音）与卡尔曼滤波（导航）作为专用图模型大放异彩。' },
+      { year: '2000s', text: 'LDA 等主题模型、马尔可夫随机场（图像分割 CRF）应用遍地；概率图模型课程成为 ML 核心。' },
+      { year: '深度学习时代', text: '显式图模型让位于可微网络，但它的思想活在 VAE（变分推断）、扩散（概率建模）与因果推断里。' }
+    ],
+    use: ['特征间有明确因果/依赖结构的领域（医疗诊断、风控、根因分析）', '需要「解释与反事实」的决策支持系统', '理解 HMM/卡尔曼/LDA 的统一框架'],
+    avoid: ['变量高度相关且结构未知（让深度网络自己学）', '超大规模变量的精确推断', '只要预测不要解释的场景（黑盒更省事）'],
+    learn: [
+      '在演示里点节点设证据，观察 <strong>解释消除</strong> 效应。',
+      '手算一次 4 节点网络的精确推断（枚举 16 个联合状态）。',
+      '理解 <strong>d-分离</strong> 的直觉：信息被观察节点「堵住」。',
+      '进阶：读 Pearl《为什么》——从图模型走向因果革命。'
+    ],
+    demo: { id: 'pgm', title: '贝叶斯网络 · 精确推断', note: '点击节点设证据，其余节点后验由全联合分布枚举实时算出——注意因果方向的推断。' }, deep: 'content/pgm.md'  },
+
+  {
+    id: 'mcmc',
+    num: '02',
+    emoji: '🎲',
+    name: '采样与 MCMC',
+    en: 'Monte Carlo & MCMC',
+    cat: 'stat',
+    diff: 4,
+    accent: '#5c9bff',
+    tagline: '算不动积分就掷骰子——用随机样本逼近任何分布；Metropolis-Hastings 让「只知形状不知归一化」的分布也能采出样本。',
+    intro: {
+      what: '蒙特卡洛方法：用随机样本的统计量近似难以解析的期望/积分；MCMC（马尔可夫链蒙特卡洛）：构造一条马尔可夫链，其平稳分布恰是目标分布——链走久了，足迹就是样本。',
+      problem: '贝叶斯推断、统计物理、LDA 的后验都是高维积分，解析不可行；直接采样又常被「归一化常数未知」或「分布形状复杂」卡住。',
+      idea: 'Metropolis-Hastings：从当前位置提议一个新点，按目标密度的「比值」决定去留——比值不需要归一化常数。反复迭代后链的分布收敛到目标，样本即答案。'
+    },
+    principle: {
+      text: [
+        '蒙特卡洛估计：E[f(X)] ≈ (1/N)Σf(xᵢ)，误差按 1/√N 下降（与维度无关——高维积分的救命稻草）。',
+        'MH 接受准则：α = min(1, p(x′)q(x|x′) / p(x)q(x′|x))——对称提议下退化为密度比；细致平衡保证平稳分布是 p。',
+        '两大病：混合慢（步长太小困在单峰）与接受率低（步长太大总被拒）——监测接受率（20~50% 为佳）与轨迹图是基本功；HMC 引入梯度让提议沿等高线走，深度学习时代（Stan/PyMC）的默认。'
+      ],
+      formula: {
+        html: '<span class="sym">A</span>(<span class="sym">x</span> → <span class="sym">x</span>′) = <span class="fn">min</span>(1, <span class="frac"><span class="num"><span class="sym">p</span>(<span class="sym">x</span>′)</span><span class="den"><span class="sym">p</span>(<span class="sym">x</span>)</span></span>)',
+        note: '对称随机游走提议下的接受概率：只依赖目标密度的比值——未知的归一化常数在除法中消掉，这是 MH 最巧妙之处。'
+      }
+    },
+    example: {
+      analogy: '在陌生山地浓雾里找「海拔分布」：每一步往随机方向试探，更高（更符合目标）就一定去、更低就偶尔也去——走一天下来，你逗留时间的分布恰好就是山的海拔分布。',
+      mini: '双峰分布 p(x) ∝ 0.5N(−2, 0.7) + 0.5N(2, 0.8)：归一化常数懒得算也能采——演示里 MH 链的直方图逐渐贴住目标曲线；步长调小时链困在单峰（混合难题直观可见）。'
+    },
+    pros: ['理论上能采样任意形状的分布（只要能算密度比值）', '误差与维度无关的 1/√N 收敛', '是贝叶斯推断、LDA（吉布斯）、统计物理的通用引擎'],
+    cons: ['收敛诊断困难（链「看起来收敛」不等于真收敛）', '高维/多峰时混合极慢（样本自相关高）', '顺序依赖难并行；有效样本量远小于名义样本量'],
+    history: [
+      { year: '1946', text: '乌拉姆与冯·诺伊曼在核武器计算中系统化蒙特卡洛方法（名字源自摩纳哥赌场）。' },
+      { year: '1953', text: 'Metropolis 等提出最初算法（统计物理）；1970 Hastings 推广为通用 MH。' },
+      { year: '1984', text: 'Geman 兄弟将吉布斯采样用于图像恢复（Gibbs = MH 的特例，逐坐标提议必接受）。' },
+      { year: '至今', text: 'HMC/NUTS 成为主流（Stan/PyMC）；MH 家族思想也活在扩散模型的朗之万采样里。' }
+    ],
+    use: ['贝叶斯后验采样（层次模型、小数据+先验）', '高维积分/期望的数值近似', '隐变量模型的近似推断（与变分推断二选一）'],
+    avoid: ['有闭式解或精确推断可用的场合', '对时效极敏感的在线推理', '分布高度多峰且必须全覆盖（混合不可控）'],
+    learn: [
+      '在演示里调 <strong>步长</strong>，观察接受率与「困在单峰」的权衡。',
+      '手推 MH 的 <strong>细致平衡</strong> 条件（两页纸）。',
+      '对比 <strong>MH 与变分推断</strong>：采样无偏但慢、变分快但有偏。',
+      '进阶：了解 HMC 为什么用梯度（沿等高线走的提议几乎不被拒）。'
+    ],
+    demo: { id: 'mcmc', title: 'MCMC · Metropolis-Hastings', note: '调大步长：接受率降、跳得远；调小：困在单峰——MCMC 的核心权衡实时可见。' }, deep: 'content/mcmc.md'  },
+
+  {
+    id: 'gd',
+    num: '03',
     emoji: '⛰️',
     name: '梯度下降与优化',
     en: 'Gradient Descent & Optimization',
@@ -222,7 +318,7 @@ const TOPICS = [
 
   {
     id: 'overfit',
-    num: '02',
+    num: '04',
     emoji: '⚖️',
     name: '过拟合与欠拟合',
     en: 'Bias–Variance Tradeoff',
@@ -270,7 +366,7 @@ const TOPICS = [
 
   {
     id: 'loss',
-    num: '03',
+    num: '05',
     emoji: '🎯',
     name: '损失函数与信息论',
     en: 'Loss Functions & Information Theory',
@@ -318,7 +414,7 @@ const TOPICS = [
 
   {
     id: 'reg',
-    num: '04',
+    num: '06',
     emoji: '🧯',
     name: '正则化与归一化',
     en: 'Regularization & Normalization',
@@ -366,7 +462,7 @@ const TOPICS = [
 
   {
     id: 'opt',
-    num: '05',
+    num: '07',
     emoji: '🏃',
     name: '优化器：动量与 Adam',
     en: 'Optimizers: Momentum & Adam',
@@ -415,7 +511,7 @@ const TOPICS = [
 
   {
     id: 'act',
-    num: '06',
+    num: '08',
     emoji: '⚡',
     name: '激活函数与初始化',
     en: 'Activation Functions & Initialization',
@@ -464,7 +560,7 @@ const TOPICS = [
 
   {
     id: 'linear',
-    num: '07',
+    num: '09',
     emoji: '📈',
     name: '线性回归',
     en: 'Linear Regression',
@@ -513,7 +609,7 @@ const TOPICS = [
 
   {
     id: 'ridge',
-    num: '08',
+    num: '10',
     emoji: '🛡️',
     name: '岭回归与 Lasso',
     en: 'Ridge & Lasso Regression',
@@ -561,7 +657,7 @@ const TOPICS = [
 
   {
     id: 'logistic',
-    num: '09',
+    num: '11',
     emoji: '🎯',
     name: '逻辑回归',
     en: 'Logistic Regression',
@@ -610,7 +706,7 @@ const TOPICS = [
 
   {
     id: 'knn',
-    num: '10',
+    num: '12',
     emoji: '👥',
     name: 'K 近邻',
     en: 'K-Nearest Neighbors',
@@ -658,7 +754,7 @@ const TOPICS = [
 
   {
     id: 'naivebayes',
-    num: '11',
+    num: '13',
     emoji: '📨',
     name: '朴素贝叶斯',
     en: 'Naive Bayes',
@@ -706,7 +802,7 @@ const TOPICS = [
 
   {
     id: 'tree',
-    num: '12',
+    num: '14',
     emoji: '🌳',
     name: '决策树',
     en: 'Decision Tree',
@@ -756,7 +852,7 @@ const TOPICS = [
 
   {
     id: 'forest',
-    num: '13',
+    num: '15',
     emoji: '🌲',
     name: '随机森林',
     en: 'Random Forest',
@@ -806,7 +902,7 @@ const TOPICS = [
 
   {
     id: 'adaboost',
-    num: '14',
+    num: '16',
     emoji: '💪',
     name: 'AdaBoost',
     en: 'AdaBoost',
@@ -854,7 +950,7 @@ const TOPICS = [
 
   {
     id: 'xgboost',
-    num: '15',
+    num: '17',
     emoji: '⚡',
     name: 'XGBoost',
     en: 'XGBoost',
@@ -903,7 +999,7 @@ const TOPICS = [
 
   {
     id: 'svm',
-    num: '16',
+    num: '18',
     emoji: '🧭',
     name: '支持向量机',
     en: 'Support Vector Machine',
@@ -953,7 +1049,7 @@ const TOPICS = [
 
   {
     id: 'kmeans',
-    num: '17',
+    num: '19',
     emoji: '🧩',
     name: 'K-Means 聚类',
     en: 'K-Means Clustering',
@@ -1003,7 +1099,7 @@ const TOPICS = [
 
   {
     id: 'dbscan',
-    num: '18',
+    num: '20',
     emoji: '🫧',
     name: 'DBSCAN 密度聚类',
     en: 'DBSCAN',
@@ -1050,7 +1146,7 @@ const TOPICS = [
 
   {
     id: 'pca',
-    num: '19',
+    num: '21',
     emoji: '🪞',
     name: 'PCA 主成分分析',
     en: 'Principal Component Analysis',
@@ -1099,7 +1195,7 @@ const TOPICS = [
 
   {
     id: 'tsne',
-    num: '20',
+    num: '22',
     emoji: '🗺️',
     name: 't-SNE 降维可视化',
     en: 't-SNE',
@@ -1148,7 +1244,7 @@ const TOPICS = [
 
   {
     id: 'em',
-    num: '21',
+    num: '23',
     emoji: '🍰',
     name: 'EM 算法与高斯混合',
     en: 'EM Algorithm & Gaussian Mixture',
@@ -1196,7 +1292,7 @@ const TOPICS = [
 
   {
     id: 'lda',
-    num: '22',
+    num: '24',
     emoji: '🗂️',
     name: '主题模型 LDA',
     en: 'Latent Dirichlet Allocation',
@@ -1244,7 +1340,7 @@ const TOPICS = [
 
   {
     id: 'umap',
-    num: '23',
+    num: '25',
     emoji: '🗺️',
     name: 'UMAP 流形学习',
     en: 'Uniform Manifold Approximation & Projection',
@@ -1292,7 +1388,7 @@ const TOPICS = [
 
   {
     id: 'mlp',
-    num: '24',
+    num: '26',
     emoji: '🧠',
     name: '神经网络',
     en: 'Neural Network (MLP)',
@@ -1343,7 +1439,7 @@ const TOPICS = [
 
   {
     id: 'cnn',
-    num: '25',
+    num: '27',
     emoji: '🖼️',
     name: '卷积神经网络',
     en: 'Convolutional Neural Network',
@@ -1392,7 +1488,7 @@ const TOPICS = [
 
   {
     id: 'autoencoder',
-    num: '26',
+    num: '28',
     emoji: '🗜️',
     name: '自编码器',
     en: 'Autoencoder',
@@ -1440,7 +1536,7 @@ const TOPICS = [
 
   {
     id: 'rnn',
-    num: '27',
+    num: '29',
     emoji: '🔁',
     name: 'RNN 循环神经网络',
     en: 'Recurrent Neural Network',
@@ -1489,7 +1585,7 @@ const TOPICS = [
 
   {
     id: 'lstm',
-    num: '28',
+    num: '30',
     emoji: '🗃️',
     name: 'LSTM 长短期记忆',
     en: 'Long Short-Term Memory',
@@ -1538,7 +1634,7 @@ const TOPICS = [
 
   {
     id: 'gru',
-    num: '29',
+    num: '31',
     emoji: '🚪',
     name: 'GRU 门控循环单元',
     en: 'Gated Recurrent Unit',
@@ -1584,8 +1680,55 @@ const TOPICS = [
     demo: { id: 'gru', title: 'GRU · 3D 双门单元', note: '拖拽旋转；更新门 z 与重置门 r 控制隐藏状态 h 的写入与遗忘。' }, deep: 'content/gru.md'  },
 
   {
+    id: 'ssm',
+    num: '32',
+    emoji: '🌊',
+    name: '状态空间模型 Mamba',
+    en: 'State Space Models (SSM/Mamba)',
+    cat: 'dl',
+    diff: 5,
+    accent: '#ff7ac6',
+    tagline: '给 RNN 装上「可并行训练的引擎」：固定递归改为输入驱动的选择性状态——推理 O(1)、训练像 Transformer 一样并行。',
+    intro: {
+      what: '以线性状态空间方程 h′(t)=Ah(t)+Bx(t), y=Ch(t) 为基础的序列模型；Mamba（2023）让 A/B/C 成为输入的函数（选择性），兼得 RNN 的常数推理成本与 Transformer 的可并行训练。',
+      problem: 'Transformer 的注意力 O(n²) 且 KV cache 随上下文线性膨胀——长序列又贵又慢；RNN 推理便宜但训练无法并行、且有梯度消失。',
+      idea: '线性 SSM 的递推在数学上等价于一个「固定卷积核」——训练时用卷积形式全并行；推理时切回递归形式 O(1) 更新。Mamba 再让卷积核的参数随输入变化（选择性），实现「按需记忆」。'
+    },
+    principle: {
+      text: [
+        '连续方程离散化：h_t = Āh_{t−1} + B̄x_t, y_t = Ch_t——就是带特殊矩阵结构的线性 RNN。',
+        '双形式：递归形式（推理 O(1)，像 RNN）与卷积形式（训练全并行，像 CNN）数学等价，按需切换。',
+        '选择性（Mamba 的核心）：B̄、C（甚至步长 Δ）由当前输入生成——「写多少、忘多少、读什么」随内容变化；这正是注意力「按相关性加权」的低成本替身。'
+      ],
+      formula: {
+        html: '<span class="sym">h</span><sub>t</sub> = <span class="sym">Ā</span><span class="sym">h</span><sub>t−1</sub> + <span class="sym">B̄</span>(<span class="sym">x</span><sub>t</sub>)<span class="sym">x</span><sub>t</sub>,　<span class="sym">y</span><sub>t</sub> = <span class="sym">C</span>(<span class="sym">x</span><sub>t</sub>)<span class="sym">h</span><sub>t</sub>',
+        note: 'Ā 控制遗忘速度（可学的指数衰减）；B(x_t)、C(x_t) 依赖输入——门控的「选择性」让状态能按内容写入与读出。'
+      }
+    },
+    example: {
+      analogy: '图书馆管理员：RNN 是「每本书都平均翻一遍」的机械流程；Mamba 是「读者递条子说要什么，管理员按条子决定记什么忘什么」——同样的柜子（状态），利用率天差地别。',
+      mini: '复制任务里「第 3 个 token 要在第 500 步复述」：固定衰减的状态早把信息冲淡；选择性 SSM 在写入时开门、其余时间关门保持——演示里两条状态轨迹的对比就是这件事。'
+    },
+    pros: ['推理 O(1) 状态、O(n) 总量——长上下文服务成本远低于注意力', '训练可并行（卷积形式），吞吐量高', '选择性机制在 DNA、音频等超长序列上胜出'],
+    cons: ['精确记忆与检索能力弱于注意力（copy/retrieve 任务掉分）', '生态与调参经验远不如 Transformer 成熟', '递归本质使某些并行策略（如张量并行）适配更 tricky'],
+    history: [
+      { year: '2021~22', text: 'S4 用结构化 SSM（HiPPO 初始化）首次在长序列基准上打出名堂。' },
+      { year: '2023', text: 'Mamba（选择性 SSM + 硬件感知扫描算法）发布：语言建模上对拼同规模 Transformer。' },
+      { year: '2024+', text: 'Mamba-2、Jamba（Mamba+注意力混合）等混合架构涌现；长上下文低成本赛道成型。' }
+    ],
+    use: ['超长序列（基因、音频、时序）建模', '边缘/高并发部署的序列模型（状态小）', '与注意力混合取长补短（Jamba 式分工）'],
+    avoid: ['需要精确逐 token 检索的任务（注意力仍占优）', '追求生态成熟与即插即用的生产场景（暂）', '短序列（Transformer 的成熟度压倒一切）'],
+    learn: [
+      '在演示里对比 <strong>固定衰减 vs 选择性</strong> 的状态轨迹。',
+      '理解 <strong>递归/卷积双形式</strong> 的等价（训练并行、推理省资源的钥匙）。',
+      '对比 <strong>Mamba 与 LSTM</strong>：都是门控状态，差别在可并行性与选择性来源。',
+      '进阶：读 Mamba 论文的「选择性」消融——哪些任务受益最大。'
+    ],
+    demo: { id: 'ssm', title: 'SSM · 选择性记忆', note: '同样的三个信号脉冲：固定衰减记不住远处，门控选择性能按需保持——Mamba 对 RNN 的改造。' }, deep: 'content/ssm.md'  },
+
+  {
     id: 'transformer',
-    num: '30',
+    num: '33',
     emoji: '🎯',
     name: 'Transformer 与注意力',
     en: 'Transformer & Attention',
@@ -1634,7 +1777,7 @@ const TOPICS = [
 
   {
     id: 'ssl',
-    num: '31',
+    num: '34',
     emoji: '🧲',
     name: '自监督与对比学习',
     en: 'Self-Supervised & Contrastive Learning',
@@ -1682,7 +1825,7 @@ const TOPICS = [
 
   {
     id: 'gnn',
-    num: '32',
+    num: '35',
     emoji: '🕸️',
     name: '图神经网络 GNN',
     en: 'Graph Neural Network',
@@ -1730,7 +1873,7 @@ const TOPICS = [
 
   {
     id: 'distill',
-    num: '33',
+    num: '36',
     emoji: '🎓',
     name: '知识蒸馏与模型压缩',
     en: 'Knowledge Distillation & Model Compression',
@@ -1778,7 +1921,7 @@ const TOPICS = [
 
   {
     id: 'moe',
-    num: '34',
+    num: '37',
     emoji: '🎛️',
     name: '混合专家 MoE',
     en: 'Mixture of Experts',
@@ -1826,7 +1969,7 @@ const TOPICS = [
 
   {
     id: 'seq',
-    num: '35',
+    num: '38',
     emoji: '⏳',
     name: '序列预测 / 时间序列',
     en: 'Sequence & Time-Series Forecasting',
@@ -1875,7 +2018,7 @@ const TOPICS = [
 
   {
     id: 'arima',
-    num: '36',
+    num: '39',
     emoji: '📉',
     name: '时间序列分析：ARIMA',
     en: 'Time Series: ARIMA & Decomposition',
@@ -1923,7 +2066,7 @@ const TOPICS = [
 
   {
     id: 'gan',
-    num: '37',
+    num: '40',
     emoji: '🎭',
     name: '生成对抗网络',
     en: 'Generative Adversarial Network',
@@ -1972,7 +2115,7 @@ const TOPICS = [
 
   {
     id: 'rl',
-    num: '38',
+    num: '41',
     emoji: '🎮',
     name: '强化学习',
     en: 'Reinforcement Learning',
@@ -2020,7 +2163,7 @@ const TOPICS = [
 
   {
     id: 'pg',
-    num: '39',
+    num: '42',
     emoji: '🎯',
     name: '策略梯度与 Actor-Critic',
     en: 'Policy Gradient & Actor-Critic',
@@ -2068,7 +2211,7 @@ const TOPICS = [
 
   {
     id: 'dqn',
-    num: '40',
+    num: '43',
     emoji: '🧠',
     name: '深度强化学习 DQN',
     en: 'Deep Q-Network (DQN)',
@@ -2116,7 +2259,7 @@ const TOPICS = [
 
   {
     id: 'transfer',
-    num: '41',
+    num: '44',
     emoji: '🚀',
     name: '迁移学习',
     en: 'Transfer Learning',
@@ -2164,7 +2307,7 @@ const TOPICS = [
 
   {
     id: 'recsys',
-    num: '42',
+    num: '45',
     emoji: '🛍️',
     name: '推荐系统',
     en: 'Recommender Systems',
@@ -2212,7 +2355,7 @@ const TOPICS = [
 
   {
     id: 'anomaly',
-    num: '43',
+    num: '46',
     emoji: '🚨',
     name: '异常检测',
     en: 'Anomaly Detection',
@@ -2260,7 +2403,7 @@ const TOPICS = [
 
   {
     id: 'fl',
-    num: '44',
+    num: '47',
     emoji: '🌍',
     name: '联邦学习',
     en: 'Federated Learning',
@@ -2308,7 +2451,7 @@ const TOPICS = [
 
   {
     id: 'feature',
-    num: '45',
+    num: '48',
     emoji: '🛠️',
     name: '特征工程',
     en: 'Feature Engineering',
@@ -2356,7 +2499,7 @@ const TOPICS = [
 
   {
     id: 'evaluation',
-    num: '46',
+    num: '49',
     emoji: '🎛️',
     name: '模型评估与调参',
     en: 'Evaluation & Hyperparameter Tuning',
@@ -2405,7 +2548,7 @@ const TOPICS = [
 
   {
     id: 'conformal',
-    num: '47',
+    num: '50',
     emoji: '🎯',
     name: '共形预测',
     en: 'Conformal Prediction',
@@ -2453,7 +2596,7 @@ const TOPICS = [
 
   {
     id: 'resnet',
-    num: '48',
+    num: '51',
     emoji: '🛣️',
     name: 'ResNet 残差网络',
     en: 'Residual Network (ResNet)',
@@ -2501,7 +2644,7 @@ const TOPICS = [
 
   {
     id: 'yolo',
-    num: '49',
+    num: '52',
     emoji: '🎯',
     name: '目标检测 · YOLO',
     en: 'Object Detection (YOLO)',
@@ -2549,7 +2692,7 @@ const TOPICS = [
 
   {
     id: 'segment',
-    num: '50',
+    num: '53',
     emoji: '🧩',
     name: '图像分割 · 语义分割',
     en: 'Image Segmentation (U-Net)',
@@ -2597,7 +2740,7 @@ const TOPICS = [
 
   {
     id: 'augment',
-    num: '51',
+    num: '54',
     emoji: '🪞',
     name: '数据增强',
     en: 'Data Augmentation',
@@ -2645,7 +2788,7 @@ const TOPICS = [
 
   {
     id: 'adv',
-    num: '52',
+    num: '55',
     emoji: '🛡️',
     name: '对抗鲁棒性',
     en: 'Adversarial Robustness',
@@ -2692,8 +2835,104 @@ const TOPICS = [
     demo: { id: 'adv', title: '对抗样本 · FGSM', note: '拖大 ε：沿梯度方向挪一小步，点没怎么变，但模型已经把它判成另一类。' }, deep: 'content/adv.md'  },
 
   {
+    id: 'ocr',
+    num: '56',
+    emoji: '📄',
+    name: 'OCR 与文档智能',
+    en: 'OCR & Document AI',
+    cat: 'cv',
+    diff: 3,
+    accent: '#38bdf8',
+    tagline: '从「认出字」到「看懂文档」：CTC 解决逐帧对齐，版面分析解决结构，多模态大模型正在把三层合成一步。',
+    intro: {
+      what: '光学字符识别（OCR）把图像里的文字变成文本；文档智能（Document AI）更进一步——恢复表格、标题、阅读顺序等版面结构，并理解内容（票据字段抽取、合同问答）。',
+      problem: '文字在图像里是「一行像素」，没有帧对齐标注（哪几列像素对应哪个字）；文档还有表格/分栏/旋转等版面结构——「认字」只是第一步。',
+      idea: '识别层：CRNN（卷积提特征 + 循环序列建模 + CTC 解码）把对齐问题边缘化；结构层：版面分析（检测框 + 关系分类）；理解层：多模态大模型（DocVLM）端到端直接「看文档答题」。'
+    },
+    principle: {
+      text: [
+        'CRNN 三段式：卷积把图片压成「帧序列」（每列像素=一帧）→ RNN 建模上下文 → CTC 解码（空白符+合并规则，无需逐帧标注，详见语音识别深读——两者共用 CTC）。',
+        '版面分析：检测标题/段落/表格/图片区域 + 阅读顺序恢复——表格结构还原（行列关系）是文档智能的老大难。',
+        'VLM 路线：把文档页当图像 token 喂给多模态大模型，直接问答/抽取——免去「识别→结构→理解」的误差级联，代价是 token 成本与精确性不如专用管线。'
+      ],
+      formula: {
+        html: '<span class="fn">CTC</span>: <span class="sym">L</span>*(<span class="sym">π</span>) = <span class="fn">去重去⊘</span>(<span class="sym">π</span>),　<span class="sym">P</span>(<span class="sym">ℓ</span>|<span class="sym">x</span>) = <span class="sym">Σ</span><sub><span class="sym">π</span>→<span class="sym">ℓ</span></sub> <span class="sym">∏</span><sub>t</sub> <span class="sym">P</span>(<span class="sym">π</span><sub>t</sub>|<span class="sym">x</span>)',
+        note: '多条对齐路径 π 折叠到同一输出 ℓ；训练目标 = 所有合法路径的概率和（动态规划）——没有逐帧标注也能学会对齐。'
+      }
+    },
+    example: {
+      analogy: '认字的人 vs 读文档的人：OCR 是小学生逐字认读；文档智能是会计——知道哪格是金额、哪栏是日期、合计怎么算。',
+      mini: '识别 "table"：18 帧概率矩阵逐帧 argmax 得 t t a a b ⊘ b l l e e——合并重复、删空白后正好 "table"；那个 ⊘ 隔开了两个 b（没有它双写就丢了）。演示里三步动画可点。'
+    },
+    pros: ['CRNN+CTC 轻量成熟，端侧可用', '专用管线精度高（票据/证件场景可用 99%+）', 'VLM 路线零训练接入新文档类型（提示即配置）'],
+    cons: ['手写/艺术字/密集表格仍是难点', '多语言混排与竖排需要专门处理', 'VLM 路线有幻觉风险（会「脑补」不存在的字段）'],
+    history: [
+      { year: '1990s~2010s', text: '传统 OCR（投影切分+模板匹配）商用化；Tesseract 开源。' },
+      { year: '2015~17', text: 'CRNN+CTN 深度方案成型；CTC 同期统治语音识别——同一发明的两个战场。' },
+      { year: '2020s', text: '版面理解模型（LayoutLM 系列）把文本+坐标+图像联合建模。' },
+      { year: '2023+', text: 'GPT-4V/DocVLM 直接文档问答；RAG+OCR 成为「企业文档大脑」标配管线。' }
+    ],
+    use: ['票据/证件/表单的结构化录入', '扫描件/古籍数字化', '企业文档库的检索问答（OCR→RAG）'],
+    avoid: ['对手写准确率期望过高', '强格式场景直接上 VLM（专用管线更稳更便宜）', '忽视旋转/阴影预处理（垃圾进垃圾出）'],
+    learn: [
+      '在演示里点完 CTC <strong>三步</strong>，理解空白符的双重职责。',
+      '对比 <strong>CRNN 与语音识别</strong> 的同构（都是「序列+CTC」）。',
+      '分清 <strong>识别、版面、理解</strong> 三层各自的输出。',
+      '进阶：了解 LayoutLM 如何同时用「文本+坐标+图像」三路信息。'
+    ],
+    demo: { id: 'ocr', title: 'OCR · CTC 解码', note: '逐帧 argmax → 合并重复 → 删空白，三步动画演示 CTC 的完整解码过程。' }, deep: 'content/ocr.md'  },
+
+  {
+    id: 'nerf',
+    num: '57',
+    emoji: '🧊',
+    name: '3D 视觉 NeRF',
+    en: 'NeRF & 3D Vision',
+    cat: 'cv',
+    diff: 5,
+    accent: '#38bdf8',
+    tagline: '用神经网络记住一个场景的「密度与颜色场」，沿射线积分就能从任意角度重新渲染它——3D 重建的神经化革命。',
+    intro: {
+      what: 'NeRF（Neural Radiance Fields）：用 MLP 拟合函数 (x,y,z,θ,φ)→(RGB,σ)——空间每点的颜色与密度；渲染 = 对每条像素射线步进采样、按密度做体渲染合成颜色。3D 高斯溅射（3DGS）是其 2023 年的高效继任者。',
+      problem: '传统 3D 重建（SfM/Mesh）要显式建模几何，纹理与光照难还原、管线割裂；想「自由视角照片级渲染」需要一种把场景整体记住的连续表示。',
+      idea: '把场景表示为连续的神经函数而不是离散网格/网格面；可微的体渲染方程把「函数」与「照片」连起来——对一组照片做光度损失的反向传播，场就学出来了。'
+    },
+    principle: {
+      text: [
+        ' querying：MLP 输入 5D 坐标（位置+视角方向），输出颜色 RGB 与体密度 σ；位置编码（高频正弦）是学出锐利细节的关键。',
+        '体渲染：每条射线采样 N 个点，按透射率×密度加权累积颜色——C = Σ Tᵢ(1−e^{−σᵢδᵢ})cᵢ，Tᵢ 是前方的累计透射（前面的东西挡住后面的）。',
+        '3D 高斯溅射（3DGS）：把「神经场」换成几十万个显式 3D 高斯（位置+协方差+颜色），光栅化溅射渲染——训练快百倍、可实时，工程界迅速倒戈。'
+      ],
+      formula: {
+        html: '<span class="sym">C</span>(<span class="sym">r</span>) = <span class="sym">Σ</span><sub>i=1</sub><sup>N</sup> <span class="sym">T</span><sub>i</sub>(1−<span class="sym">e</span><sup>−<span class="sym">σ</span><sub>i</sub><span class="sym">δ</span><sub>i</sub></sup>)<span class="sym">c</span><sub>i</sub>,　<span class="sym">T</span><sub>i</sub> = <span class="fn">exp</span>(−<span class="sym">Σ</span><sub>j&lt;i</sub><span class="sym">σ</span><sub>j</sub><span class="sym">δ</span><sub>j</sub>)',
+        note: '体渲染方程：沿途每点贡献 = 「到这里的透射率 × 本点不透明度 × 颜色」——前面挡住后面，天然得到正确的遮挡。'
+      }
+    },
+    example: {
+      analogy: '场景像一杯果冻：神经场记住「果冻里每点的颜色与浓度」；相机射线穿过去，浓的地方多取色、淡的地方少取色——不同角度穿过同一杯果冻，看到不同画面。',
+      mini: '演示：解析密度场（两球+地面）+ 真实光线步进 + alpha 合成——拖拽旋转视角，任意角度实时重渲染；真实 NeRF 只是把「解析场」换成 MLP。'
+    },
+    pros: ['照片级真实感（视角相关效果如反光可用 θ,φ 表达）', '只需一组照片+位姿，无需 meshes/贴图', '可微渲染——能嵌进任何梯度管线（SLAM/生成式）'],
+    cons: ['原始 NeRF 训练慢（数小时/场景）、渲染慢', '每场景要单独训练（泛化到新场景需 feed-forward 变体）', '大场景/无纹理区域/位姿误差敏感'],
+    history: [
+      { year: '2020', text: 'NeRF（Mildenhall 等）横空出世，ECCV 最佳论文提名——「用 MLP 记住世界」。' },
+      { year: '2021~22', text: 'Instant-NGP 把训练压到秒级（哈希编码）；Mip-NeRF 等改进抗锯齿。' },
+      { year: '2023', text: '3D Gaussian Splatting 发布：显式高斯+光栅化，实时渲染，工业界快速采用。' },
+      { year: '2024+', text: '4D 高斯（动态场景）、生成式 3D（文生 3D）与 Apple/华为的空间视频生态把神经 3D 推向消费级。' }
+    ],
+    use: ['文物/地产/电商的自由视角展示', 'AR/VR 内容生产、空间计算', '机器人仿真与数字孪生'],
+    avoid: ['要求快速覆盖海量场景（feed-forward 方案更合适）', '位姿未知且无法标定的素材', '动态场景用原始 NeRF（需 4D 变体）'],
+    learn: [
+      '在演示里拖拽旋转——你看到的就是 <strong>体渲染方程</strong> 的实时计算。',
+      '理解 <strong>位置编码</strong> 为什么必要（MLP 天生学不出高频）。',
+      '对比 <strong>NeRF 与 3DGS</strong>：隐式场 vs 显式高斯，速度差异的来源。',
+      '进阶：读 Instant-NGP 的哈希编码——「秒级训练」的工程魔法。'
+    ],
+    demo: { id: 'nerf', title: 'NeRF · 射线体渲染', note: '每条像素射线步进采样、按密度 alpha 合成——拖拽旋转视角实时重渲染。' }, deep: 'content/nerf.md'  },
+
+  {
     id: 'vit',
-    num: '53',
+    num: '58',
     emoji: '👁️',
     name: '视觉 Transformer',
     en: 'Vision Transformer (ViT)',
@@ -2741,7 +2980,7 @@ const TOPICS = [
 
   {
     id: 'vae',
-    num: '54',
+    num: '59',
     emoji: '🎲',
     name: '变分自编码器 VAE',
     en: 'Variational Autoencoder',
@@ -2790,7 +3029,7 @@ const TOPICS = [
 
   {
     id: 'diffusion',
-    num: '55',
+    num: '60',
     emoji: '🌫️',
     name: '扩散模型 · DDPM',
     en: 'Diffusion Model (DDPM)',
@@ -2839,8 +3078,55 @@ const TOPICS = [
   },
 
   {
+    id: 'control',
+    num: '61',
+    emoji: '🎛️',
+    name: '图像控制编辑',
+    en: 'ControlNet & Image Editing',
+    cat: 'gen',
+    diff: 4,
+    accent: '#c084fc',
+    tagline: '让扩散模型「照着图纸画」：边缘、深度、姿态作为条件注入——构图听条件的，质感听扩散的。',
+    intro: {
+      what: '在预训练扩散模型上外挂「控制分支」的技术族：ControlNet 把条件图（Canny 边缘/深度图/人体姿态）经复制编码器注入去噪网络，实现按结构生成；配套的还有 inpainting（局部重绘）、img2img 等编辑操作。',
+      problem: '纯文生图对「空间结构」的控制力很弱——提示词说「一个摆特定姿势的人」模型画不准；设计师需要的是「按我的线稿/构图出图」。',
+      idea: '冻结原 U-Net，拷贝一份编码器作为控制分支，用「零卷积」从零开始学注入权重——预训练能力零损伤，控制能力从零长出来；条件决定去噪的走向，噪声决定纹理的质感。'
+    },
+    principle: {
+      text: [
+        '结构：y = U-Net(x) + Control分支(x, 条件)。控制分支逐层把条件特征加回主干对应位置；零卷积保证训练起点 = 原模型（不破坏预训练）。',
+        '组合性：多个 ControlNet 可叠加（边缘+深度+姿态），权重可调——「条件的混合比例」就是创作旋钮。',
+        '编辑族谱：img2img（部分加噪保留原图结构）、inpainting（mask 区域重绘）、ip-adapter（参考图风格/身份注入）——本质都是「给去噪过程加约束」。'
+      ],
+      formula: {
+        html: '<span class="sym">y</span><sub>c</sub> = <span class="fn">F</span>(<span class="sym">x</span>;<span class="sym">θ</span><sub>frozen</sub>) + <span class="fn">Z</span>(<span class="fn">F</span>(<span class="sym">x</span> + <span class="sym">C</span>(<span class="sym">cond</span>);<span class="sym">θ</span><sub>c</sub>))',
+        note: 'F 是冻结的 U-Net 编码块，Z 是零初始化卷积，C 是条件编码——训练只更新 θ_c，预训练知识毫发无损。'
+      }
+    },
+    example: {
+      analogy: '给画家一张蓝图加一句风格描述：结构照着蓝图来（条件），笔触色调按描述发挥（扩散）——ControlNet 就是「蓝图进、画作出」的接口。',
+      mini: '同一个噪声种子：圆环条件 → 精确的环形图案；方框条件 → 方框图案；无条件 → 纯噪声质感。纹理同源（噪声同源）、结构随条件——演示里三图并排可见。'
+    },
+    pros: ['空间控制精确（边缘/深度/姿态级）', '不伤预训练：冻结主干、外挂训练，小数据可训', '可组合、可调权重，创作自由度高'],
+    cons: ['每种条件要单独训练一个控制分支', '条件质量决定上限（烂线稿出烂图）', '过强控制会牺牲多样性（结构锁死）'],
+    history: [
+      { year: '2022', text: 'ControlNet（张吕敏）发布，开源社区两周内跟进出上百种玩法，成为 SD 生态基石。' },
+      { year: '2023', text: 'T2I-Adapter、Reference-only 等轻量替代涌现；IP-Adapter 解决参考图注入。' },
+      { year: '2023+', text: 'ControlNet 思想迁移到视频/3D；SD3/Flux 时代由可控生成继续演进。' }
+    ],
+    use: ['设计线稿/草图上色、建筑效果图渲染', '姿态迁移、试衣、产品图换背景', '动画制作的关键帧控制生成'],
+    avoid: ['条件与提示词严重冲突（模型精神分裂）', '需要语义级大改的场景（inpaint+局部提示更合适）', '追求完全随机灵感（无条件更自由）'],
+    learn: [
+      '在演示里切换条件、固定噪声，验证「<strong>结构随条件、质感随噪声</strong>」。',
+      '理解 <strong>零卷积</strong> 为什么要零初始化（保护预训练起点）。',
+      '对比 <strong>img2img / inpainting / ControlNet</strong> 的约束方式。',
+      '进阶：读 IP-Adapter——「参考图的风格注入」如何实现。'
+    ],
+    demo: { id: 'control', title: 'ControlNet · 条件控制', note: '同一个噪声起点，切换条件图：结构完全由条件决定，纹理质感与噪声同源。' }, deep: 'content/control.md'  },
+
+  {
     id: 'sd',
-    num: '56',
+    num: '62',
     emoji: '🖼️',
     name: '文生图 · Stable Diffusion',
     en: 'Text-to-Image (Stable Diffusion)',
@@ -2889,7 +3175,7 @@ const TOPICS = [
 
   {
     id: 'ddim',
-    num: '57',
+    num: '63',
     emoji: '⚡',
     name: '扩散加速采样',
     en: 'DDIM & Fast Sampling',
@@ -2936,8 +3222,55 @@ const TOPICS = [
     demo: { id: 'ddim', title: '扩散采样 · DDPM vs DDIM', note: '同一个噪声起点：DDPM 随机游走 100 步，DDIM 走确定性捷径 25 步到终点——实时对比 MSE。' }, deep: 'content/ddim.md'  },
 
   {
+    id: 'video',
+    num: '64',
+    emoji: '🎬',
+    name: '视频生成',
+    en: 'Video Generation',
+    cat: 'gen',
+    diff: 5,
+    accent: '#c084fc',
+    tagline: '给扩散模型加上时间维：时空注意力让每一帧「看见」邻居——一致性，是视频生成比图像多出来的全部难度。',
+    intro: {
+      what: '从文本/图像生成连贯视频的模型族：视频扩散（把 DDPM 的 x 扩展为时空立方体）、DiT 架构（Sora 路线，视频切块成时空 token）、自回归视频（逐段生成）。',
+      problem: '视频 = 高维得多的一堆帧，且帧间必须连贯——逐帧独立生成会闪烁抖动；数据（带字幕的高质量视频）与算力（一段几秒视频 = 数千张图的计算）都是天文数字。',
+      idea: '把「时间一致性」做成显式结构：3D 卷积/时间注意力让去噪过程跨帧共享信息；Sora 进一步把视频切成时空 patch 统一进 Transformer——「视频生成 = 时空 token 的扩散」。'
+    },
+    principle: {
+      text: [
+        '视频扩散三件套：时间层（帧间注意力/3D 卷积）保证一致性、逐帧空间层保画质、时序下采样压算力（latent 视频 = 空间 8× × 时间 4× 压缩）。',
+        'Sora 路线（DiT）：视频 → 时空 patch → 扩散 Transformer 去噪——与 ViT 同构，「视频就是一堆 token」；可变时长/分辨率由 patch 化天然支持。',
+        '训练配方：图像+视频联合预训练（图像补画质、视频学运动）+ 描述性字幕（DALL·E 3 式重写）——数据工程占成功的很大比重。'
+      ],
+      formula: {
+        html: '<span class="sym">x</span> ∈ <span class="sym">R</span><sup><span class="sym">H</span>×<span class="sym">W</span>×<span class="sym">T</span>×<span class="sym">C</span></sup> → <span class="fn">patchify</span> → <span class="fn">DiT</span> 去噪 → <span class="fn">decoder</span> → 视频',
+        note: '时空立方体（含时间维 T）被切块成 token 序列，交给扩散 Transformer——「一段视频就是一串 token」是 Sora 的核心抽象。'
+      }
+    },
+    example: {
+      analogy: '逐帧独立画画 = 没对台词的群演各演各的（画面闪烁）；时间注意力 = 导演给每个镜头回放前后文——动作连贯了，这就是演示里「独立 vs 联合」的区别。',
+      mini: '演示：弹跳小球加噪后去噪，逐帧独立版每帧的噪声偏差不同导致抖动闪烁；帧间共享估计的联合版稳定流畅——一致性问题的最小复现。'
+    },
+    pros: ['DiT 路线可扩展性强（跟着 scaling law 走）', 'patch 化天然支持任意时长/宽高比', '图像预训练的知识可以迁移复用'],
+    cons: ['算力与数据成本极高（几秒视频=数百 GPU 时）', '长时序逻辑（物体永久性、物理因果）仍不稳', '生成时长受限（数十秒内）；运动剧烈时崩坏'],
+    history: [
+      { year: '2022', text: '视频扩散开山（Video Diffusion Models）；Runway Gen-1/2 商用起步。' },
+      { year: '2024', text: 'Sora 惊艳亮相（DiT+时空 patch）；开源跟进（Stable Video Diffusion、AnimateDiff、CogVideoX）。' },
+      { year: '2025+', text: '分钟级生成、音视频联合生成、世界模拟器叙事成为前沿方向。' }
+    ],
+    use: ['影视预演/广告素材/短视频创作', '数据增广（自动驾驶仿真场景）', '动画辅助（首尾帧插值、风格化）'],
+    avoid: ['需要精确物理/长逻辑的模拟（尚不可靠）', '对一致性零容忍的专业制作（需人工修帧）', '长视频（当前数十秒为实用上限）'],
+    learn: [
+      '在演示里对比 <strong>逐帧独立 vs 时空联合</strong> 去噪的闪烁差异。',
+      '理解 <strong>时间注意力</strong> 在解决什么（帧间信息共享）。',
+      '搞清 <strong>Sora 的 patch 化</strong> 为什么支持可变分辨率时长。',
+      '进阶：了解「物体永久性」评测——视频模型当前的主要短板。'
+    ],
+    demo: { id: 'video', title: '视频生成 · 时空一致性', note: '逐帧独立去噪闪烁抖动；帧间共享估计的联合去噪稳定——视频扩散多出来的那个维度。' }, deep: 'content/video.md'  },
+
+  {
     id: 'clip',
-    num: '58',
+    num: '65',
     emoji: '🔗',
     name: 'CLIP 多模态对齐',
     en: 'Contrastive Language–Image Pretraining',
@@ -2985,7 +3318,7 @@ const TOPICS = [
 
   {
     id: 'word2vec',
-    num: '59',
+    num: '66',
     emoji: '🧭',
     name: '词嵌入 Word2Vec',
     en: 'Word Embeddings (Word2Vec)',
@@ -3033,7 +3366,7 @@ const TOPICS = [
 
   {
     id: 'token',
-    num: '60',
+    num: '67',
     emoji: '✂️',
     name: 'Tokenization 分词',
     en: 'Tokenization (BPE / WordPiece)',
@@ -3082,7 +3415,7 @@ const TOPICS = [
 
   {
     id: 'bert',
-    num: '61',
+    num: '68',
     emoji: '🧩',
     name: 'BERT 与编码器模型',
     en: 'BERT & Encoder-only Models',
@@ -3131,7 +3464,7 @@ const TOPICS = [
 
   {
     id: 'gpt',
-    num: '62',
+    num: '69',
     emoji: '🔮',
     name: 'GPT 架构与预训练',
     en: 'GPT & Pretraining',
@@ -3180,7 +3513,7 @@ const TOPICS = [
 
   {
     id: 'lora',
-    num: '63',
+    num: '70',
     emoji: '🔩',
     name: '微调与 LoRA',
     en: 'Fine-tuning & LoRA',
@@ -3229,7 +3562,7 @@ const TOPICS = [
 
   {
     id: 'rlhf',
-    num: '64',
+    num: '71',
     emoji: '⚖️',
     name: 'RLHF 与对齐',
     en: 'Reinforcement Learning from Human Feedback',
@@ -3278,7 +3611,7 @@ const TOPICS = [
 
   {
     id: 'prompt',
-    num: '65',
+    num: '72',
     emoji: '💬',
     name: '提示工程',
     en: 'Prompt Engineering',
@@ -3327,7 +3660,7 @@ const TOPICS = [
 
   {
     id: 'posenc',
-    num: '66',
+    num: '73',
     emoji: '📐',
     name: '位置编码与长上下文',
     en: 'Positional Encoding & Long Context',
@@ -3377,7 +3710,7 @@ const TOPICS = [
 
   {
     id: 'inference',
-    num: '67',
+    num: '74',
     emoji: '🚀',
     name: '推理优化与部署',
     en: 'LLM Inference Optimization',
@@ -3426,7 +3759,7 @@ const TOPICS = [
 
   {
     id: 'quant',
-    num: '68',
+    num: '75',
     emoji: '📦',
     name: '模型量化',
     en: 'Model Quantization',
@@ -3474,7 +3807,7 @@ const TOPICS = [
 
   {
     id: 'cot',
-    num: '69',
+    num: '76',
     emoji: '💭',
     name: '思维链与推理模型',
     en: 'Chain-of-Thought & Reasoning Models',
@@ -3521,8 +3854,104 @@ const TOPICS = [
     demo: { id: 'cot', title: '思维链 · 为什么分步更准', note: '直接作答要把整题一口气算对；思维链把中间步骤写进上下文。拖动位数看成功率差距被指数级放大。' }, deep: 'content/cot.md'  },
 
   {
+    id: 'parallel',
+    num: '77',
+    emoji: '🧩',
+    name: '分布式训练与并行',
+    en: 'Distributed Training & Parallelism',
+    cat: 'llm',
+    diff: 4,
+    accent: '#34d399',
+    tagline: '一块卡放不下、等不起的模型怎么训——数据/张量/流水线/ZeRO 四把刀组合出「千卡训练」的工程学。',
+    intro: {
+      what: '把大模型训练拆到多 GPU/多机的技术体系：数据并行（DP，各卡全副本切数据）、张量并行（TP，单层权重矩阵切开）、流水线并行（PP，按层切段）、ZeRO（把优化器状态/梯度/参数分片存储）。',
+      problem: '百亿到万亿参数模型的显存（权重+梯度+优化器状态）和计算量都远超单卡；训练动辄几千张卡跑几周——不解决切分与通信，大模型根本无法训练。',
+      idea: '按「显存放得下、算力喂得饱、通信忍得了」三角权衡切分：能在数据维切就 DP；模型太大就按层切（PP）或按矩阵切（TP）；显存仍不够就用 ZeRO 把冗余的副本也切掉。'
+    },
+    principle: {
+      text: [
+        '数据并行 DP：每卡持有完整模型副本、处理不同数据，反向后 All-Reduce 同步梯度——最简单，但显存随副本冗余。',
+        'ZeRO 三级：优化器状态切（1/4 显存）→ 梯度也切（1/8）→ 参数也切（1/N），配合通信调度几乎不掉效率——DeepSpeed 的招牌。',
+        '张量并行 TP：把权重矩阵按列/行切到多卡，每层内两次 All-Reduce——通信极频繁，只适合 NVLink 直连的机内高速域。',
+        '流水线并行 PP：按层切段跨卡，micro-batch 流水填洞；气泡比例 = (p−1)/(m+p−1)，用梯度累积（大 m）与 1F1B 调度压缩。'
+      ],
+      formula: {
+        html: '<span class="fn">气泡</span> = <span class="frac"><span class="num"><span class="sym">p</span> − 1</span><span class="den"><span class="sym">m</span> + <span class="sym">p</span> − 1</span></span>',
+        note: '流水线并行的空闲比例：p 级流水、m 个 micro-batch。调大 m（梯度累积）就是在买更少的气泡——演示里可实时看到甘特图变化。'
+      }
+    },
+    example: {
+      analogy: '装修房子：DP 是雇 4 支完整施工队各装一套房（工具重复买）；TP 是一支队里泥瓦工/电工协作完成每一面墙（沟通频繁，要住得近）；PP 是流水作业——改水电→贴砖→刷漆→安装，工序衔接处总有等待（气泡）。',
+      mini: '训 70B 模型：8 机 × 8 卡 A100；典型 3D 并行 = TP=8（机内 NVLink）× PP=8（跨机 64 层切段）× DP=8（数据维）+ ZeRO-1——四把刀同时上场。'
+    },
+    pros: ['让「单卡不可能」的模型规模成为可训练', 'ZeRO 大幅降低显存冗余，同硬件训更大模型', '成熟框架（DeepSpeed/Megatron/FSDP）已高度产品化'],
+    cons: ['通信成为新瓶颈（All-Reduce 常占 30%+ 时间）', '并行策略与拓扑强耦合（TP 要机内、PP 跨机），调优复杂', '故障处理难：千卡任务几小时就有卡挂——需要弹性容错（nanodetector/checkpoint 恢复）'],
+    history: [
+      { year: '2012+', text: 'AlexNet 时代用 2 块 GPU 切特征图——数据并行的史前时代。' },
+      { year: '2019', text: 'Megatron-LM 提出张量并行，GPT 级模型单层可切。' },
+      { year: '2020', text: 'DeepSpeed ZeRO 论文：显存冗余系统化消除，175B 训练成本骤降。' },
+      { year: '至今', text: '3D 并行 + FSDP 成为标配；千卡集群的容错调度（如 GPT-4 训练基建）成为核心竞争力。' }
+    ],
+    use: ['任何超过单卡显存的预训练/微调', '缩短训练墙钟时间（多机扩展）', 'FSDP/ZeRO 也用于单机多卡省显存'],
+    avoid: ['小模型强行分布式（通信开销大于收益）', 'TP 跨慢速互联（网络会杀死它）', '没有弹性容错的超长任务（卡必挂，恢复慢=白烧钱）'],
+    learn: [
+      '在演示里调大 <strong>micro-batch 数</strong>，看气泡比例公式的实际效果。',
+      '分清 <strong>四种并行各自切什么</strong>（数据/权重矩阵/层/冗余副本）。',
+      '理解 <strong>TP 为何要机内</strong>（每层两次 All-Reduce 的通信频率）。',
+      '进阶：读 ZeRO 论文的三级显存账（8+16 字节/参数 → 分片后）。'
+    ],
+    demo: { id: 'parallel', title: '分布式训练 · 流水线气泡', note: '调大 micro-batch 数：4 级流水线的气泡比例 = (p−1)/(m+p−1) 实时变化。' }, deep: 'content/parallel.md'  },
+
+  {
+    id: 'safety',
+    num: '78',
+    emoji: '🚨',
+    name: 'AI 安全与对齐',
+    en: 'AI Safety & Alignment',
+    cat: 'llm',
+    diff: 3,
+    accent: '#34d399',
+    tagline: '让强大的模型「可靠地听话」：越狱攻防、指令层级、红队评测——能力越强，安全工程越不是可选项。',
+    intro: {
+      what: '研究与工程实践的总称：对齐（让模型追求人类意图）+ 安全（防止滥用与失控），涵盖越狱防御、有害内容过滤、prompt injection 防护、水印与检测、红队评测等。',
+      problem: 'LLM 是「可被自然语言编程」的通用系统——任何能写提示词的人都是攻击面；模型又会顺从地扮演、翻译、编码，攻击者有无数种改写方式绕过防御。',
+      idea: '没有银弹，只有纵深防御：指令层级（系统>工具>用户数据）+ 输入输出双向过滤 + RLHF/安全微调的拒答能力 + 红队持续评测 + 部署层限流与审计。'
+    },
+    principle: {
+      text: [
+        '攻击面三类：越狱（jailbreak，让模型违反安全策略）、提示注入（把恶意指令藏进模型读的外部内容）、数据投毒/后门（训练期埋雷）。',
+        '防御分层：训练层（安全对齐数据/RLHF 拒答）→ 输入层（分类器/规则）→ 架构层（指令与数据隔离、工具权限最小化）→ 输出层（过滤/审计/水印）→ 运营层（红队+监控+应急）。',
+        '评测哲学：安全是「最坏情况」问题——平均安全率 99% 意味着攻击者找到那 1% 就赢；红队（自动化+人工）与对抗性基准是主要度量。'
+      ],
+      formula: {
+        html: '<span class="fn">风险</span> ≈ <span class="fn">能力</span> × <span class="fn">可滥用性</span> × <span class="fn">暴露面</span>',
+        note: '一个工程直觉式：三因子任何一个压到零，风险就受控——这就是为什么防御总是「叠加」而不是「选最优」。'
+      }
+    },
+    example: {
+      analogy: '机场安检不是一道门，是「值机核验→行李扫描→人体安检→行为观察→机上安保」的纵深——每一道都能漏 1%，叠起来漏过的概率就足够小。AI 安全同理。',
+      mini: '演示里的攻防矩阵：同一个危险请求，角色扮演/虚构包装/编码混淆各能穿透不同的单一防御——而三层防御叠加后全被拦截（真实规则模拟）。'
+    },
+    pros: ['纵深防御成熟可靠（工业界已标配）', '红队+自动化评测形成持续改进闭环', '对齐技术（RLHF/Constitutional AI）同时提升安全与有用性'],
+    cons: ['攻防不对等：防御方要堵所有洞，攻击方只需找一个', '安全与有用性存在张力（过度拒答伤体验）', '前沿风险（欺骗性对齐、自主复制）尚无评测共识'],
+    history: [
+      { year: '2016~20', text: '对抗样本时代：安全研究集中在视觉模型鲁棒性。' },
+      { year: '2022~23', text: 'ChatGPT 引爆后越狱（DAN 等）与 prompt injection 成为热点；OWASP 发布 LLM Top 10。' },
+      { year: '2023+', text: 'Constitutional AI/红队自动化兴起；各国监管落地（欧盟 AI Act、生成内容标识办法）。' }
+    ],
+    use: ['任何面向公众部署的生成式 AI（合规刚需）', 'Agent 系统的工具权限设计（最小权限+人工确认）', '企业内数据安全的 LLM 接入方案'],
+    avoid: ['只依赖单一防线（任何单防线都可绕）', '把外部内容（网页/文档）直接拼进系统提示', '安全评测只做一次（攻击在持续演化）'],
+    learn: [
+      '在演示里看 <strong>攻防矩阵</strong>：每种单一防御的盲区在哪里。',
+      '区分 <strong>越狱与提示注入</strong>（用户主动攻击 vs 外部内容带毒）。',
+      '理解 <strong>指令层级</strong> 为什么是架构层防御的核心。',
+      '进阶：读 OWASP LLM Top 10 + 一篇 Constitutional AI。'
+    ],
+    demo: { id: 'safety', title: 'AI 安全 · 越狱攻防', note: '四种攻击策略 × 三道防御的真实规则判定矩阵——单一防御必有盲区。' }, deep: 'content/safety.md'  },
+
+  {
     id: 'rag',
-    num: '70',
+    num: '79',
     emoji: '📚',
     name: 'RAG 检索增强生成',
     en: 'Retrieval-Augmented Generation',
@@ -3571,7 +4000,7 @@ const TOPICS = [
 
   {
     id: 'agent',
-    num: '71',
+    num: '80',
     emoji: '🕵️',
     name: 'Agent 与工具调用',
     en: 'AI Agent & Tool Use (ReAct)',
@@ -3619,7 +4048,7 @@ const TOPICS = [
 
   {
     id: 'multiagent',
-    num: '72',
+    num: '81',
     emoji: '🤝',
     name: '多智能体协作',
     en: 'Multi-Agent Collaboration',
@@ -3666,8 +4095,55 @@ const TOPICS = [
     demo: { id: 'multiagent', title: '多智能体 · 协作演示', note: '三个角色 Agent 依次交接，看一段内容如何经「研究→写作→审校」逐步打磨成型。' }, deep: 'content/multiagent.md'  },
 
   {
+    id: 'cua',
+    num: '82',
+    emoji: '🖱️',
+    name: '计算机使用智能体',
+    en: 'Computer-Use Agents',
+    cat: 'agent',
+    diff: 4,
+    accent: '#fb7185',
+    tagline: '让 AI 像人一样「看着屏幕、动鼠标敲键盘」——截图进、坐标出，整个操作系统变成它的 API。',
+    intro: {
+      what: '通过视觉感知屏幕（截图）、规划动作（点击坐标/键入/滚动）、观察反馈再循环的智能体形态（Claude Computer Use、OpenAI Operator）。GUI 本身成为通用工具接口。',
+      problem: '现实中绝大多数软件没有 API（老 ERP、内部系统、任意网页）；为每个工具写集成成本高企——而「 GUI 」是所有软件都有的公共接口。',
+      idea: 'VLM 直接从截图定位元素并输出像素坐标动作，操作系统原生事件执行（点击/键盘），执行后截图回填观察——把 Agent 的「感知-行动循环」套在整个电脑上。'
+    },
+    principle: {
+      text: [
+        '循环：截图 → VLM 读屏（元素定位+状态理解）→ 思考下一步（复用 ReAct）→ 输出结构化动作（click(x,y)/type/scroll/hotkey）→ 系统执行 → 新截图观察。',
+        '能力基座：VLM 的 grounding（像素级定位）是命门——小按钮、密集表格、滚动后的坐标漂移是主要失败源； Claude 3.5+ 与 GPT-4o 时代 grounding 才达到可用。',
+        '安全设计：沙箱虚拟机隔离、敏感操作（支付/删除）人工确认、动作白名单——「能点一切」也意味着「能搞砸一切」。'
+      ],
+      formula: {
+        html: '<span class="fn">loop</span>: <span class="sym">s</span><sub>t</sub> = <span class="fn">截图</span>() → <span class="sym">a</span><sub>t</sub> = <span class="fn">VLM</span>(<span class="sym">s</span><sub>t</sub>, <span class="sym">任务</span>, <span class="sym">历史</span>) → <span class="fn">执行</span>(<span class="sym">a</span><sub>t</sub>) → <span class="sym">t</span>+1',
+        note: '与 ReAct 唯一的区别：Observation 换成了「新截图」——环境从 API/网页变成了整个桌面。'
+      }
+    },
+    example: {
+      analogy: '远程帮长辈修电脑的支持工程师：你看不到对方装了什么软件，只有「共享屏幕」+ 鼠标键盘——靠看、找、点、确认循环解决问题。',
+      mini: '演示：假想应用里执行「把主题切换成浅色」——Agent 先开菜单、进设置、找到开关、点击确认，右侧同步打印 Thought/Action/Observation 日志（规则状态机回放真实循环）。'
+    },
+    pros: ['无需 API/集成——任何有界面的软件都能自动化', '任务泛化：没见过的软件也能「看着办」', '与人类工作流天然兼容（就是人的操作方式）'],
+    cons: ['慢且贵（每步一次 VLM 调用 + 截图 token）', '视觉定位错误级联（点错一步满盘皆输）', '安全风险最高的一类 Agent（等于交出键鼠）'],
+    history: [
+      { year: '2023', text: 'WebVoyager/WebArena 等基准确立「网页操作」评测。' },
+      { year: '2024', text: 'Anthropic 发布 Computer Use（首个前沿模型级桌面操作能力）；OpenAI Operator 跟进。' },
+      { year: '2025+', text: 'RPA 与 CUA 融合（「看屏幕的 RPA」）；企业流程自动化开始迁移。' }
+    ],
+    use: ['遗留系统/无 API 软件的流程自动化', '跨应用搬运数据（从 A 系统抄到 B 表格）', '端到端测试（模拟真实用户操作验收）'],
+    avoid: ['高频批量任务（专用 API/RPA 快几个数量级）', '敏感权限不设防的机器（必须沙箱+确认）', '对准确性零容忍的关键操作'],
+    learn: [
+      '在演示里逐步执行，对照 <strong>Thought/Action/Observation</strong> 日志理解循环。',
+      '思考 <strong>grounding 为什么难</strong>（分辨率/滚动/动态界面）。',
+      '列举 <strong>安全防线</strong>（沙箱/确认/白名单）各自的必要性。',
+      '进阶：读 WebArena 基准——CUA 的「真实成绩单」有多惨。'
+    ],
+    demo: { id: 'cua', title: '计算机使用 · Agent 操作回放', note: '选指令点「执行下一步」：屏幕→思考→坐标动作→观察，完整复刻人类操作电脑的循环。' }, deep: 'content/cua.md'  },
+
+  {
     id: 'causal',
-    num: '73',
+    num: '83',
     emoji: '🧭',
     name: '因果推断',
     en: 'Causal Inference',
@@ -3715,7 +4191,7 @@ const TOPICS = [
 
   {
     id: 'mlops',
-    num: '74',
+    num: '84',
     emoji: '🛠️',
     name: 'MLOps 与模型监控',
     en: 'MLOps & Model Monitoring',
@@ -3763,7 +4239,7 @@ const TOPICS = [
 
   {
     id: 'gbdt',
-    num: '75',
+    num: '85',
     emoji: '🌿',
     name: 'LightGBM 与 CatBoost',
     en: 'LightGBM & CatBoost',
@@ -3811,7 +4287,7 @@ const TOPICS = [
 
   {
     id: 'glm',
-    num: '76',
+    num: '86',
     emoji: '🔗',
     name: '广义线性模型 GLM',
     en: 'Generalized Linear Models',
@@ -3859,7 +4335,7 @@ const TOPICS = [
 
   {
     id: 'vlm',
-    num: '77',
+    num: '87',
     emoji: '🖼️',
     name: '多模态大模型 VLM',
     en: 'Vision-Language Models',
@@ -3907,7 +4383,7 @@ const TOPICS = [
 
   {
     id: 'bench',
-    num: '78',
+    num: '88',
     emoji: '📏',
     name: '评测基准与数据污染',
     en: 'Benchmarks & Data Contamination',
@@ -3955,7 +4431,7 @@ const TOPICS = [
 
   {
     id: 'hpo',
-    num: '79',
+    num: '89',
     emoji: '🎛️',
     name: '超参数优化与贝叶斯搜索',
     en: 'Hyperparameter Optimization',
@@ -4003,7 +4479,7 @@ const TOPICS = [
 
   {
     id: 'semi',
-    num: '80',
+    num: '90',
     emoji: '🌗',
     name: '半监督与主动学习',
     en: 'Semi-Supervised & Active Learning',
@@ -4051,7 +4527,7 @@ const TOPICS = [
 
   {
     id: 'speech',
-    num: '81',
+    num: '91',
     emoji: '🎙️',
     name: '语音识别与合成',
     en: 'Speech Recognition & Synthesis (ASR/TTS)',
@@ -4099,7 +4575,7 @@ const TOPICS = [
 
   {
     id: 'tts',
-    num: '82',
+    num: '92',
     emoji: '🔊',
     name: '语音合成 TTS',
     en: 'Text-to-Speech',
@@ -4147,7 +4623,7 @@ const TOPICS = [
 
   {
     id: 'dp',
-    num: '83',
+    num: '93',
     emoji: '🔒',
     name: '差分隐私',
     en: 'Differential Privacy',
@@ -4191,5 +4667,102 @@ const TOPICS = [
       '记住 <strong>敏感度 Δf</strong> 决定噪声大小（计数=1，求和=最大值）。',
       '进阶：读 DP-SGD（梯度裁剪 + 噪声乘子），看差分隐私如何进入深度学习训练。'
     ],
-    demo: { id: 'dp', title: '差分隐私 · Laplace 机制', note: '调 ε 再点「发布一次」：每次查询都注入 Laplace 噪声——单个体在不在数据里，结果几乎不变。' }, deep: 'content/dp.md'  }
+    demo: { id: 'dp', title: '差分隐私 · Laplace 机制', note: '调 ε 再点「发布一次」：每次查询都注入 Laplace 噪声——单个体在不在数据里，结果几乎不变。' }, deep: 'content/dp.md'
+  },
+
+  {
+    id: 'history',
+    num: '94',
+    emoji: '🏛️',
+    name: 'AI 历史与流派',
+    en: 'History & Schools of AI',
+    cat: 'method',
+    diff: 2,
+    accent: '#f59e0b',
+    tagline: '符号主义、连接主义、行为主义六十年缠斗与两次寒冬——知道「现在的主流是怎么赢的」，才知道下一步可能从哪来。',
+    intro: {
+      what: '人工智能的思想史：三大流派（符号主义=逻辑与知识、连接主义=神经网络、行为主义=感知-行动与控制论）的兴衰交替，两次寒冬（1974、1987）与 2012 年后的深度学习大一统。',
+      problem: '只学当前主流容易产生「技术本来就该长这样」的错觉；历史上被冷落的路线（符号推理、世界模型）正以新形态回归——没有坐标系就看不懂现在。',
+      idea: '把 70 年 AI 史读成「三条路线 × 三次浪潮」的矩阵：每次浪潮都是某条路线拿到新资源（算力/数据/算法）的爆发，每次寒冬都是承诺与交付的落差。'
+    },
+    principle: {
+      text: [
+        '符号主义：智能=符号操作与逻辑推理（达特茅斯会议的初心）——专家系统是巅峰，死于知识获取瓶颈。',
+        '连接主义：智能=从数据中学习的分布式表示——感知机(1957)→反向传播(1986)→深度学习(2012)三次抬头，GPU+大数据让它最终胜出。',
+        '行为主义：智能=感知-行动的闭环（控制论/强化学习）——深蓝的搜索、AlphaGo 的自我对弈、当今的 RLHF 都在这条线上。'
+      ],
+      formula: {
+        html: '<span class="fn">浪潮</span> = <span class="fn">路线</span> × (<span class="fn">算力</span> + <span class="fn">数据</span> + <span class="fn">算法</span>)<sub>到位</sub>，　<span class="fn">寒冬</span> = <span class="fn">承诺</span> − <span class="fn">交付</span> &gt; <span class="fn">耐心</span>',
+        note: '一个解读框架：每次浪潮都是某条路线等到了它的资源；每次寒冬都是宣传跑在了能力前面——两次都是经费先于信心崩塌。'
+      }
+    },
+    example: {
+      analogy: '武学史：少林（符号，硬桥硬马的规则）、武当（连接，以柔克刚地从数据中悟）、江湖行走（行为，在实战反馈中成长）——当今的 AlphaGo 类系统是三家合璧：网络学直觉、搜索算变化、规则定胜负。',
+      mini: '时间轴上 1986 年反向传播与 1987 年第二次寒冬紧挨着——火种在寒冬里埋下；2012 AlexNet 与 1957 感知机相隔 55 年：一条路线可以潜伏半世纪。'
+    },
+    pros: ['建立技术坐标系（判断新概念是「新思想」还是「旧路线换新装」）', '理解当前范式的偶然性与依赖（GPU 是游戏产业养出来的）', '面试与写作的格局素材'],
+    cons: ['属于认知型知识——风险只在于把历史当未来预言', '流派标签容易过度简化（当代系统都是融合体）'],
+    history: [
+      { year: '1950~56', text: '图灵测试与达特茅斯会议：「人工智能」命名，符号主义开局。' },
+      { year: '1957~69', text: '感知机起、Minsky 的 XOR 批评落——连接主义第一次退场。' },
+      { year: '1974/1987', text: '两次寒冬：机器翻译失败、专家系统维护成本爆炸，经费两度崩盘。' },
+      { year: '2012~', text: 'AlexNet→Transformer→GPT：连接主义借 GPU 与大数据完成大一统；符号思想以「工具调用/程序合成」形态回归。' }
+    ],
+    use: ['学习任何 AI 子领域之前的地图', '技术判断的坐标系（新热点的谱系定位）', '技术写作与分享的叙事骨架'],
+    avoid: ['把历史线性外推成预言', '用流派标签否定具体技术（路线在融合）', '只记年份不懂因果（记「为什么死」比「哪年死」重要）'],
+    learn: [
+      '在演示里点完 15 个事件，观察 <strong>流派颜色</strong> 的交替。',
+      '理解两次寒冬的 <strong>承诺-交付差</strong> 各自出在哪。',
+      '找一条「潜伏多年后回归」的线索（如符号→工具调用）。',
+      '进阶：读《AI 3.0》或 Russell《AIMA》首章的史观。'
+    ],
+    demo: { id: 'history', title: 'AI 编年史 · 流派兴衰', note: '点击时间轴事件：三次浪潮、两次寒冬、符号与连接主义六十年缠斗。' }, deep: 'content/history.md'  },
+
+  {
+    id: 'embodied',
+    num: '95',
+    emoji: '🤖',
+    name: '具身智能',
+    en: 'Embodied AI & Robotics',
+    cat: 'app',
+    diff: 4,
+    accent: '#2dd4bf',
+    tagline: '智能不只在语料里——让 AI 有身体：看世界、听指令、动手做。VLA 模型把视觉-语言-动作缝进一个网络。',
+    intro: {
+      what: '研究与构建「有身体的智能」：机器人通过传感器感知物理世界、通过语言接收目标、通过行动影响世界。当前技术核心是 VLA（视觉-语言-动作）模型（RT-2、OpenVLA）与「大脑+小脑」分层架构。',
+      problem: '纯语言/纯视觉的智能没有接触物理因果——重量、摩擦、遮挡这些「常识」只有通过身体交互才真正可学；且真机数据极贵、试错的代价是真实的摔坏。',
+      idea: '把机器人的「看（视觉 token）+ 听（语言 token）→ 动（动作 token）」统一成一个多模态 Transformer 的序列建模问题；数据从遥操作演示（模仿）与仿真（sim2real）两条腿获得。'
+    },
+    principle: {
+      text: [
+        'VLA 公式：动作被离散化为 token（末端位姿增量/夹爪开合），与图像、指令一起进 Transformer 自回归输出——「机器人控制 = 另一种语言建模」。',
+        '数据三板斧：遥操作演示（人操纵机械臂采集，质量高量少）、仿真合成（海量+域随机化）、互联网视频学习（物理常识先验）。',
+        '分层架构：大模型当「大脑」（任务规划、常识），传统控制器当「小脑」（毫秒级伺服闭环）——VLA 负责慢思考，控制论负责快反应。'
+      ],
+      formula: {
+        html: '<span class="sym">a</span><sub>1:T</sub> ~ <span class="fn">VLA</span>(<span class="sym">a</span><sub>&lt;t</sub>, <span class="fn">图像token</span>, <span class="fn">指令token</span>)',
+        note: '动作序列与图文共用一套自回归：RT-2 证明互联网级视觉语言预训练可直接迁移到机器人动作——通识帮助操作。'
+      }
+    },
+    example: {
+      analogy: '新员工上手：说明书（语言）告诉他「把红色按钮按了」，眼睛找到按钮（视觉），手脚走过去执行（动作）——VLA 就是把「看-懂-动」焊成一个反应。',
+      mini: '演示：网格世界里选指令「去红色按钮」——视觉检测色块、语言匹配目标、BFS 规划路径、逐步执行——真实复现 VLA 流水线（用规则代替网络）。'
+    },
+    pros: ['VLA 复用大模型通识（语言预训练直接增益操作）', '通用操作器路线（一个模型多任务多物体）取代逐任务编程', '仿真+域随机化让数据成本可控'],
+    cons: ['真机数据稀缺且昂贵（演示采集成本极高）', 'sim2real 差距（摩擦/接触动力学仿真不准）', '安全与可靠性验证远比数字世界难'],
+    history: [
+      { year: '1961', text: 'Unimate 工业机械臂上线——「行为主义」的具身起点。' },
+      { year: '2016~22', text: '深度 RL 做操作（OpenAI Dactyl 转魔方）；谷歌 SayCan/RT-1 打通语言到动作。' },
+      { year: '2023', text: 'RT-2：VLM 直接输出动作 token，「VLA」概念立住；人形机器人赛道爆热。' },
+      { year: '2024+', text: 'OpenVLA 开源、Scaling law 进入机器人数据——「机器人的 GPT 时刻」叙事。' }
+    ],
+    use: ['工业柔性操作（混线拣选、装配）', '家庭服务/养老辅助机器人', '危险环境作业（核电、深海、消防）'],
+    avoid: ['毫秒级高精度伺服任务（控制论主场）', '数据匮乏场景强上端到端 VLA', '对安全冗余要求极高的部署不做分层兜底'],
+    learn: [
+      '在演示里跑一次 <strong>看→听→动</strong> 的完整循环。',
+      '理解 <strong>动作 token 化</strong> 如何让机器人控制接入语言建模范式。',
+      '对比 <strong>模仿学习与 RL</strong> 在机器人上的分工。',
+      '进阶：读 RT-2 的「涌现能力」章节——语言通识如何帮助操作。'
+    ],
+    demo: { id: 'embodied', title: '具身智能 · VLA 循环', note: '「看到哪→听懂啥→怎么动」：视觉检测目标、语言匹配指令、BFS 规划执行。' }, deep: 'content/embodied.md'  }
 ];

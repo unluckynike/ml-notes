@@ -307,6 +307,13 @@ body.menu-open .overlay { opacity: 1; pointer-events: auto; }
   background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
   overflow: hidden; position: relative;
   transition: box-shadow .3s, border-color .3s;
+  /* 96 张卡片的长页：跳过视口外卡片的渲染（布局/绘制），显著降低滚动与首帧成本 */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 860px;
+}
+/* 窄屏卡片更高（标签换行/面板堆叠），占位估计同步放大，减少滚动跳动 */
+@media (max-width: 720px) {
+  .topic { contain-intrinsic-size: auto 1250px; }
 }
 .topic:hover { border-color: var(--border-strong); }
 .topic::before {

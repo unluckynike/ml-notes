@@ -2,7 +2,7 @@
 
 一份**可交互的机器学习 / 深度学习知识笔记**。纯静态、零依赖、离线可用 —— 每个主题都有「用途 · 原理 · 优缺点 · 发展历程 · 适用场景 · 上手路径」，并配一个浏览器内实时计算的交互演示。
 
-> 覆盖 84 个主题，**每个主题都配有深度长文**：从统计学基础、经典机器学习，到深度学习、计算机视觉、生成模型、大语言模型与 Agent。
+> 覆盖 96 个主题，**每个主题都配有深度长文**：从统计学基础、经典机器学习，到深度学习、计算机视觉、生成模型、大语言模型、智能体、具身智能与 AI 历史。
 
 ---
 
@@ -33,13 +33,13 @@ python3 -m http.server 8000
 
 | 项 | 数量 |
 |---|---|
-| 主题 | 84 |
-| 交互演示 | 84 |
+| 主题 | 96 |
+| 交互演示 | 96 |
 | 知识分类 | 13 |
 | 路线图阶段 | 13 |
 | 方法论 | 6 |
 | 延伸阅读 | 8 |
-| 深度长文 | 84 |
+| 深度长文 | 96 |
 
 **13 个分类**：统计基础 · 基础与优化 · 监督学习 · 集成学习 · 无监督学习 · 深度学习 · 计算机视觉 · 生成模型 · 大语言模型 · 智能体 · 强化学习 · 应用主题 · 方法论
 
@@ -57,10 +57,10 @@ python3 -m http.server 8000
 │   └── style.css           # 设计系统：配色变量、卡片、标签页、深度阅读排版、响应式
 ├── js/
 │   ├── content.js          # ★ 内容数据：CATEGORIES / ROADMAP / METHODS / RESOURCES / TOPICS
-│   ├── demos.js            # ★ 交互演示：84 个 canvas 小实验 + 手写 3D 投影引擎
+│   ├── demos.js            # ★ 交互演示：96 个 canvas 小实验 + 手写 3D 投影引擎
 │   ├── markdown.js         #   迷你 Markdown 渲染器（深度阅读用，零依赖）
 │   └── app.js              # 渲染与交互：导航、标签页、搜索、主题切换
-├── content/                # ★ 深度长文（Markdown 源文件，84 篇，每主题一篇）
+├── content/                # ★ 深度长文（Markdown 源文件，96 篇，每主题一篇）
 │   ├── transformer.md backprop.md cnn.md rnn.md lstm.md resnet.md
 │   ├── kmeans.md pca.md tsne.md em.md svm.md xgboost.md
 │   ├── gan.md vae.md word2vec.md evaluation.md
@@ -72,11 +72,11 @@ python3 -m http.server 8000
 ```
 
 **内容与代码是分离的**：
-- 卡片式内容（84 个主题）→ `js/content.js`
+- 卡片式内容（96 个主题）→ `js/content.js`
 - 交互演示 → `js/demos.js`
 - 深度长文 → `content/*.md`（纯 Markdown，不用碰 JS）
 
-### 深度长文（84 篇 · 全覆盖）
+### 深度长文（96 篇 · 全覆盖）
 
 每个主题的「深度阅读」标签页都配有一篇长文（`content/<主题id>.md`），结构统一：**直觉 → 公式推导 → 代码 → 常见误区 → 面试要点速答 → 延伸阅读**。代表性篇目：
 
@@ -95,3 +95,8 @@ python3 -m http.server 8000
 | conformal.md | 覆盖保证的名次论证（有限样本） |
 | cot.md | 测试时算力与 RLVR 涌现 |
 | mlops.md | 数据/概念漂移、两级监控、影子发布 |
+| parallel.md | ZeRO 三级显存账、3D 并行组合逻辑 |
+| mamba/ssm.md | 递归/卷积双形式与选择性机制 |
+| nerf.md | 位置编码、体渲染方程、3DGS 接棒 |
+| embodied.md | VLA 动作 token 化、数据三板斧 |
+| history.md | 三次浪潮的驱动力解剖 |

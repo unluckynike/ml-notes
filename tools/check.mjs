@@ -105,10 +105,18 @@ if (Array.isArray(TOPICS)) {
 }
 
 // ---------- 4. 深度阅读（deep 字段）校验 ----------
+// 命名约定：长文文件名应与主题 id 一致（唯一例外：mlp 主题挂 backprop.md，见 README）
+const deepNameOf = id => 'content/' + (id === 'mlp' ? 'backprop' : id) + '.md';
+
 const deepRefs = new Map();      // md 相对路径 -> [引用它的主题 id]
 if (Array.isArray(TOPICS)) {
   TOPICS.forEach(t => {
-    if (!t.deep) return;
+    if (!t.deep) { warn(`主题 "${t.id}" 没有配深度长文（content/<id>.md），覆盖率下降`); return; }
+    // 防错位：deep 必须指向「自己的」文件——历史上曾因行号定位出现过连环错挂
+    const want = deepNameOf(t.id);
+    if (String(t.deep) !== want) {
+      err(`主题 "${t.id}" 的 deep="${t.deep}" 与命名约定不符（应为 "${want}"）——大概率是挂错了别人的长文`);
+    }
     const rel = String(t.deep);
     if (!deepRefs.has(rel)) deepRefs.set(rel, []);
     deepRefs.get(rel).push(t.id);
