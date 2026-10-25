@@ -1,0 +1,89 @@
+# Word2Vec 深读：负采样的公式与「隐式矩阵分解」
+
+这篇是 **Word2Vec 词嵌入**主题的深度补充。2013 年的 word2vec 用一个「 predicts 邻居」的浅层网络学到带语义的向量，`king − man + woman ≈ queen` 惊艳一时。这里讲清两件事：**负采样损失到底在优化什么**、**为什么这个浅网络能学到语义（矩阵分解视角）**。
+
+> [!KEY] 一句话抓住本质
+> Word2Vec（Skip-Gram + 负采样，SGNS）让**共现的词对**打高分、**随机采的词对**打低分：
+
+$$\max \;\log\sigma(u_{w}^{\text{T}}v_c) + \sum_{k=1}^{K}\text{E}_{n\sim P_n}\left[\log\sigma(-u_{n}^{\text{T}}v_c)\right]$$
+
+理论研究表明：这个目标的最优解等价于**分解一个平移过的 PMI 矩阵**——词向量的几何（余弦相似度、类比方向）其实是共现统计的重新参数化。
+
+---
+
+## 一、从 softmax 到负采样
+
+**Skip-Gram 原始目标**：用中心词 $w$ 预测窗口内每个上下文词 $c$，softmax 归一化：
+
+$$P(c|w) = \frac{\exp(u_c^{\text{T}}v_w)}{\sum_{c'}\exp(u_{c'}^{\text{T}}v_w)}$$
+
+问题：分母要对**整个词表**（10万+）求和，每个训练对都要算一遍——天文数字。
+
+**负采样（NCE 的简化）**：把多分类退化成「真样本 vs K 个噪声样本」的二分类。损失（对每个真对 $(w,c)$）：
+
+$$L = -\log\sigma(u_c^{\text{T}}v_w) - \sum_{k=1}^{K}\log\sigma(-u_{n_k}^{\text{T}}v_w),\qquad n_k \sim P_n$$
+
+直觉：真共现对的点积要**推大**（$\sigma \to 1$），随机拼对的点积要**压小**。K 常取 5~20，计算量从 O(V) 降到 O(K)。
+
+**两个关键工程件**：
+
+- **噪声分布 $P_n$**：论文用** unigram 的 3/4 次方** $P_n(w) \propto \text{count}(w)^{3/4}$——把高频词多采一点（它们最容易被误当邻居），但 0.75 的幂又压一压最高频的 the/a/of。
+- **高频词下采样**：训练时按概率丢弃频次超阈值 $t$ 的词——「the」每次出现提供的信号几乎为零，却占了一半训练量。
+
+**分层 softmax** 是另一条路（二叉树路径上的 logistic），现代实现基本都用负采样。
+
+---
+
+## 二、为什么浅网络能学到语义
+
+两个经典解释（不冲突）：
+
+**解释 A·分布式假设（语言学）**：一个词的含义由它的上下文决定（Firth: "You shall know a word by the company it keeps"）。预测邻居的任务强迫向量编码「这个词出现在什么环境里」——「猫/狗」环境相似 → 向量相近。
+
+**解释 B·隐式矩阵分解（Levy & Goldberg 2014，更深刻）**：可以证明 SGNS 的最优解满足（对每对词）：
+
+$$u_w^{\text{T}}v_c = \text{PMI}(w, c) - \log k$$
+
+其中 PMI 是点互信息 $\log\frac{P(w,c)}{P(w)P(c)}$——**词向量内积在拟合一个平移的 PMI 矩阵**。这解释了很多「神奇现象」：
+
+| 现象 | 矩阵分解视角的解释 |
+|---|---|
+| king−man+woman≈queen | 高阶共现的**线性结构**在低秩分解中保留 |
+| 频繁词向量短 | 平移 $-\log k$ + 行归一化的副作用 |
+| 相似度要用余弦不用内积 | 消除词频带来的模长差异 |
+
+**GloVe** 顺着这条路直接显式分解「共现计数的对数」矩阵——两条路线殊途同归，工程上效果接近。fastText 再进一步：把词拆成字符 n-gram 求和，解决 OOV 与形态学（「跑/奔跑」共享子串）。
+
+> [!WARN] 常见误用
+> - **拿内积当相似度**：请用余弦（或先归一化）。
+> - **小语指望高质量词向量**：矩阵要够密——百万级词次的语料才谈得上质量，小语料用预训练向量。
+> - **忽视年代差**：word2vec 是「静态」向量（一词一向量），bank 不分「银行/河岸」；现代任务主流已转向上下文相关的 BERT/LLM 嵌入——静态向量的优势是便宜、稳定、可解释。
+
+---
+
+## 三、评估：相似度表与类比
+
+- **内在评估**：WordSim-353 / SimLex-999（人工标注的词对相似度，算 Spearman 相关）；类比题（a−b+c≈d 的最近邻检索）。
+- **外在评估**：作为特征喂给下游（NER/分类）看最终指标——内在分数高不保证下游好。
+
+类比方向的求法：$v = v_{king} - v_{man} + v_{woman}$，在词表里找**排除三个输入词后**与 $v$ 余弦最大的词。
+
+---
+
+## 四、面试要点速答
+
+1. **负采样损失的形式？** 真对 $\log\sigma(u^{\text{T}}v)$ 最大化 + K 个负对 $\log\sigma(-u^{\text{T}}v)$ 最大化；噪声用 unigram^0.75。
+2. **为什么要下采样高频词？** 高频词信息少、训练量大，丢弃后吞吐与质量双升。
+3. **SGNS 与矩阵分解的关系？** 最优解内积 ≈ PMI − log k；word2vec/GloVe 本质都是低秩矩阵分解（GloVe 显式、SGNS 隐式）。
+4. **CBOW 与 Skip-Gram 区别？** CBOW 用上下文预测中心词（快、适合高频词），Skip-Gram 反之（慢、对低频词更好）。
+5. **为什么余弦比内积好？** 内积受向量模长影响（频次效应）；余弦只看方向。
+6. **静态向量 vs 上下文向量？** 一词一向量 vs 一词多向量（随上下文变）；后者解决多义，代价是需编码器前向。
+
+---
+
+## 延伸阅读
+
+- Mikolov et al., *Efficient Estimation of Word Representations in Vector Space*, 2013
+- Mikolov et al., *Distributed Representations of Words and Phrases (负采样/下采样)*, 2013
+- Levy & Goldberg, *Neural Word Embedding as Implicit Matrix Factorization*, 2014
+- Pennington et al., *GloVe*, 2014；Bojanowski et al., *fastText*, 2016

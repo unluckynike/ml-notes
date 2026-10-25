@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="机器学习 · 深度学习 · 计算机视觉 · 大模型 · Agent 知识笔记：线性回归、聚类、LSTM、SVM、XGBoost、ResNet、扩散模型、Transformer、RAG 等，含用途、原理、优缺点、发展历程、适用场景与交互式可视化演示。" />
   <title>ML 笔记 · 机器学习与深度学习知识笔记</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -59,7 +60,7 @@
         <p class="hero__eyebrow">从统计到深度学习 · 一页看懂</p>
         <h1 class="hero__title">像搭积木一样<br /><span class="grad">理解机器学习</span></h1>
         <p class="hero__sub">
-          线性回归、逻辑回归、决策树、随机森林、XGBoost、SVM、K-Means、PCA、神经网络、RNN、LSTM、ResNet、扩散模型、Transformer、LLM、Agent……
+          线性回归、逻辑回归、决策树、随机森林、XGBoost、SVM、K-Means、EM 与高斯混合、PCA、神经网络、RNN、LSTM、ResNet、扩散模型、Transformer、LLM、RLHF、RAG、Agent、联邦学习、共形预测、模型量化、思维链……
           <br />每个主题都记清 <strong>用途 · 原理 · 优缺点 · 发展历程 · 适用场景 · 上手路径</strong>，并配一个可交互的可视化演示。
         </p>
         <div class="hero__cta">
@@ -69,7 +70,7 @@
         <div class="hero__stats">
           <div class="stat"><strong id="statTopics">0</strong><span>核心模型</span></div>
           <div class="stat"><strong id="statDemos">0</strong><span>交互演示</span></div>
-          <div class="stat"><strong>6</strong><span>知识板块</span></div>
+          <div class="stat"><strong id="statCats">0</strong><span>知识分类</span></div>
         </div>
       </div>
       <div class="hero__scroll" aria-hidden="true"><span></span>向下滚动</div>
@@ -102,7 +103,15 @@
         <h2>逐个整理，从原理到演示</h2>
         <p class="section__desc">每个主题都包含：一句话定位、解决什么问题、核心思想、直观比喻、优缺点、发展历程、适用/不适用场景、怎么上手，以及一个可交互演示。</p>
       </div>
+      <div class="topic-toolbar">
+        <div class="topic-filter" id="topicFilter"></div>
+        <span class="topic-count" id="topicCount"></span>
+      </div>
       <div class="topic-list" id="topicList"><div class="loading-hint">正在加载主题…</div></div>
+      <div class="topic-empty" id="topicEmpty">
+        <strong>🔍 没有找到匹配的主题</strong>
+        换个关键词试试，或点击「全部」清除分类筛选
+      </div>
     </section>
 
     <!-- 资源 -->

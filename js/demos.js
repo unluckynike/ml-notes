@@ -23,6 +23,7 @@
   }
   const round = (x, d) => { const p = Math.pow(10, d || 2); return Math.round(x * p) / p; };
   const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+  const hexRgb = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
 
   function setup(canvas, W, H) {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -4891,6 +4892,564 @@
     draw();
   }
 
+  // ============================================================
+  // EM 算法与高斯混合（2D 真实 EM）
+  // ============================================================
+  function em(container) {
+    const d = demoShell('EM · 高斯混合聚类', '先「E 步」给点染上软归属色，再「M 步」移动椭圆——对数似然每一轮都在上升。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 430);
+    const rng = makeRng(2024);
+    const K = 3;
+    const BLOBS = [[-1.5, -1.1, 40], [1.6, -0.9, -15], [0.1, 1.5, 75]];   // x, y, 倾角(°)
+    const RGB = [[0, 212, 255], [255, 122, 198], [0, 230, 160]];
+    let pts = [], comps = [], resp = null, phase = 0, iter = 0, lastLL = null;
+    const box = { l: 80, r: 700, t: 100, b: 340 }, XR = [-3.4, 3.4], YR = [-2.6, 2.6];
+
+    function gen() {
+      pts = [];
+      for (const b of BLOBS) {
+        const a = b[2] * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a);
+        for (let i = 0; i < 46; i++) {
+          const u = gauss(rng) * 0.55, v = gauss(rng) * 0.28;
+          pts.push({ x: b[0] + u * ca - v * sa, y: b[1] + u * sa + v * ca });
+        }
+      }
+      reset();
+    }
+    function reset() {
+      const idx = [];
+      while (idx.length < K) { const j = Math.floor(rng() * pts.length); if (idx.indexOf(j) < 0) idx.push(j); }
+      comps = idx.map(j => ({ mx: pts[j].x, my: pts[j].y, vx: 0.55, vy: 0.55, pi: 1 / K }));
+      resp = null; phase = 0; iter = 0; lastLL = null;
+      draw();
+    }
+    function dens(x, y, c) {
+      return Math.exp(-0.5 * ((x - c.mx) * (x - c.mx) / c.vx + (y - c.my) * (y - c.my) / c.vy))
+        / (2 * Math.PI * Math.sqrt(c.vx * c.vy));
+    }
+    function loglik() {
+      let s = 0;
+      for (const p of pts) {
+        let m = 0; for (const c of comps) m += c.pi * dens(p.x, p.y, c);
+        s += Math.log(m + 1e-12);
+      }
+      return s;
+    }
+    function estep() {
+      resp = pts.map(p => {
+        const w = comps.map(c => c.pi * dens(p.x, p.y, c));
+        const s = w.reduce((a, b) => a + b, 0) + 1e-12;
+        return w.map(v => v / s);
+      });
+      phase = 1; draw();
+    }
+    function mstep() {
+      if (!resp) { estep(); }
+      const Nk = zeros(K), mx = zeros(K), my = zeros(K), vx = zeros(K), vy = zeros(K);
+      for (let i = 0; i < pts.length; i++) for (let k = 0; k < K; k++) {
+        Nk[k] += resp[i][k]; mx[k] += resp[i][k] * pts[i].x; my[k] += resp[i][k] * pts[i].y;
+      }
+      for (let k = 0; k < K; k++) { mx[k] /= Nk[k] + 1e-9; my[k] /= Nk[k] + 1e-9; }
+      for (let i = 0; i < pts.length; i++) for (let k = 0; k < K; k++) {
+        vx[k] += resp[i][k] * (pts[i].x - mx[k]) ** 2; vy[k] += resp[i][k] * (pts[i].y - my[k]) ** 2;
+      }
+      comps = comps.map((c, k) => ({
+        mx: mx[k], my: my[k],
+        vx: Math.max(vx[k] / (Nk[k] + 1e-9), 0.006), vy: Math.max(vy[k] / (Nk[k] + 1e-9), 0.006),
+        pi: Nk[k] / pts.length
+      }));
+      resp = null; phase = 0; iter++;
+      lastLL = loglik();
+      draw();
+    }
+    function auto() {
+      let n = 0;
+      const tick = () => { estep(); setTimeout(() => { mstep(); if (++n < 8) setTimeout(tick, 30); }, 240); };
+      tick();
+    }
+    function mixc(rs) {
+      let r = 0, g = 0, b = 0;
+      for (let k = 0; k < K; k++) { r += rs[k] * RGB[k][0]; g += rs[k] * RGB[k][1]; b += rs[k] * RGB[k][2]; }
+      return 'rgb(' + (r | 0) + ',' + (g | 0) + ',' + (b | 0) + ')';
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      const sx = v => box.l + (v - XR[0]) / (XR[1] - XR[0]) * (box.r - box.l);
+      const sy = v => box.b - (v - YR[0]) / (YR[1] - YR[0]) * (box.b - box.t);
+      // 椭圆（2σ 等高线）
+      comps.forEach((c, k) => {
+        ctx.strokeStyle = 'rgb(' + RGB[k].join(',') + ')'; ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(sx(c.mx), sy(c.my), Math.max((sx(c.mx + 2 * Math.sqrt(c.vx)) - sx(c.mx)) | 0, 3),
+          Math.max((sy(c.my) - sy(c.my + 2 * Math.sqrt(c.vy))) | 0, 3), 0, 0, 7);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(' + RGB[k].join(',') + ',0.12)';
+        ctx.fill();
+        text(ctx, 'π=' + c.pi.toFixed(2), sx(c.mx), sy(c.my) - 14, 'rgb(' + RGB[k].join(',') + ')', 'center', 10);
+      });
+      // 数据点：E 步后按责任度混色
+      pts.forEach((p, i) => {
+        ctx.fillStyle = resp ? mixc(resp[i]) : 'rgba(200,210,235,0.45)';
+        ctx.beginPath(); ctx.arc(sx(p.x), sy(p.y), 3.3, 0, 7); ctx.fill();
+      });
+      text(ctx, 'EM 迭代 ' + iter + ' 轮　对数似然 ' + (lastLL === null ? '—' : round(lastLL, 1)), 70, 30, C.cyan, 'left', 13);
+      text(ctx, phase === 1 ? 'E 步刚完成：点色 = 隶属各高斯的软概率（下一步移动椭圆）'
+                            : '当前：椭圆 = 各高斯分量（均值 + 2σ）。按「E 步」先给点染上软归属', 70, 54, C.text, 'left', 11);
+      text(ctx, '与 K-Means 的区别：EM 是「软分配 + 概率模型」，K-Means 是它的硬分配极限', 70, H - 36, C.text, 'left', 11);
+      text(ctx, '对数似然单调不降是 EM 的定理——最差也是原地踏步', 70, H - 18, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeButton('E 步（软分配）', estep, true));
+    d.controls.appendChild(makeButton('M 步（更新参数）', mstep));
+    d.controls.appendChild(makeButton('自动跑 8 轮', auto));
+    d.controls.appendChild(makeButton('换一批数据', () => { gen(); }));
+    gen();
+  }
+
+  // ============================================================
+  // 主题模型 LDA（collapsed Gibbs 真实采样）
+  // ============================================================
+  function lda(container) {
+    const d = demoShell('LDA · 吉布斯采样揭秘', '每个词的底色 = 它当前被分到的主题。点「采样一轮」重新掷骰子，几轮后同色词自动聚成词表。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 470);
+    const TOPICS_TRUE = [
+      ['模型', '训练', '梯度', '网络', '参数', '数据'],
+      ['市场', '股票', '利率', '通胀', '经济', '上涨'],
+      ['球队', '比赛', '进球', '赛季', '球员', '防守']
+    ];
+    const VOCAB = TOPICS_TRUE.reduce((a, t) => a.concat(t), []);
+    const MIXES = [[0.9, 0.05, 0.05], [0.05, 0.9, 0.05], [0.05, 0.05, 0.9], [0.55, 0.4, 0.05], [0.1, 0.45, 0.45], [0.35, 0.1, 0.55]];
+    const K = 3, ND = 6, NW = 11, ALPHA = 0.4, BETA = 0.4;
+    const COLORS = [C.cyan, C.orange, C.magenta];
+    let docs = [], nwz = [], ndz = [], nz = [], nw = [], sweeps = 0;
+    const rng = makeRng(1123);
+
+    function gen() {
+      docs = []; nwz = VOCAB.map(() => zeros(K)); ndz = []; nz = zeros(K); nw = zeros(VOCAB.length);
+      MIXES.forEach(mix => {
+        const words = [];
+        for (let i = 0; i < NW; i++) {
+          let r = rng(), t = 0; while (r > mix[t] && t < K - 1) { r -= mix[t]; t++; }
+          const w = VOCAB.indexOf(TOPICS_TRUE[t][Math.floor(rng() * 6)]);
+          const z = Math.floor(rng() * K);          // 初始主题随机指派
+          words.push({ w: w, z: z });
+          nwz[w][z]++; ndz[docs.length] = ndz[docs.length] || zeros(K); ndz[docs.length][z]++; nz[z]++; nw[w]++;
+        }
+        docs.push({ words: words });
+      });
+      sweeps = 0; draw();
+    }
+    function gibbs() {
+      docs.forEach((doc, di) => {
+        doc.words.forEach(t => {
+          nwz[t.w][t.z]--; ndz[di][t.z]--; nz[t.z]--;
+          const p = [];
+          let s = 0;
+          for (let k = 0; k < K; k++) {
+            const v = (nwz[t.w][k] + BETA) / (nz[k] + VOCAB.length * BETA) * (ndz[di][k] + ALPHA);
+            p.push(v); s += v;
+          }
+          let r = rng() * s, z = 0;
+          while (r > p[z] && z < K - 1) { r -= p[z]; z++; }
+          t.z = z;
+          nwz[t.w][z]++; ndz[di][z]++; nz[z]++;
+        });
+      });
+      sweeps++; draw();
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      text(ctx, 'collapsed Gibbs · 第 ' + sweeps + ' 轮　（每轮把每个词的主题按「词-主题 / 文档-主题」计数重新采样）', 70, 28, C.cyan, 'left', 12);
+      // 文档区：词块 + 文档-主题比例条
+      docs.forEach((doc, di) => {
+        const y = 62 + di * 36;
+        text(ctx, 'D' + (di + 1), 44, y + 10, C.text, 'left', 11);
+        doc.words.forEach((t, i) => {
+          ctx.fillStyle = 'rgba(' + hexRgb(COLORS[t.z]).join(',') + ',0.75)';
+          ctx.fillRect(74 + i * 48, y, 44, 22);
+          ctx.strokeStyle = C.bg; ctx.lineWidth = 1; ctx.strokeRect(74 + i * 48, y, 44, 22);
+          text(ctx, VOCAB[t.w], 96 + i * 48, y + 11, '#0c1224', 'center', 10);
+        });
+        // 比例条
+        const tot = ndz[di].reduce((a, b) => a + b, 0);
+        let bx = 612;
+        ndz[di].forEach((n, k) => {
+          const w = 88 * n / tot;
+          ctx.fillStyle = COLORS[k]; ctx.fillRect(bx, y, w, 22); bx += w;
+        });
+        ctx.strokeStyle = C.axis; ctx.lineWidth = 1; ctx.strokeRect(612, y, 88, 22);
+      });
+      // 主题-词分布
+      text(ctx, '学到的「主题-词」分布（每列 top 4）：', 70, 300, C.yellow, 'left', 12);
+      for (let k = 0; k < K; k++) {
+        const x0 = 70 + k * 235;
+        ctx.fillStyle = 'rgba(' + hexRgb(COLORS[k]).join(',') + ',0.08)';
+        ctx.fillRect(x0, 316, 225, 132);
+        ctx.strokeStyle = COLORS[k]; ctx.lineWidth = 1; ctx.strokeRect(x0, 316, 225, 132);
+        const rank = VOCAB.map((wname, w) => ({ w: w, n: nwz[w][k] })).sort((a, b) => b.n - a.n).slice(0, 4);
+        rank.forEach((r, ri) => {
+          const yy = 334 + ri * 28;
+          text(ctx, VOCAB[r.w], x0 + 10, yy, C.white, 'left', 11);
+          ctx.fillStyle = COLORS[k];
+          ctx.fillRect(x0 + 55, yy - 6, Math.min(r.n * 9, 160), 12);
+          text(ctx, r.n + '', x0 + 60 + Math.min(r.n * 9, 160), yy, C.text, 'left', 10);
+        });
+      }
+      text(ctx, '右侧彩条 = 每篇文档的主题混合比例 θ_d（LDA 与「每篇一个主题」的硬聚类不同，它是软混合）', 70, H - 18, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeButton('采样一轮', gibbs, true));
+    d.controls.appendChild(makeButton('采样 8 轮', () => { let n = 0; const t = () => { gibbs(); if (++n < 8) setTimeout(t, 40); }; t(); }));
+    d.controls.appendChild(makeButton('重置', gen));
+    gen();
+  }
+
+  // ============================================================
+  // 模型量化（真实量化误差计算）
+  // ============================================================
+  function quant(container) {
+    const d = demoShell('量化 · 把权重压到低比特', '拖到 4/3/2 bit 看量化台阶变粗、误差暴涨——这就是端侧部署大模型的核心权衡。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 430);
+    const rng = makeRng(515);
+    let bits = 8, mode = 'sym', weights = [];
+    function gen() {
+      weights = [];
+      for (let i = 0; i < 5000; i++) weights.push(gauss(rng) * 0.034 + gauss(rng) * 0.011);
+      draw();
+    }
+    function q(w) {
+      if (mode === 'sym') {
+        const L = Math.pow(2, bits - 1) - 1;
+        const mx = Math.max.apply(null, weights.map(Math.abs));
+        const s = mx / L;
+        return clamp(Math.round(w / s), -L, L) * s;
+      }
+      const L = Math.pow(2, bits) - 1;
+      let mn = Infinity, mx = -Infinity;
+      weights.forEach(w => { mn = Math.min(mn, w); mx = Math.max(mx, w); });
+      const s = (mx - mn) / L;
+      return mn + clamp(Math.round((w - mn) / s), 0, L) * s;
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const hist = { l: 80, r: 380, t: 96, b: 330 }, mapb = { l: 430, r: 710, t: 96, b: 330 };
+      const XR = [-0.16, 0.16];
+      // 直方图
+      const NB = 64, bins = zeros(NB);
+      weights.forEach(w => { const b = clamp(Math.floor((w - XR[0]) / (XR[1] - XR[0]) * NB), 0, NB - 1); bins[b]++; });
+      const bmax = Math.max.apply(null, bins);
+      ctx.strokeStyle = C.axis; ctx.strokeRect(hist.l, hist.t, hist.r - hist.l, hist.b - hist.t);
+      bins.forEach((n, b) => {
+        const x = hist.l + b * (hist.r - hist.l) / NB;
+        const h = n / bmax * (hist.b - hist.t);
+        const xc = (XR[0] + (b + 0.5) / NB * (XR[1] - XR[0]));
+        const err = Math.abs(q(xc) - xc) / Math.max(Math.abs(xc), 1e-4);
+        ctx.fillStyle = err < 0.02 ? C.cyan : err < 0.1 ? C.orange : C.red;
+        ctx.fillRect(x + 0.5, hist.b - h, (hist.r - hist.l) / NB - 1, h);
+      });
+      // 量化台阶（画在直方图上）
+      ctx.strokeStyle = C.yellow; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+      const lv = mode === 'sym' ? Math.pow(2, bits - 1) : Math.pow(2, bits);
+      if (lv <= 32) for (let i = 0; i < lv; i++) {
+        const v = mode === 'sym' ? (i - lv / 2 + 0.5) * (2 * Math.max.apply(null, weights.map(Math.abs)) / lv)
+                                 : XR[0] + (i + 0.5) * (XR[1] - XR[0]) / lv;
+        const x = hist.l + (v - XR[0]) / (XR[1] - XR[0]) * (hist.r - hist.l);
+        ctx.beginPath(); ctx.moveTo(x, hist.t); ctx.lineTo(x, hist.b); ctx.stroke();
+      }
+      ctx.setLineDash([]);
+      text(ctx, '权重分布（染色 = 该处相对量化误差）', hist.l, 78, C.text, 'left', 11);
+      // 映射曲线
+      ctx.strokeStyle = C.axis; ctx.strokeRect(mapb.l, mapb.t, mapb.r - mapb.l, mapb.b - mapb.t);
+      const sx = v => mapb.l + (v - XR[0]) / (XR[1] - XR[0]) * (mapb.r - mapb.l);
+      const sy = v => mapb.b - (v - XR[0]) / (XR[1] - XR[0]) * (mapb.b - mapb.t);
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(sx(XR[0]), sy(XR[0])); ctx.lineTo(sx(XR[1]), sy(XR[1])); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle = C.magenta; ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let k = 0; k <= 300; k++) {
+        const v = XR[0] + (XR[1] - XR[0]) * k / 300;
+        const y = sy(q(v));
+        if (k === 0) ctx.moveTo(sx(v), y); else ctx.lineTo(sx(v), y);
+      }
+      ctx.stroke();
+      text(ctx, '量化映射 y=Q(x)（白虚线 = 理想恒等）', mapb.l, 78, C.text, 'left', 11);
+      // 统计
+      let se = 0, sn = 0, wnorm = 0;
+      weights.forEach(w => { se += (q(w) - w) ** 2; sn += 1; wnorm += w * w; });
+      const relerr = Math.sqrt(se / wnorm);
+      text(ctx, bits + ' bit · ' + (mode === 'sym' ? '对称' : '仿射') + '量化', 70, 30, C.yellow, 'left', 13);
+      text(ctx, 'MSE = ' + (se / sn).toExponential(2) + '　相对误差 = ' + (relerr * 100).toFixed(2) + '%　体积 = fp16 的 ' + (bits / 16 * 100).toFixed(0) + '%', 70, 52, C.text, 'left', 12);
+      text(ctx, '直觉：8bit 几乎无损、4bit 是甜点、2bit 已明显台阶化（大误差集中在分布尾部）', 70, H - 36, C.text, 'left', 11);
+      text(ctx, '现实中的 GPTQ/AWQ 会「按重要性重排误差」，比这种逐点取整聪明得多', 70, H - 18, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeRange(2, 8, 1, bits, v => { bits = v; draw(); }, '比特'));
+    d.controls.appendChild(makeSelect([
+      { value: 'sym', label: '对称量化' }, { value: 'affine', label: '仿射（非对称）' }
+    ], v => { mode = v; draw(); }));
+    d.controls.appendChild(makeButton('重采样权重', gen));
+    gen();
+  }
+
+  // ============================================================
+  // 思维链与推理模型（分步 vs 直接的成功率模拟）
+  // ============================================================
+  function cot(container) {
+    const d = demoShell('思维链 · 为什么分步更准', '直接作答要把整题一口气算对；思维链把中间步骤写进上下文。拖动位数，看成功率差距被指数级放大。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 430);
+    const rng = makeRng(77);
+    const P_DIRECT = 0.85, P_COT = 0.99;   // 每一步的正确率（心算 vs 写下来）
+    let digits = 5, sim = null;
+    function run() {
+      const N = 400; let okD = 0, okC = 0;
+      for (let i = 0; i < N; i++) {
+        let d = true, c = true;
+        for (let j = 0; j < digits; j++) {
+          if (rng() > P_DIRECT) d = false;
+          if (rng() > P_COT) c = false;
+        }
+        if (d) okD++; if (c) okC++;
+      }
+      sim = { d: okD / N, c: okC / N, n: N };
+      draw();
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const box = { l: 90, r: 710, t: 96, b: 330 };
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      const sx = n => box.l + (n - 1) / 9 * (box.r - box.l);
+      const sy = p => box.b - clamp(p, 0, 1) * (box.b - box.t);
+      // 网格线
+      [0, 0.25, 0.5, 0.75, 1].forEach(p => {
+        ctx.strokeStyle = 'rgba(120,145,200,0.12)';
+        ctx.beginPath(); ctx.moveTo(box.l, sy(p)); ctx.lineTo(box.r, sy(p)); ctx.stroke();
+        text(ctx, Math.round(p * 100) + '%', box.l - 8, sy(p), C.text, 'right', 10);
+      });
+      for (let n = 1; n <= 10; n++) text(ctx, n + '', sx(n), box.b + 16, C.text, 'center', 10);
+      text(ctx, '题目位数 n', (box.l + box.r) / 2, box.b + 34, C.text, 'center', 11);
+      // 两条理论曲线 p^n
+      const curve = (p, color, label) => {
+        ctx.strokeStyle = color; ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        for (let k = 1; k <= 100; k++) {
+          const n = 1 + k / 100 * 9;
+          const v = Math.pow(p, n);
+          if (k === 1) ctx.moveTo(sx(n), sy(v)); else ctx.lineTo(sx(n), sy(v));
+        }
+        ctx.stroke();
+        text(ctx, label, box.r - 8, sy(Math.pow(p, digits)) - 14, color, 'right', 11);
+      };
+      curve(P_DIRECT, C.red, '直接作答 0.85ⁿ');
+      curve(P_COT, C.green, '思维链 0.99ⁿ');
+      // 模拟柱
+      if (sim) {
+        const bw = 10;
+        ctx.fillStyle = 'rgba(255,107,107,0.6)';
+        ctx.fillRect(sx(digits) - bw - 3, sy(sim.d), bw, box.b - sy(sim.d));
+        ctx.fillStyle = 'rgba(0,230,160,0.6)';
+        ctx.fillRect(sx(digits) + 3, sy(sim.c), bw, box.b - sy(sim.c));
+        text(ctx, (sim.d * 100).toFixed(0) + '%', sx(digits) - bw / 2 - 3, sy(sim.d) - 10, C.red, 'center', 10);
+        text(ctx, (sim.c * 100).toFixed(0) + '%', sx(digits) + 3 + bw / 2, sy(sim.c) - 10, C.green, 'center', 10);
+      }
+      const thD = Math.pow(P_DIRECT, digits) * 100, thC = Math.pow(P_COT, digits) * 100;
+      text(ctx, '位数 ' + digits + '：直接 ≈ ' + thD.toFixed(1) + '% vs 思维链 ≈ ' + thC.toFixed(1) + '%（柱 = 各 ' + (sim ? sim.n : 400) + ' 次模拟）', 70, 30, C.yellow, 'left', 13);
+      text(ctx, '机制：每一步写进上下文后，后面的步骤以「已验证的中间结果」为条件——错误不再级联', 70, 54, C.text, 'left', 11);
+      text(ctx, '例：37+48 → 先算 7+8=15，写下 5 进 1，再算 3+4+1=8 → 85。每步都简单，合起来能解大题', 70, H - 36, C.text, 'left', 11);
+      text(ctx, 'o1/R1 类推理模型把这个思想推到极致：训练模型「先写长推理链再给答案」，用测试时算力换正确率', 70, H - 18, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeRange(2, 10, 1, digits, v => { digits = v; run(); }, '位数'));
+    d.controls.appendChild(makeButton('再跑 400 次', run, true));
+    run();
+  }
+
+  // ============================================================
+  // 共形预测（校准分位数 + 覆盖率验证）
+  // ============================================================
+  function conformal(container) {
+    const d = demoShell('共形预测 · 有保证的区间', '调 α 看区间宽度与覆盖率的联动：只要数据可交换，校准分位数给出的区间就能罩住约 1−α 的真值。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 440);
+    const rng = makeRng(3141);
+    const f = x => Math.sin(1.35 * x) * 1.05 + 0.16 * x;
+    let alpha = 0.1, data = null;
+    function gen() {
+      const mk = n => {
+        const pts = [];
+        for (let i = 0; i < n; i++) { const x = -3 + rng() * 6; pts.push({ x: x, y: f(x) + gauss(rng) * 0.32 }); }
+        return pts;
+      };
+      const train = mk(60), calib = mk(50), test = mk(50);
+      // 用 6 次多项式拟合训练集（polyfit 是真最小二乘）
+      const c = polyfit(train.map(p => p.x), train.map(p => p.y), 6);
+      const pred = x => evalPoly(c, x);
+      // 校准：非一致性分数 = 残差绝对值
+      const scores = calib.map(p => Math.abs(p.y - pred(p.x))).sort((a, b) => a - b);
+      const q = scores[Math.min(Math.ceil((1 - alpha) * (calib.length + 1)) - 1, calib.length - 1)];
+      let cov = 0;
+      test.forEach(p => { if (Math.abs(p.y - pred(p.x)) <= q) cov++; });
+      data = { train: train, calib: calib, test: test, pred: pred, q: q, cov: cov / test.length };
+      draw();
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const box = { l: 80, r: 710, t: 96, b: 350 }, XR = [-3.2, 3.2], YR = [-2.6, 2.6];
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      const sx = v => box.l + (v - XR[0]) / (XR[1] - XR[0]) * (box.r - box.l);
+      const sy = v => box.b - (v - YR[0]) / (YR[1] - YR[0]) * (box.b - box.t);
+      // 预测带
+      ctx.fillStyle = 'rgba(0,212,255,0.10)';
+      ctx.beginPath();
+      for (let k = 0; k <= 200; k++) { const x = XR[0] + (XR[1] - XR[0]) * k / 200; ctx.lineTo(sx(x), sy(data.pred(x) + data.q)); }
+      for (let k = 200; k >= 0; k--) { const x = XR[0] + (XR[1] - XR[0]) * k / 200; ctx.lineTo(sx(x), sy(data.pred(x) - data.q)); }
+      ctx.closePath(); ctx.fill();
+      // 预测曲线
+      ctx.strokeStyle = C.cyan; ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let k = 0; k <= 200; k++) { const x = XR[0] + (XR[1] - XR[0]) * k / 200; const y = data.pred(x); if (k === 0) ctx.moveTo(sx(x), sy(y)); else ctx.lineTo(sx(x), sy(y)); }
+      ctx.stroke();
+      // 训练点（暗）
+      ctx.fillStyle = 'rgba(150,165,200,0.35)';
+      data.train.forEach(p => { ctx.beginPath(); ctx.arc(sx(p.x), sy(p.y), 2.2, 0, 7); ctx.fill(); });
+      // 测试点 + 区间：罩住=绿，漏掉=红
+      data.test.forEach(p => {
+        const ok = Math.abs(p.y - data.pred(p.x)) <= data.q;
+        const x = sx(p.x), y = sy(p.y), yh = sy(data.pred(p.x) + data.q), yl = sy(data.pred(p.x) - data.q);
+        ctx.strokeStyle = ok ? 'rgba(0,230,160,0.55)' : 'rgba(255,107,107,0.9)';
+        ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.moveTo(x, yh); ctx.lineTo(x, yl); ctx.stroke();
+        ctx.fillStyle = ok ? C.green : C.red;
+        ctx.beginPath(); ctx.arc(x, y, 3, 0, 7); ctx.fill();
+      });
+      text(ctx, 'α = ' + alpha.toFixed(2) + '　区间半宽 q = ' + data.q.toFixed(3) + '　测试覆盖率 ' + (data.cov * 100).toFixed(1) + '%（目标 ≥ ' + ((1 - alpha) * 100).toFixed(0) + '%）', 70, 30, C.yellow, 'left', 13);
+      text(ctx, '灰点=训练（拟合）　青线=模型预测　绿点=被区间罩住的测试点　红点=漏掉的', 70, 54, C.text, 'left', 11);
+      text(ctx, '三行代码的保证：q 取校准残差的 ⌈(1−α)(n+1)⌉ 分位数，新区间 [pred±q] 的覆盖率 ≥ 1−α，与模型好坏无关', 70, H - 36, C.text, 'left', 11);
+      text(ctx, '模型可以很弱（这里只是个 6 次多项式）——共形预测不改进模型，只诚实地报告「模型有多不确定」', 70, H - 18, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeRange(5, 40, 1, Math.round(alpha * 100), v => { alpha = v / 100; gen(); }, 'α%'));
+    d.controls.appendChild(makeButton('重新采样', gen, true));
+    gen();
+  }
+
+  // ============================================================
+  // 联邦学习 FedAvg（真实本地训练 + 平均）
+  // ============================================================
+  function fl(container) {
+    const d = demoShell('联邦学习 · FedAvg', '4 个客户端数据各偏一角（Non-IID）。对比「本地各练各的」与「每轮平均聚合」，看 FedAvg 如何不共享数据学到全局模型。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 460);
+    const rng = makeRng(4242);
+    const NC = 4;
+    const CL = ['rgba(92,155,255,0.8)', 'rgba(255,184,92,0.8)', 'rgba(160,107,255,0.8)', 'rgba(45,212,191,0.8)'];
+    let het = 0.7, mode = 'fedavg', clients = [], test = [], hist = [];
+    const box = { l: 80, r: 560, t: 96, b: 376 }, XR = [-4, 4], YR = [-4, 4];
+
+    function gen() {
+      clients = [];
+      const offs = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
+      for (let k = 0; k < NC; k++) {
+        const pts = [];
+        for (let i = 0; i < 36; i++) {
+          const c = i % 2, bx = c ? 1.1 : -1.1, by = c ? 1.1 : -1.1;
+          pts.push({ x: bx + het * offs[k][0] * 1.5 + gauss(rng) * 0.4, y: by + het * offs[k][1] * 1.5 + gauss(rng) * 0.4, c: c });
+        }
+        clients.push({ pts: pts, w: [0, 0, 0] });
+      }
+      test = [];
+      for (let i = 0; i < 80; i++) {
+        const c = i % 2, bx = c ? 1.1 : -1.1, by = c ? 1.1 : -1.1;
+        test.push({ x: bx + gauss(rng) * 0.45, y: by + gauss(rng) * 0.45, c: c });
+      }
+      hist = [];
+      draw();
+    }
+    function trainRound(localSteps) {
+      for (let s = 0; s < localSteps; s++) {
+        clients.forEach(cl => {
+          const lr = 0.3;
+          let g = [0, 0, 0];
+          cl.pts.forEach(p => {
+            const z = cl.w[0] * p.x + cl.w[1] * p.y + cl.w[2];
+            const e = 1 / (1 + Math.exp(-z)) - p.c;
+            g[0] += e * p.x / cl.pts.length; g[1] += e * p.y / cl.pts.length; g[2] += e / cl.pts.length;
+          });
+          for (let j = 0; j < 3; j++) cl.w[j] -= lr * g[j];
+        });
+      }
+      if (mode === 'fedavg') {
+        const g = [0, 0, 0];
+        clients.forEach(cl => { for (let j = 0; j < 3; j++) g[j] += cl.w[j] / NC; });
+        clients.forEach(cl => { cl.w = g.slice(); });
+      }
+      hist.push(globalAcc());
+      draw();
+    }
+    function avgW() {
+      const g = [0, 0, 0];
+      clients.forEach(cl => { for (let j = 0; j < 3; j++) g[j] += cl.w[j] / NC; });
+      return g;
+    }
+    function globalAcc() {
+      const w = avgW();
+      let ok = 0;
+      test.forEach(p => { if ((w[0] * p.x + w[1] * p.y + w[2] > 0 ? 1 : 0) === p.c) ok++; });
+      return ok / test.length;
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      const sx = v => box.l + (v - XR[0]) / (XR[1] - XR[0]) * (box.r - box.l);
+      const sy = v => box.b - (v - YR[0]) / (YR[1] - YR[0]) * (box.b - box.t);
+      // 数据点
+      clients.forEach((cl, k) => cl.pts.forEach(p => {
+        ctx.fillStyle = p.c === 1 ? 'rgba(0,230,160,0.5)' : 'rgba(255,122,198,0.5)';
+        ctx.beginPath(); ctx.arc(sx(p.x), sy(p.y), 2.6, 0, 7); ctx.fill();
+      }));
+      // 边界：本地（虚，客户端色）与全局（实，白）
+      if (mode === 'local') clients.forEach((cl, k) => drawLine(cl.w, CL[k], 1, true));
+      drawLine(avgW(), '#e9eefb', 2.2, false);
+      function drawLine(w, color, lw, dash) {
+        if (Math.abs(w[1]) < 1e-6) return;
+        ctx.strokeStyle = color; ctx.lineWidth = lw;
+        if (dash) ctx.setLineDash([5, 4]);
+        ctx.beginPath();
+        for (let k = 0; k <= 2; k++) {
+          const x = XR[0] + (XR[1] - XR[0]) * k / 2;
+          const y = -(w[0] * x + w[2]) / w[1];
+          if (k === 0) ctx.moveTo(sx(x), sy(clamp(y, YR[0], YR[1]))); else ctx.lineTo(sx(x), sy(clamp(y, YR[0], YR[1])));
+        }
+        ctx.stroke(); ctx.setLineDash([]);
+      }
+      // 右侧：全局准确率曲线
+      const pb = { l: 610, r: 730, t: 96, b: 376 };
+      ctx.strokeStyle = C.axis; ctx.strokeRect(pb.l, pb.t, pb.r - pb.l, pb.b - pb.t);
+      ctx.strokeStyle = C.green; ctx.lineWidth = 2;
+      ctx.beginPath();
+      hist.forEach((a, i) => {
+        const x = pb.l + (i + 1) / 24 * (pb.r - pb.l);
+        const y = pb.b - (a - 0.4) / 0.6 * (pb.b - pb.t);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      text(ctx, '全局准确率', pb.l + 8, pb.t - 12, C.green, 'left', 11);
+      text(ctx, '白线 = 聚合模型边界　虚线 = 各客户端本地边界', pb.l, pb.b + 18, C.text, 'left', 10);
+      text(ctx, '青/粉 = 两类点　右侧 = 每轮聚合模型在全局测试集上的准确率', pb.l, pb.b + 34, C.text, 'left', 10);
+      text(ctx, (mode === 'fedavg' ? 'FedAvg 聚合' : '不聚合（各自漂移）') + '　轮数 ' + hist.length + '　全局准确率 ' + (hist.length ? (globalAcc() * 100).toFixed(1) + '%' : '—'), 70, 30, C.yellow, 'left', 13);
+      text(ctx, '异质度 ' + het.toFixed(1) + '：0 = 所有客户端同分布（IID）；1 = 各客户端数据偏向自己的一角（Non-IID，联邦的真实难题）', 70, 54, C.text, 'left', 11);
+      text(ctx, '关键：数据从不离开客户端，只有模型参数/梯度被平均——这就是「联邦」的含义', 70, H - 36, C.text, 'left', 11);
+      text(ctx, '把异质度拉满再切到「不聚合」：本地边界互相打架；FedAvg 平均后仍能收敛到全局解', 70, H - 18, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeSelect([
+      { value: 'fedavg', label: 'FedAvg（每轮平均）' }, { value: 'local', label: '不聚合（各练各的）' }
+    ], v => { mode = v; draw(); }));
+    d.controls.appendChild(makeRange(0, 100, 5, Math.round(het * 100), v => { het = v / 100; gen(); }, '异质度%'));
+    d.controls.appendChild(makeButton('训练 1 轮', () => trainRound(6), true));
+    d.controls.appendChild(makeButton('训练 10 轮', () => trainRound(60)));
+    d.controls.appendChild(makeButton('重置', gen));
+    gen();
+  }
+
   window.MLDemos = {
     dist: dist, linear: linear, logistic: logistic, tree: tree, forest: forest,
     xgboost: xgboost, svm: svm, kmeans: kmeans, pca: pca, mlp: mlp, rnn: rnn, lstm: lstm, seq: seq,
@@ -4908,6 +5467,7 @@
     arima: arima, posenc: posenc, inference: inference,
     pg: pg, dqn: dqn,
     gbdt: gbdt, glm: glm, vlm: vlm,
-    hpo: hpo, semi: semi, speech: speech
+    hpo: hpo, semi: semi, speech: speech,
+    em: em, lda: lda, quant: quant, cot: cot, conformal: conformal, fl: fl
   };
 })();

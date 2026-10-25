@@ -2,7 +2,7 @@
 
 一份**可交互的机器学习 / 深度学习知识笔记**。纯静态、零依赖、离线可用 —— 每个主题都有「用途 · 原理 · 优缺点 · 发展历程 · 适用场景 · 上手路径」，并配一个浏览器内实时计算的交互演示。
 
-> 覆盖 49 个主题：从统计学基础、经典机器学习，到深度学习、计算机视觉、生成模型、大语言模型与 Agent。
+> 覆盖 78 个主题：从统计学基础、经典机器学习，到深度学习、计算机视觉、生成模型、大语言模型与 Agent，其中 22 个核心主题配有深度长文。
 
 ---
 
@@ -33,16 +33,17 @@ python3 -m http.server 8000
 
 | 项 | 数量 |
 |---|---|
-| 主题 | 49 |
-| 交互演示 | 49 |
+| 主题 | 78 |
+| 交互演示 | 78 |
 | 知识分类 | 13 |
 | 路线图阶段 | 13 |
 | 方法论 | 6 |
 | 延伸阅读 | 8 |
+| 深度长文 | 22 |
 
 **13 个分类**：统计基础 · 基础与优化 · 监督学习 · 集成学习 · 无监督学习 · 深度学习 · 计算机视觉 · 生成模型 · 大语言模型 · 智能体 · 强化学习 · 应用主题 · 方法论
 
-每个主题包含 8 个标签页：**简介 / 核心思想 / 直观例子 / 优缺点 / 发展历程 / 适用场景 / 怎么上手 / 演示**。
+每个主题包含 8 个标签页：**简介 / 核心思想 / 直观例子 / 优缺点 / 发展历程 / 适用场景 / 怎么上手 / 演示**；声明了 `deep` 字段的 13 个主题还会多一个**深度阅读**标签页（长文含公式推导、代码与面试要点）。
 
 ---
 
@@ -51,15 +52,19 @@ python3 -m http.server 8000
 ```
 .
 ├── index.html              # 页面骨架（唯一入口）
+├── favicon.svg             # 站点图标（品牌三节点图形）
 ├── css/
 │   └── style.css           # 设计系统：配色变量、卡片、标签页、深度阅读排版、响应式
 ├── js/
 │   ├── content.js          # ★ 内容数据：CATEGORIES / ROADMAP / METHODS / RESOURCES / TOPICS
-│   ├── demos.js            # ★ 交互演示：49 个 canvas 小实验 + 手写 3D 投影引擎
+│   ├── demos.js            # ★ 交互演示：78 个 canvas 小实验 + 手写 3D 投影引擎
 │   ├── markdown.js         #   迷你 Markdown 渲染器（深度阅读用，零依赖）
-│   └── app.js              # 渲染与交互：导航、标签页、搜索、主题切换、掌握勾选
-├── content/                # ★ 深度长文（Markdown 源文件）
-│   └── diffusion.md
+│   └── app.js              # 渲染与交互：导航、标签页、搜索、主题切换
+├── content/                # ★ 深度长文（Markdown 源文件，22 篇）
+│   ├── transformer.md backprop.md cnn.md rnn.md lstm.md resnet.md
+│   ├── kmeans.md pca.md tsne.md em.md svm.md xgboost.md
+│   ├── gan.md vae.md word2vec.md evaluation.md
+│   └── gpt.md bert.md rlhf.md lora.md rag.md diffusion.md
 ├── tools/
 │   └── check.mjs           # 内容自检脚本（发布前跑）
 └── .github/workflows/
@@ -67,9 +72,36 @@ python3 -m http.server 8000
 ```
 
 **内容与代码是分离的**：
-- 卡片式内容（49 个主题）→ `js/content.js`
+- 卡片式内容（78 个主题）→ `js/content.js`
 - 交互演示 → `js/demos.js`
 - 深度长文 → `content/*.md`（纯 Markdown，不用碰 JS）
+
+### 已有深度长文（22 篇）
+
+| 长文 | 挂载主题 |
+|---|---|
+| transformer.md 注意力深读 | Transformer 注意力 |
+| backprop.md 反向传播推导 | 神经网络 |
+| cnn.md 卷积/感受野/归纳偏置 | CNN 卷积网络 |
+| rnn.md BPTT 与梯度消失 | RNN 循环神经网络 |
+| lstm.md 四个门的公式与 GRU 对照 | LSTM 长短期记忆 |
+| resnet.md 退化现象与恒等映射 | ResNet 残差网络 |
+| kmeans.md 目标函数/初始化/选 K | K-Means 聚类 |
+| pca.md 最大方差=最小重构误差 | PCA 降维 |
+| tsne.md 条件分布与解读陷阱 | t-SNE 可视化 |
+| em.md Jensen 视角与收敛性证明 | EM 算法与高斯混合 |
+| svm.md 间隔/对偶/核技巧 | 支持向量机 |
+| xgboost.md 二阶泰勒与叶子权重 | XGBoost |
+| gan.md 最优判别器与训练 | GAN |
+| vae.md ELBO 与重参数化 | VAE |
+| word2vec.md 负采样与隐式矩阵分解 | 词嵌入 Word2Vec |
+| gpt.md 自回归预训练与 Scaling Laws | GPT 架构与预训练 |
+| bert.md MLM 与双向编码 | BERT 编码器 |
+| evaluation.md 指标家族/AUC/校准 | 模型评估与调参 |
+| rlhf.md 奖励模型/PPO/DPO | RLHF 对齐 |
+| lora.md 低秩适配与 QLoRA | 微调与 LoRA |
+| rag.md 检索系统设计与评估 | RAG 检索增强生成 |
+| diffusion.md 扩散模型全推导 | 扩散模型 |
 
 ---
 
@@ -229,7 +261,7 @@ node tools/check.mjs
 - **纯静态**：没有构建步骤、没有包管理、没有 CDN、没有任何外部依赖，断网也能跑。
 - **手写 3D**：20 个演示的 3D 效果是用 Canvas 2D 自己写的透视投影 + 轨道旋转 + 画家算法，不依赖 Three.js。
 - **手写 Markdown 渲染器**：`js/markdown.js` 约 260 行，支持标题锚点/目录/代码块/表格/提示块/公式/任务清单，用来渲染「深度阅读」长文——同样零依赖，不用 marked.js 或 KaTeX。
-- **真实计算**：演示里的算法大多是**真跑**的（t-SNE、PCA、DBSCAN、Q-learning、GAN 对抗训练、扩散加噪、VAE、Word2Vec 词向量运算等），不是预录动画。
+- **真实计算**：演示里的算法大多是**真跑**的（t-SNE、PCA、DBSCAN、Q-learning、GAN 对抗训练、扩散加噪、VAE、Word2Vec 词向量运算、EM 软分配、LDA 吉布斯采样、共形分位数、FedAvg 聚合、量化误差等），不是预录动画。
 - **懒加载**：演示用 `IntersectionObserver` 在滚动到附近时才初始化；深度长文点开标签页才 `fetch`，首屏很快。
 - **响应式**：支持深浅主题、移动端抽屉导航，进度勾选存在 `localStorage`。
 
