@@ -50,7 +50,7 @@ const ROADMAP = [
   {
     title: '无监督学习',
     color: '#a06bff',
-    items: ['K-Means', 'EM 与高斯混合', 'DBSCAN 密度聚类', 'PCA 降维', 't-SNE 可视化', '主题模型 LDA']
+    items: ['K-Means', 'EM 与高斯混合', 'DBSCAN 密度聚类', 'PCA 降维', 't-SNE 可视化', 'UMAP 流形学习', '主题模型 LDA']
   },
   {
     title: '深度学习',
@@ -60,22 +60,22 @@ const ROADMAP = [
   {
     title: '进阶与应用',
     color: '#c084fc',
-    items: ['GAN 生成模型', '强化学习 · 策略梯度 · DQN', '迁移学习', '推荐系统', '异常检测', '联邦学习']
+    items: ['GAN 生成模型', '强化学习 · 策略梯度 · DQN', '迁移学习', '推荐系统', '异常检测', '联邦学习', '差分隐私', '语音合成 TTS']
   },
   {
     title: '计算机视觉',
     color: '#38bdf8',
-    items: ['ResNet 残差网络', '目标检测 YOLO', '图像分割 U-Net', '数据增强', '视觉 Transformer']
+    items: ['ResNet 残差网络', '目标检测 YOLO', '图像分割 U-Net', '数据增强', '对抗鲁棒性', '视觉 Transformer']
   },
   {
     title: '生成模型',
     color: '#c084fc',
-    items: ['VAE 变分自编码器', '扩散模型 DDPM', '文生图 Stable Diffusion', 'CLIP 多模态']
+    items: ['VAE 变分自编码器', '扩散模型 DDPM', '扩散加速采样 DDIM', '文生图 Stable Diffusion', 'CLIP 多模态']
   },
   {
     title: '大语言模型',
     color: '#34d399',
-    items: ['Tokenization 分词', '词嵌入 Word2Vec', 'BERT 编码器', 'GPT 架构与预训练', '位置编码与长上下文', '微调与 LoRA', 'RLHF 对齐', '提示工程', '推理优化与部署', '模型量化', '思维链与推理模型', '多模态 VLM']
+    items: ['Tokenization 分词', '词嵌入 Word2Vec', 'BERT 编码器', 'GPT 架构与预训练', '位置编码与长上下文', '微调与 LoRA', 'RLHF 对齐', '提示工程', '推理优化与部署', '模型量化', '思维链与推理模型', '多模态 VLM', '评测基准与数据污染']
   },
   {
     title: '智能体 Agent',
@@ -169,7 +169,7 @@ const TOPICS = [
       '学会 <strong>p 值与置信区间</strong> 的直觉，而不只是背判断规则。',
       '把统计学概念与机器学习对应起来：<strong>损失函数≈似然、正则化≈先验、交叉验证≈样本外检验</strong>。'
     ],
-    demo: { id: 'dist', title: '正态分布 · 交互演示', note: '拖动均值 μ 与标准差 σ，观察分布形状与 68–95–99.7 法则。' }
+    demo: { id: 'dist', title: '正态分布 · 交互演示', note: '拖动均值 μ 与标准差 σ，观察分布形状与 68–95–99.7 法则。' }, deep: 'content/stats.md'
   },
 
   {
@@ -218,8 +218,7 @@ const TOPICS = [
       '对比 <strong>批量/随机/小批量</strong> 的差异与取舍。',
       '进阶了解 <strong>动量、Adam、学习率衰减</strong> 为何能加速收敛。'
     ],
-    demo: { id: 'gd', title: '梯度下降 · 3D 损失地形', note: '拖拽旋转 3D 地形，调 η 看小球沿最陡方向滚向谷底：太小爬不动、太大会冲出山谷。' }
-  },
+    demo: { id: 'gd', title: '梯度下降 · 3D 损失地形', note: '拖拽旋转 3D 地形，调 η 看小球沿最陡方向滚向谷底：太小爬不动、太大会冲出山谷。' }, deep: 'content/gd.md'  },
 
   {
     id: 'overfit',
@@ -267,8 +266,7 @@ const TOPICS = [
       '在演示里对比 <strong>1 次、3 次、15 次</strong> 多项式的差别。',
       '理解 <strong>正则化、早停、交叉验证</strong> 分别是如何降低方差的。'
     ],
-    demo: { id: 'overfit', title: '过拟合 · 3D 曲面拟合', note: '拖拽旋转；同一批 3D 数据，用 1 次（欠拟合）/ 3 次（合适）/ 6 次（过拟合）多项式曲面去拟合。' }
-  },
+    demo: { id: 'overfit', title: '过拟合 · 3D 曲面拟合', note: '拖拽旋转；同一批 3D 数据，用 1 次（欠拟合）/ 3 次（合适）/ 6 次（过拟合）多项式曲面去拟合。' }, deep: 'content/overfit.md'  },
 
   {
     id: 'loss',
@@ -316,8 +314,7 @@ const TOPICS = [
       '理解 <strong>交叉熵 = 熵 + KL</strong>，以及为什么最小化交叉熵等价于最大似然。',
       '知道 <strong>Focal Loss / Triplet Loss</strong> 分别在解决什么问题。'
     ],
-    demo: { id: 'loss', title: '损失函数 · 惩罚形状对比', note: '左看 MSE/MAE/Huber 对误差的惩罚曲线，右拖预测概率看交叉熵如何在「自信的错误」处爆炸。' }
-  },
+    demo: { id: 'loss', title: '损失函数 · 惩罚形状对比', note: '左看 MSE/MAE/Huber 对误差的惩罚曲线，右拖预测概率看交叉熵如何在「自信的错误」处爆炸。' }, deep: 'content/loss.md'  },
 
   {
     id: 'reg',
@@ -365,8 +362,7 @@ const TOPICS = [
       '理解 <strong>Dropout 训练/推理</strong> 的缩放差异（为什么推理要乘 keep_prob）。',
       '记住一句话：<strong>过拟合加正则，训不动加归一化</strong>。'
     ],
-    demo: { id: 'reg', title: '归一化 · 分布拉回演示', note: '左：未归一化的各层激活错位、尺度不一；右：标准化后全部对齐到 0 附近。拖动滑块改输入分布。' }
-  },
+    demo: { id: 'reg', title: '归一化 · 分布拉回演示', note: '左：未归一化的各层激活错位、尺度不一；右：标准化后全部对齐到 0 附近。拖动滑块改输入分布。' }, deep: 'content/reg.md'  },
 
   {
     id: 'opt',
@@ -415,8 +411,7 @@ const TOPICS = [
       '搞清 <strong>Adam 的偏差校正</strong>为什么必要（初期 m、s 接近 0）。',
       '知道 <strong>warmup + cosine 衰减</strong> 为什么对大模型很重要。'
     ],
-    demo: { id: 'opt', title: '优化器 · 峡谷轨迹对比', note: '狭长损失面上，SGD 左右横跳、Momentum 顺着谷底冲、Adam 自适应步长最快到底。' }
-  },
+    demo: { id: 'opt', title: '优化器 · 峡谷轨迹对比', note: '狭长损失面上，SGD 左右横跳、Momentum 顺着谷底冲、Adam 自适应步长最快到底。' }, deep: 'content/opt.md'  },
 
   {
     id: 'act',
@@ -465,8 +460,7 @@ const TOPICS = [
       '理解 <strong>Xavier vs He</strong> 差在哪里（是否补偿 ReLU 的一半损失）。',
       '记住：<strong>输出层的激活必须和损失函数匹配</strong>（softmax+CE、sigmoid+BCE）。'
     ],
-    demo: { id: 'act', title: '激活函数 · 函数与梯度', note: '切换查看 5 种激活函数本身与它们的导数，直观看到 sigmoid 两端梯度趋近 0。' }
-  },
+    demo: { id: 'act', title: '激活函数 · 函数与梯度', note: '切换查看 5 种激活函数本身与它们的导数，直观看到 sigmoid 两端梯度趋近 0。' }, deep: 'content/act.md'  },
 
   {
     id: 'linear',
@@ -515,8 +509,7 @@ const TOPICS = [
       '理解 <strong>R² 与残差图</strong>：R² 看拟合好坏，残差图看假设是否成立。',
       '把线性回归当「标尺」：后面每个复杂模型，本质上都是它的非线性推广。'
     ],
-    demo: { id: 'linear', title: '线性回归 · 3D 平面拟合', note: '拖拽旋转；用平面 ŷ = w1·x1 + w2·x2 + b 拟合 3D 数据，粉色竖线是残差。' }
-  },
+    demo: { id: 'linear', title: '线性回归 · 3D 平面拟合', note: '拖拽旋转；用平面 ŷ = w1·x1 + w2·x2 + b 拟合 3D 数据，粉色竖线是残差。' }, deep: 'content/linear.md'  },
 
   {
     id: 'ridge',
@@ -564,8 +557,7 @@ const TOPICS = [
       '动手对比 <strong>λ 从小到大</strong> 时系数的变化（看演示）。',
       '记住使用前提：<strong>特征要先标准化</strong>，λ 用交叉验证选。'
     ],
-    demo: { id: 'ridge', title: '正则化 · 3D 系数路径', note: '拖拽旋转；纵轴 λ、横平面 (w1,w2)，看 L2 平滑收缩、L1 把 w2 压到 0 后沿平面滑行。' }
-  },
+    demo: { id: 'ridge', title: '正则化 · 3D 系数路径', note: '拖拽旋转；纵轴 λ、横平面 (w1,w2)，看 L2 平滑收缩、L1 把 w2 压到 0 后沿平面滑行。' }, deep: 'content/ridge.md'  },
 
   {
     id: 'logistic',
@@ -613,7 +605,7 @@ const TOPICS = [
       '手推 <strong>交叉熵损失</strong> 对 w 的梯度，感受它的优美。',
       '对比「线性回归→逻辑回归」的进化路径，学会「改损失函数 + 加激活」这一通用改造思路。'
     ],
-    demo: { id: 'logistic', title: '逻辑回归 · 3D Sigmoid 曲面', note: '拖拽旋转；曲面高度 = P(正类)，拖 w1/w2/b 看 S 形曲面倾斜，地面绿线是 0.5 决策边界。' }
+    demo: { id: 'logistic', title: '逻辑回归 · 3D Sigmoid 曲面', note: '拖拽旋转；曲面高度 = P(正类)，拖 w1/w2/b 看 S 形曲面倾斜，地面绿线是 0.5 决策边界。' }, deep: 'content/logistic.md'
   },
 
   {
@@ -662,8 +654,7 @@ const TOPICS = [
       '实践 <strong>标准化 + 距离度量选择</strong> 的重要性。',
       '对比 <strong>KNN 与逻辑回归/SVM</strong> 的适用边界。'
     ],
-    demo: { id: 'knn', title: 'KNN · 3D 近邻投票', note: '拖拽旋转；查询点自动巡航，看最近的 K 个邻居如何投票、预测如何随位置变化。' }
-  },
+    demo: { id: 'knn', title: 'KNN · 3D 近邻投票', note: '拖拽旋转；查询点自动巡航，看最近的 K 个邻居如何投票、预测如何随位置变化。' }, deep: 'content/knn.md'  },
 
   {
     id: 'naivebayes',
@@ -711,8 +702,7 @@ const TOPICS = [
       '亲手做一个 <strong>垃圾邮件分类器</strong>，体会词频证据的累加。',
       '了解 <strong>拉普拉斯平滑</strong> 如何解决「没见过这个词」的概率为零问题。'
     ],
-    demo: { id: 'naivebayes', title: '朴素贝叶斯 · 概率边界演示', note: '两类各服从高斯分布，看朴素贝叶斯如何用先验×似然画出决策边界。' }
-  },
+    demo: { id: 'naivebayes', title: '朴素贝叶斯 · 概率边界演示', note: '两类各服从高斯分布，看朴素贝叶斯如何用先验×似然画出决策边界。' }, deep: 'content/naivebayes.md'  },
 
   {
     id: 'tree',
@@ -761,7 +751,7 @@ const TOPICS = [
       '理解「树为什么过拟合」，引出 <strong>剪枝与深度限制</strong>。',
       '记住：单棵树是弱模型，它的真正威力在 <strong>随机森林与梯度提升</strong> 中爆发。'
     ],
-    demo: { id: 'tree', title: '决策树 · 分裂演示', note: '点「下一步」看贪心算法如何在 2D 数据上不断切分，让每个区域越来越纯。' }
+    demo: { id: 'tree', title: '决策树 · 分裂演示', note: '点「下一步」看贪心算法如何在 2D 数据上不断切分，让每个区域越来越纯。' }, deep: 'content/tree.md'
   },
 
   {
@@ -811,7 +801,7 @@ const TOPICS = [
       '理解 <strong>随机特征子集</strong> 的作用：让树之间去相关，才能让平均更有效。',
       '动手调 <strong>n_estimators、max_depth、max_features</strong>，观察精度与速度的权衡。'
     ],
-    demo: { id: 'forest', title: '随机森林 · Bagging 演示', note: '多条高方差曲线各自拟合带噪声数据，看「取平均」后如何得到一条平滑、稳健的曲线。' }
+    demo: { id: 'forest', title: '随机森林 · Bagging 演示', note: '多条高方差曲线各自拟合带噪声数据，看「取平均」后如何得到一条平滑、稳健的曲线。' }, deep: 'content/forest.md'
   },
 
   {
@@ -860,8 +850,7 @@ const TOPICS = [
       '在演示里看 <strong>点的大小（权重）</strong> 每轮如何变化、边界如何越分越准。',
       '对比 <strong>AdaBoost vs 随机森林（Bagging）</strong>：一个串行降偏差，一个并行降方差。'
     ],
-    demo: { id: 'adaboost', title: 'AdaBoost · 加权提升演示', note: '每轮一个决策树桩，点的大小=样本权重；看错分点如何被放大、边界如何变准。' }
-  },
+    demo: { id: 'adaboost', title: 'AdaBoost · 加权提升演示', note: '每轮一个决策树桩，点的大小=样本权重；看错分点如何被放大、边界如何变准。' }, deep: 'content/adaboost.md'  },
 
   {
     id: 'xgboost',
@@ -1057,8 +1046,7 @@ const TOPICS = [
       '掌握 <strong>k-距离图</strong> 选 eps 的技巧。',
       '对比 <strong>K-Means（球形、需 K） vs DBSCAN（任意形状、需密度）</strong>。'
     ],
-    demo: { id: 'dbscan', title: 'DBSCAN · 3D 密度聚类', note: '拖拽旋转，看两个分离的 3D 甜甜圈如何被连成簇、噪声点如何被标灰。' }
-  },
+    demo: { id: 'dbscan', title: 'DBSCAN · 3D 密度聚类', note: '拖拽旋转，看两个分离的 3D 甜甜圈如何被连成簇、噪声点如何被标灰。' }, deep: 'content/dbscan.md'  },
 
   {
     id: 'pca',
@@ -1204,8 +1192,7 @@ const TOPICS = [
       '对比 <strong>K-Means 与 GMM</strong>：硬/软分配、球/椭圆、SSE/似然。',
       '进阶：了解 <strong>EM 与 Jensen 不等式</strong>的关系（ELBO 视角），它与 VAE 一脉相承。'
     ],
-    demo: { id: 'em', title: 'EM · 高斯混合聚类', note: '先「E 步」给点染上软归属色，再「M 步」移动椭圆——对数似然每一轮都在上升。' }, deep: 'content/rnn.md'
-  },
+    demo: { id: 'em', title: 'EM · 高斯混合聚类', note: '先「E 步」给点染上软归属色，再「M 步」移动椭圆——对数似然每一轮都在上升。' }, deep: 'content/em.md'  },
 
   {
     id: 'lda',
@@ -1253,12 +1240,59 @@ const TOPICS = [
       '搞清 <strong>α、β 超参</strong>对「文档多主题性」「主题用词集中度」的影响。',
       '进阶：读 Blei 2012 综述，把 LDA 放进「概率图模型/变分推断」的大图景。'
     ],
-    demo: { id: 'lda', title: 'LDA · 吉布斯采样揭秘', note: '每个词的底色 = 当前主题归属；点「采样一轮」重新掷骰子，几轮后同色词自动聚成词表。' }
-  },
+    demo: { id: 'lda', title: 'LDA · 吉布斯采样揭秘', note: '每个词的底色 = 当前主题归属；点「采样一轮」重新掷骰子，几轮后同色词自动聚成词表。' }, deep: 'content/lda.md'  },
+
+  {
+    id: 'umap',
+    num: '23',
+    emoji: '🗺️',
+    name: 'UMAP 流形学习',
+    en: 'Uniform Manifold Approximation & Projection',
+    cat: 'unsuper',
+    diff: 4,
+    accent: '#00e6a0',
+    tagline: '比 t-SNE 更快、更保全局结构的降维可视化——把高维数据当「流形上的采样」，用吸引-排斥力把邻域摊到低维。',
+    intro: {
+      what: '基于流形假设的降维算法：先在高维建 kNN 图（局部邻域结构），再在低维用「边吸引 + 负采样排斥」的力导向优化，让低维布局的邻域结构与高维尽量一致。',
+      problem: 't-SNE 慢、强偏局部（簇间距离无意义）、不能接入新样本；PCA 只能线性。需要一个在「速度、全局结构、可扩展（transform 新点）」之间更好权衡的可视化降维工具。',
+      idea: '假设数据近似均匀采样自黎曼流形 → 用局部自适应的指数距离建模糊拓扑表示（kNN 图），低维用交叉熵优化使两个拓扑表示对齐——本质是「图布局」问题。'
+    },
+    principle: {
+      text: [
+        '高维侧：对每个点用局部自适应 σᵢ 建指数衰减的隶属度，再对称化成带权 kNN 图（模糊单纯集）。',
+        '低维侧：用宽尾曲线平滑距离，最小化两拓扑表示的交叉熵——正样本对（图上的边）互相吸引，负采样对互相排斥。',
+        '结果性质：局部邻域保持好（同 t-SNE），全局拓扑（簇的相对位置、连接关系）保留明显更好；复杂度近似线性，百万点可跑。'
+      ],
+      formula: {
+        html: '<span class="sym">C</span> = <span class="sym">Σ</span><sub>吸引</sub> <span class="sym">w</span><sub>h</sub> log(<span class="sym">w</span><sub>h</sub>/<span class="sym">w</span><sub>l</sub>) + <span class="sym">Σ</span><sub>排斥</sub> (1−<span class="sym">w</span><sub>h</sub>) log[(1−<span class="sym">w</span><sub>h</sub>)/(1−<span class="sym">w</span><sub>l</sub>)]',
+        note: '交叉熵目标：第一项（吸引）拉近高维相邻的点，第二项（排斥）推开高维不相邻的点——与 t-SNE 的 KL 同构，但权重与曲线定义不同。'
+      }
+    },
+    example: {
+      analogy: '整理一团耳机线：先记下哪些线段原本贴在一起（局部邻域），再小心摊开——贴着的仍然贴着，但整条线的走向（全局结构）也被保留下来。',
+      mini: 'MNIST 手写数字：UMAP 十几秒出图，0-9 十个簇清晰分离，且「3/8/9」「4/7/9」这些易混数字的簇彼此靠近——全局相似关系可见，t-SNE 的图里这种关系弱得多。'
+    },
+    pros: ['速度比 t-SNE 快数倍到数十倍，百万级数据可跑', '全局结构保留更好（簇的相对位置有意义得多）', '支持 transform 新样本（嵌入函数可复用）、有监督/半监督变体'],
+    cons: ['数学假设较强（流形均匀采样），理论门槛高于 PCA', '主要服务可视化，做下游特征不如 PCA/自编码器稳定', '超参（n_neighbors / min_dist）仍敏感，解读要谨慎'],
+    history: [
+      { year: '2000', text: 'Isomap / LLE / Laplacian Eigenmaps 等经典流形学习提出——思想源头，但可扩展性差。' },
+      { year: '2008', text: 't-SNE 发布，成为可视化降维标杆。' },
+      { year: '2018', text: 'McInnes & Healy 发布 UMAP：黎曼几何 + 拓扑数据分析的工程化，速度与全局性双胜。' },
+      { year: '至今', text: '成为单细胞测序（scRNA-seq）与大规模嵌入可视化的默认工具，有 GPU 加速实现。' }
+    ],
+    use: ['单细胞、图像特征、词向量等高维数据的探索性可视化', '需要给新样本快速嵌入的场景（t-SNE 做不到）', '超大数据（10 万~百万点）的二维概览'],
+    avoid: ['下游建模的特征工程（统计性质不如 PCA）', '需要严格统计保证的场景', '把簇间距离当精确度量（保留更好 ≠ 精确）'],
+    learn: [
+      '在演示里点「迭代 1000 步」，看瑞士卷如何被摊平且颜色渐变连续。',
+      '对比 <strong>n_neighbors</strong> 大小的效果（局部 vs 全局的权衡）。',
+      '理解 <strong>吸引-排斥</strong> 目标与 t-SNE 的 KL 的同构性。',
+      '进阶：读 UMAP 文档的「模糊单纯集」章节，了解它与图布局（force-directed）的联系。'
+    ],
+    demo: { id: 'umap', title: 'UMAP · 流形展开', note: '左边 3D 瑞士卷，右边 2D 嵌入在吸引-排斥力下逐步展开——保持局部邻域、拉开全局结构。' }, deep: 'content/umap.md'  },
 
   {
     id: 'mlp',
-    num: '23',
+    num: '24',
     emoji: '🧠',
     name: '神经网络',
     en: 'Neural Network (MLP)',
@@ -1309,7 +1343,7 @@ const TOPICS = [
 
   {
     id: 'cnn',
-    num: '24',
+    num: '25',
     emoji: '🖼️',
     name: '卷积神经网络',
     en: 'Convolutional Neural Network',
@@ -1358,7 +1392,7 @@ const TOPICS = [
 
   {
     id: 'autoencoder',
-    num: '25',
+    num: '26',
     emoji: '🗜️',
     name: '自编码器',
     en: 'Autoencoder',
@@ -1402,12 +1436,11 @@ const TOPICS = [
       '动手训练一个 <strong>去噪自编码器</strong>，感受「先加噪再还原」的神奇。',
       '进阶了解 <strong>VAE 的隐空间采样</strong> 与生成能力。'
     ],
-    demo: { id: 'autoencoder', title: '自编码器 · 3D 流形重建', note: '拖拽旋转；一个 3D→1D→3D 非线性自编码器把螺旋线压到 1 维再还原，看误差随训练下降。' }
-  },
+    demo: { id: 'autoencoder', title: '自编码器 · 3D 流形重建', note: '拖拽旋转；一个 3D→1D→3D 非线性自编码器把螺旋线压到 1 维再还原，看误差随训练下降。' }, deep: 'content/autoencoder.md'  },
 
   {
     id: 'rnn',
-    num: '26',
+    num: '27',
     emoji: '🔁',
     name: 'RNN 循环神经网络',
     en: 'Recurrent Neural Network',
@@ -1452,12 +1485,11 @@ const TOPICS = [
       '用小数据训练一个字符级语言模型，<strong>看它生成文本</strong>，建立直观感受。',
       '带着「梯度消失」的痛点去学 <strong>LSTM/GRU</strong>，理解它们为什么被发明。'
     ],
-    demo: { id: 'rnn', title: 'RNN · 序列处理演示', note: '观察字符依次流入循环单元、隐藏状态如何更新，以及「下一个字符」的概率如何随上下文变化。' }, deep: 'content/lstm.md'
-  },
+    demo: { id: 'rnn', title: 'RNN · 序列处理演示', note: '观察字符依次流入循环单元、隐藏状态如何更新，以及「下一个字符」的概率如何随上下文变化。' }, deep: 'content/rnn.md'  },
 
   {
     id: 'lstm',
-    num: '27',
+    num: '28',
     emoji: '🗃️',
     name: 'LSTM 长短期记忆',
     en: 'Long Short-Term Memory',
@@ -1502,12 +1534,11 @@ const TOPICS = [
       '<strong>手推一个时间步</strong> 的门控计算，追踪 c 和 h 的数值变化。',
       '读 Colah 的经典博客《Understanding LSTM》，配合本站门控动画建立画面感。'
     ],
-    demo: { id: 'lstm', title: 'LSTM · 3D 门控单元', note: '拖拽旋转；看细胞状态 c 沿信息高速路流动，三个门（遗忘/输入/输出）如何控制写入与读取。' }, deep: 'content/resnet.md'
-  },
+    demo: { id: 'lstm', title: 'LSTM · 3D 门控单元', note: '拖拽旋转；看细胞状态 c 沿信息高速路流动，三个门（遗忘/输入/输出）如何控制写入与读取。' }, deep: 'content/lstm.md'  },
 
   {
     id: 'gru',
-    num: '28',
+    num: '29',
     emoji: '🚪',
     name: 'GRU 门控循环单元',
     en: 'Gated Recurrent Unit',
@@ -1550,12 +1581,11 @@ const TOPICS = [
       '对比 <strong>GRU vs LSTM</strong> 的参数数量与效果，理解「够用就好」。',
       '手推一个时间步，追踪 h 的更新。'
     ],
-    demo: { id: 'gru', title: 'GRU · 3D 双门单元', note: '拖拽旋转；更新门 z 与重置门 r 控制隐藏状态 h 的写入与遗忘。' }
-  },
+    demo: { id: 'gru', title: 'GRU · 3D 双门单元', note: '拖拽旋转；更新门 z 与重置门 r 控制隐藏状态 h 的写入与遗忘。' }, deep: 'content/gru.md'  },
 
   {
     id: 'transformer',
-    num: '29',
+    num: '30',
     emoji: '🎯',
     name: 'Transformer 与注意力',
     en: 'Transformer & Attention',
@@ -1604,7 +1634,7 @@ const TOPICS = [
 
   {
     id: 'ssl',
-    num: '30',
+    num: '31',
     emoji: '🧲',
     name: '自监督与对比学习',
     en: 'Self-Supervised & Contrastive Learning',
@@ -1648,12 +1678,11 @@ const TOPICS = [
       '搞清 <strong>SimCLR vs MoCo vs MAE</strong> 三条技术路线。',
       '知道 CLIP 就是把对比学习用到图文对上。'
     ],
-    demo: { id: 'ssl', title: '对比学习 · InfoNCE 演示', note: '拖动锚点向量，看正样本被拉近、负样本被推远，以及 InfoNCE 损失随之变化。' }
-  },
+    demo: { id: 'ssl', title: '对比学习 · InfoNCE 演示', note: '拖动锚点向量，看正样本被拉近、负样本被推远，以及 InfoNCE 损失随之变化。' }, deep: 'content/ssl.md'  },
 
   {
     id: 'gnn',
-    num: '31',
+    num: '32',
     emoji: '🕸️',
     name: '图神经网络 GNN',
     en: 'Graph Neural Network',
@@ -1697,12 +1726,11 @@ const TOPICS = [
       '对比 <strong>GCN / GAT / GraphSAGE</strong> 的聚合方式。',
       '知道 <strong>过平滑</strong> 是 GNN 加深的主要障碍。'
     ],
-    demo: { id: 'gnn', title: 'GNN · 消息传递演示', note: '点「下一层」，看每个节点如何聚合邻居表示；层数越多，感受野越大。' }
-  },
+    demo: { id: 'gnn', title: 'GNN · 消息传递演示', note: '点「下一层」，看每个节点如何聚合邻居表示；层数越多，感受野越大。' }, deep: 'content/gnn.md'  },
 
   {
     id: 'distill',
-    num: '32',
+    num: '33',
     emoji: '🎓',
     name: '知识蒸馏与模型压缩',
     en: 'Knowledge Distillation & Model Compression',
@@ -1746,12 +1774,11 @@ const TOPICS = [
       '搞清损失里的 <strong>T² 补偿</strong> 是干什么的。',
       '知道 <strong>蒸馏 / 剪枝 / 量化</strong> 三者的分工。'
     ],
-    demo: { id: 'distill', title: '蒸馏 · 温度与暗知识', note: '拖动温度 T，看教师输出从「硬」变「软」，小类别之间的相似性（暗知识）逐渐显现。' }
-  },
+    demo: { id: 'distill', title: '蒸馏 · 温度与暗知识', note: '拖动温度 T，看教师输出从「硬」变「软」，小类别之间的相似性（暗知识）逐渐显现。' }, deep: 'content/distill.md'  },
 
   {
     id: 'moe',
-    num: '33',
+    num: '34',
     emoji: '🎛️',
     name: '混合专家 MoE',
     en: 'Mixture of Experts',
@@ -1795,12 +1822,11 @@ const TOPICS = [
       '搞清 <strong>负载均衡损失</strong> 在防什么（专家坍缩）。',
       '对比 <strong>MoE 与稠密模型</strong> 的显存/算力取舍。'
     ],
-    demo: { id: 'moe', title: 'MoE · 门控路由演示', note: '切换不同 token，看 router 打分、top-k 选择与加权输出，体会「按需激活」。' }
-  },
+    demo: { id: 'moe', title: 'MoE · 门控路由演示', note: '切换不同 token，看 router 打分、top-k 选择与加权输出，体会「按需激活」。' }, deep: 'content/moe.md'  },
 
   {
     id: 'seq',
-    num: '34',
+    num: '35',
     emoji: '⏳',
     name: '序列预测 / 时间序列',
     en: 'Sequence & Time-Series Forecasting',
@@ -1845,12 +1871,11 @@ const TOPICS = [
       '学会 <strong>时间序列交叉验证</strong>（Walk-forward），杜绝时间泄露。',
       '再上 <strong>LSTM/Transformer</strong>，并与 ARIMA、梯度提升树对比，理解各自适用边界。'
     ],
-    demo: { id: 'seq', title: '序列预测 · 窗口演示', note: '拖动窗口位置，观察「过去 n 个值 → 下一个值」如何构成监督样本，以及滑动窗口预测的走势。' }
-  },
+    demo: { id: 'seq', title: '序列预测 · 窗口演示', note: '拖动窗口位置，观察「过去 n 个值 → 下一个值」如何构成监督样本，以及滑动窗口预测的走势。' }, deep: 'content/seq.md'  },
 
   {
     id: 'arima',
-    num: '35',
+    num: '36',
     emoji: '📉',
     name: '时间序列分析：ARIMA',
     en: 'Time Series: ARIMA & Decomposition',
@@ -1894,12 +1919,11 @@ const TOPICS = [
       '搞清 <strong>ACF vs PACF</strong> 分别用来定哪个阶。',
       '知道 <strong>ARIMA 与深度学习时序模型</strong> 的取舍。'
     ],
-    demo: { id: 'arima', title: '时序 · 差分平稳化演示', note: '拖动差分阶数，看上图带趋势与季节的原始序列如何在下图被「压平」成平稳序列。' }
-  },
+    demo: { id: 'arima', title: '时序 · 差分平稳化演示', note: '拖动差分阶数，看上图带趋势与季节的原始序列如何在下图被「压平」成平稳序列。' }, deep: 'content/arima.md'  },
 
   {
     id: 'gan',
-    num: '36',
+    num: '37',
     emoji: '🎭',
     name: '生成对抗网络',
     en: 'Generative Adversarial Network',
@@ -1948,7 +1972,7 @@ const TOPICS = [
 
   {
     id: 'rl',
-    num: '37',
+    num: '38',
     emoji: '🎮',
     name: '强化学习',
     en: 'Reinforcement Learning',
@@ -1992,12 +2016,11 @@ const TOPICS = [
       '理解 <strong>探索 vs 利用</strong> 的 ε-greedy 策略。',
       '进阶看 <strong>DQN → 策略梯度 → PPO</strong> 的演进脉络。'
     ],
-    demo: { id: 'rl', title: '强化学习 · 3D 价值地形', note: '拖拽旋转；每根柱子=一个状态的价值（max Q），点「训练」看它从平地长成通向终点的地形。' }
-  },
+    demo: { id: 'rl', title: '强化学习 · 3D 价值地形', note: '拖拽旋转；每根柱子=一个状态的价值（max Q），点「训练」看它从平地长成通向终点的地形。' }, deep: 'content/rl.md'  },
 
   {
     id: 'pg',
-    num: '38',
+    num: '39',
     emoji: '🎯',
     name: '策略梯度与 Actor-Critic',
     en: 'Policy Gradient & Actor-Critic',
@@ -2041,12 +2064,11 @@ const TOPICS = [
       '搞清 <strong>Actor 与 Critic</strong> 各学什么、怎么互相喂信号。',
       '知道 <strong>PPO</strong> 相对原始策略梯度改了什么（信任域/裁剪）。'
     ],
-    demo: { id: 'pg', title: '策略梯度 · 概率调整演示', note: '采样动作、按回报更新策略概率，看概率如何向高回报动作集中。' }
-  },
+    demo: { id: 'pg', title: '策略梯度 · 概率调整演示', note: '采样动作、按回报更新策略概率，看概率如何向高回报动作集中。' }, deep: 'content/pg.md'  },
 
   {
     id: 'dqn',
-    num: '39',
+    num: '40',
     emoji: '🧠',
     name: '深度强化学习 DQN',
     en: 'Deep Q-Network (DQN)',
@@ -2090,12 +2112,11 @@ const TOPICS = [
       '搞清 <strong>目标网络</strong> 为什么能防止发散。',
       '知道 <strong>Double DQN / Dueling / Rainbow</strong> 各修了什么问题。'
     ],
-    demo: { id: 'dqn', title: 'DQN · Q 表与函数逼近', note: '拖动网格数：Q 表只能记住离散格子且无法泛化，函数逼近能给出平滑的整条曲线。' }
-  },
+    demo: { id: 'dqn', title: 'DQN · Q 表与函数逼近', note: '拖动网格数：Q 表只能记住离散格子且无法泛化，函数逼近能给出平滑的整条曲线。' }, deep: 'content/dqn.md'  },
 
   {
     id: 'transfer',
-    num: '40',
+    num: '41',
     emoji: '🚀',
     name: '迁移学习',
     en: 'Transfer Learning',
@@ -2139,12 +2160,11 @@ const TOPICS = [
       '动手用 <strong>torchvision 的预训练模型</strong> 微调一个分类器。',
       '了解 <strong>BERT/GPT 的预训练任务</strong>（掩码语言模型/自回归）。'
     ],
-    demo: { id: 'transfer', title: '迁移学习 · 微调对比演示', note: '示意：预训练+微调 vs 从零训练，看前者如何用更少轮次达到更好效果。' }
-  },
+    demo: { id: 'transfer', title: '迁移学习 · 微调对比演示', note: '示意：预训练+微调 vs 从零训练，看前者如何用更少轮次达到更好效果。' }, deep: 'content/transfer.md'  },
 
   {
     id: 'recsys',
-    num: '41',
+    num: '42',
     emoji: '🛍️',
     name: '推荐系统',
     en: 'Recommender Systems',
@@ -2188,12 +2208,11 @@ const TOPICS = [
       '理解 <strong>冷启动与稀疏性</strong> 两大难题。',
       '了解现代架构：<strong>召回-排序两阶段 + 深度学习特征</strong>。'
     ],
-    demo: { id: 'recsys', title: '推荐系统 · 协同过滤演示', note: '一个小型用户-物品评分矩阵，看基于物品的协同过滤如何预测缺失评分。' }
-  },
+    demo: { id: 'recsys', title: '推荐系统 · 协同过滤演示', note: '一个小型用户-物品评分矩阵，看基于物品的协同过滤如何预测缺失评分。' }, deep: 'content/recsys.md'  },
 
   {
     id: 'anomaly',
-    num: '42',
+    num: '43',
     emoji: '🚨',
     name: '异常检测',
     en: 'Anomaly Detection',
@@ -2237,12 +2256,11 @@ const TOPICS = [
       '对比 <strong>统计法 vs 孤立森林 vs 重建法</strong> 的适用场景。',
       '了解异常检测的 <strong>评估指标</strong>（精确率/召回/AUC 的权衡）。'
     ],
-    demo: { id: 'anomaly', title: '异常检测 · 3D 密度阈值', note: '拖拽旋转；用 3D 高斯拟合正常数据，拖 ε 看哪些点被判为异常，绿网是高密度等值面。' }
-  },
+    demo: { id: 'anomaly', title: '异常检测 · 3D 密度阈值', note: '拖拽旋转；用 3D 高斯拟合正常数据，拖 ε 看哪些点被判为异常，绿网是高密度等值面。' }, deep: 'content/anomaly.md'  },
 
   {
     id: 'fl',
-    num: '43',
+    num: '44',
     emoji: '🌍',
     name: '联邦学习',
     en: 'Federated Learning',
@@ -2286,12 +2304,11 @@ const TOPICS = [
       '了解 FedAvg 与 <strong>本地 SGD / 分布式训练</strong> 的谱系关系。',
       '进阶：读 DiffPrivacy 与 Secure Aggregation，理解「联邦 ≠ 隐私」还需要哪些补丁。'
     ],
-    demo: { id: 'fl', title: '联邦学习 · FedAvg', note: '4 个客户端数据各偏一角（Non-IID），对比「本地各练各的」与「每轮平均聚合」的效果差异。' }
-  },
+    demo: { id: 'fl', title: '联邦学习 · FedAvg', note: '4 个客户端数据各偏一角（Non-IID），对比「本地各练各的」与「每轮平均聚合」的效果差异。' }, deep: 'content/fl.md'  },
 
   {
     id: 'feature',
-    num: '44',
+    num: '45',
     emoji: '🛠️',
     name: '特征工程',
     en: 'Feature Engineering',
@@ -2335,12 +2352,11 @@ const TOPICS = [
       '动手做一次 <strong>EDA（探索性数据分析）</strong>，先看懂数据再造特征。',
       '在演示里看 <strong>对数变换</strong> 如何把长尾分布拉近正态。'
     ],
-    demo: { id: 'feature', title: '特征工程 · 变换演示', note: '切换原始/对数/标准化，看同一批数据经过变换后分布如何变得更好用。' }
-  },
+    demo: { id: 'feature', title: '特征工程 · 变换演示', note: '切换原始/对数/标准化，看同一批数据经过变换后分布如何变得更好用。' }, deep: 'content/feature.md'  },
 
   {
     id: 'evaluation',
-    num: '45',
+    num: '46',
     emoji: '🎛️',
     name: '模型评估与调参',
     en: 'Evaluation & Hyperparameter Tuning',
@@ -2389,7 +2405,7 @@ const TOPICS = [
 
   {
     id: 'conformal',
-    num: '46',
+    num: '47',
     emoji: '🎯',
     name: '共形预测',
     en: 'Conformal Prediction',
@@ -2433,12 +2449,11 @@ const TOPICS = [
       '理解 <strong>可交换性</strong>为什么是唯一的假设、什么时候会破。',
       '进阶：分类版的 <strong>预测集</strong>（输出一组候选标签）与 CQR（分位数回归组合）。'
     ],
-    demo: { id: 'conformal', title: '共形预测 · 有保证的区间', note: '调 α 看区间宽度与覆盖率联动：校准分位数给出的区间总能罩住约 1−α 的真值，与模型强弱无关。' }
-  },
+    demo: { id: 'conformal', title: '共形预测 · 有保证的区间', note: '调 α 看区间宽度与覆盖率联动：校准分位数给出的区间总能罩住约 1−α 的真值，与模型强弱无关。' }, deep: 'content/conformal.md'  },
 
   {
     id: 'resnet',
-    num: '47',
+    num: '48',
     emoji: '🛣️',
     name: 'ResNet 残差网络',
     en: 'Residual Network (ResNet)',
@@ -2482,12 +2497,11 @@ const TOPICS = [
       '手推残差块的 <strong>梯度回传</strong>：∂(F+x)/∂x 里那个「+1」是关键。',
       '了解 <strong>ResNet-18/34/50/101/152</strong> 的结构差异与瓶颈块（bottleneck）。'
     ],
-    demo: { id: 'resnet', title: 'ResNet · 残差连接演示', note: '切换「普通网络 / 残差网络」，看信号穿过深层时残差跳连如何保住它不退化为零。' }, deep: 'content/word2vec.md'
-  },
+    demo: { id: 'resnet', title: 'ResNet · 残差连接演示', note: '切换「普通网络 / 残差网络」，看信号穿过深层时残差跳连如何保住它不退化为零。' }, deep: 'content/resnet.md'  },
 
   {
     id: 'yolo',
-    num: '48',
+    num: '49',
     emoji: '🎯',
     name: '目标检测 · YOLO',
     en: 'Object Detection (YOLO)',
@@ -2531,12 +2545,11 @@ const TOPICS = [
       '理解 <strong>IoU、置信度、NMS</strong> 三个核心概念。',
       '动手用 YOLOv8 跑一张图，感受从训练到推理的完整流程。'
     ],
-    demo: { id: 'yolo', title: 'YOLO · 网格检测演示', note: '一张合成图被分成网格，看每个格子如何预测边界框、置信度与类别，再经 NMS 去重。' }
-  },
+    demo: { id: 'yolo', title: 'YOLO · 网格检测演示', note: '一张合成图被分成网格，看每个格子如何预测边界框、置信度与类别，再经 NMS 去重。' }, deep: 'content/yolo.md'  },
 
   {
     id: 'segment',
-    num: '49',
+    num: '50',
     emoji: '🧩',
     name: '图像分割 · 语义分割',
     en: 'Image Segmentation (U-Net)',
@@ -2580,12 +2593,11 @@ const TOPICS = [
       '掌握 <strong>IoU（mIoU）</strong> 这一分割评价指标。',
       '用 U-Net 跑一个医学/遥感小数据集，体会小样本下的优势。'
     ],
-    demo: { id: 'segment', title: '分割 · 编码解码演示', note: '一张合成街景，切换「原图 / 分割掩码 / 叠加」，看逐像素类别如何被 U 形结构还原。' }
-  },
+    demo: { id: 'segment', title: '分割 · 编码解码演示', note: '一张合成街景，切换「原图 / 分割掩码 / 叠加」，看逐像素类别如何被 U 形结构还原。' }, deep: 'content/segment.md'  },
 
   {
     id: 'augment',
-    num: '50',
+    num: '51',
     emoji: '🪞',
     name: '数据增强',
     en: 'Data Augmentation',
@@ -2629,12 +2641,59 @@ const TOPICS = [
       '了解 <strong>MixUp/CutMix</strong> 为何能提升鲁棒性。',
       '在实践中把增强写进 <strong>数据管道（DataLoader）</strong> 而非预处理磁盘。'
     ],
-    demo: { id: 'augment', title: '数据增强 · 变换演示', note: '一张简单图案，逐个切换翻转/旋转/裁剪/亮度/加噪，看它如何变出多张「新样本」。' }
-  },
+    demo: { id: 'augment', title: '数据增强 · 变换演示', note: '一张简单图案，逐个切换翻转/旋转/裁剪/亮度/加噪，看它如何变出多张「新样本」。' }, deep: 'content/augment.md'  },
+
+  {
+    id: 'adv',
+    num: '52',
+    emoji: '🛡️',
+    name: '对抗鲁棒性',
+    en: 'Adversarial Robustness',
+    cat: 'cv',
+    diff: 4,
+    accent: '#38bdf8',
+    tagline: '给图片加一点人眼看不见的噪声，模型就把熊猫认成长臂猿——深度网络的「脆弱」不是 bug，是高维决策边界的本性。',
+    intro: {
+      what: '研究对抗样本（精心构造的微小扰动使模型出错）与防御方法的领域。代表攻击 FGSM 只需一步：沿损失梯度符号方向加 ε 大小的扰动。',
+      problem: '深度模型 99% 的测试准确率可能建立在高维空间的「陡峭边界」上——输入变化 1%，输出彻底翻转。这在自动驾驶、人脸识别、内容审核里是安全问题而非学术趣味。',
+      idea: 'FGSM 攻击：x\' = x + ε·sign(∂L/∂x)——对输入求梯度、沿符号方向挪一小步。防御的主力是对抗训练：把攻击样本加进训练集，「挨过打」的边界才平滑。'
+    },
+    principle: {
+      text: [
+        '对抗样本的存在性（Goodfellow 2014 的线性解释）：神经网络近似线性——高维下小扰动逐维累积，足以跨过决策边界；「深度非线性」并不能免疫线性攻击。',
+        '攻击谱系：白盒（知道梯度：FGSM / PGD 迭代强化）、黑盒（迁移攻击：A 模型上生成的样本常能骗过 B 模型）、物理世界（贴纸让停车标志被识成限速）。',
+        '防御现状：对抗训练（PGD 训练）最可靠但有「鲁棒性-精度」权衡；认证防御（随机平滑）给出可证明下界但保守；梯度掩盖类防御大多已被绕过。'
+      ],
+      formula: {
+        html: '<span class="sym">x</span>′ = <span class="sym">x</span> + <span class="sym">ε</span> · sign(∇<sub><span class="sym">x</span></sub><span class="sym">L</span>(<span class="sym">x</span>, <span class="sym">y</span>))',
+        note: 'FGSM（快速梯度符号法）：ε 限制扰动大小（如 8/255 像素），sign 只取方向——一步线性化攻击，快且具代表性。'
+      }
+    },
+    example: {
+      analogy: '监考官只盯「笔迹工整度」打分，学生专攻练字就能骗过高分——模型的「评分特征」与真实语义可能脱节，对抗样本专打这个脱节。',
+      mini: '熊猫照片 + 0.7% 像素扰动 → 以 99.3% 置信度被认成长臂猿；两图人眼完全无法区分（Szegedy 2013 的著名发现，开启整个领域）。'
+    },
+    pros: ['揭示模型真实薄弱点——比测试集更严格的评估视角', '对抗训练让决策边界更平滑、特征更稳健（鲁棒特征往往也更可解释）', '是安全评估的标准工具（人脸/自动驾驶合规测试项）'],
+    cons: ['攻防不对等：新攻击常能绕过已有防御', '对抗训练昂贵（PGD 多步迭代贯穿训练）且显著掉准确率', '鲁棒性定义依赖威胁模型（扰动半径/范数），无普适标准'],
+    history: [
+      { year: '2013', text: 'Szegedy 等首次发现神经网络存在对抗样本。' },
+      { year: '2014', text: 'Goodfellow 提出 FGSM 与线性解释；对抗训练概念诞生。' },
+      { year: '2017', text: 'Madry 等确立 PGD 对抗训练为最强防御；同年物理攻击攻破停车标志识别。' },
+      { year: '至今', text: '与 LLM 安全合流：越狱提示就是「文本空间的对抗样本」，鲁棒性成为可信 AI 的通用议题。' }
+    ],
+    use: ['安全关键系统的红队评估（人脸、自动驾驶、内容审核）', '对抗训练作为强正则（特征更稳健、迁移性更好）', '模型可信度审计的组成部分'],
+    avoid: ['把「跑不通攻击」当安全证明（威胁模型可能不完备）', '低风险场景过度追求鲁棒（精度代价不划算）', '混淆「测试集准确率」与「对抗鲁棒性」——两者几乎无关'],
+    learn: [
+      '在演示里拖大 <strong>ε</strong>，看点沿梯度符号方向跨过边界、预测翻转。',
+      '理解 <strong>线性解释</strong>：为什么「够深」不是护身符。',
+      '分清 <strong>白盒 / 黑盒 / 物理攻击</strong> 的威胁模型差异。',
+      '进阶：读 Madry 的 PGD 训练——为什么「最强攻击下的训练」给出最稳的防御。'
+    ],
+    demo: { id: 'adv', title: '对抗样本 · FGSM', note: '拖大 ε：沿梯度方向挪一小步，点没怎么变，但模型已经把它判成另一类。' }, deep: 'content/adv.md'  },
 
   {
     id: 'vit',
-    num: '51',
+    num: '53',
     emoji: '👁️',
     name: '视觉 Transformer',
     en: 'Vision Transformer (ViT)',
@@ -2678,12 +2737,11 @@ const TOPICS = [
       '对比 <strong>ViT 与 CNN</strong> 的归纳偏置差异：局部性 vs 全局性。',
       '了解 <strong>Swin Transformer</strong> 如何用窗口注意力降低计算量。'
     ],
-    demo: { id: 'vit', title: 'ViT · 补丁注意力演示', note: '一张图被切成补丁，点击某个补丁看它「最关注」哪些其他补丁（注意力权重）。' }
-  },
+    demo: { id: 'vit', title: 'ViT · 补丁注意力演示', note: '一张图被切成补丁，点击某个补丁看它「最关注」哪些其他补丁（注意力权重）。' }, deep: 'content/vit.md'  },
 
   {
     id: 'vae',
-    num: '52',
+    num: '54',
     emoji: '🎲',
     name: '变分自编码器 VAE',
     en: 'Variational Autoencoder',
@@ -2732,7 +2790,7 @@ const TOPICS = [
 
   {
     id: 'diffusion',
-    num: '53',
+    num: '55',
     emoji: '🌫️',
     name: '扩散模型 · DDPM',
     en: 'Diffusion Model (DDPM)',
@@ -2782,7 +2840,7 @@ const TOPICS = [
 
   {
     id: 'sd',
-    num: '54',
+    num: '56',
     emoji: '🖼️',
     name: '文生图 · Stable Diffusion',
     en: 'Text-to-Image (Stable Diffusion)',
@@ -2826,12 +2884,60 @@ const TOPICS = [
       '理解 <strong>cross-attention</strong> 如何让文本「指挥」去噪。',
       '动手用 SD 试不同 prompt 与 <strong>guidance scale</strong>，感受可控性。'
     ],
-    demo: { id: 'sd', title: '文生图 · 流水线演示', note: '切换 prompt，看潜空间从噪声逐步去噪，最后 VAE 解码出对应像素图。' }
+    demo: { id: 'sd', title: '文生图 · 流水线演示', note: '切换 prompt，看潜空间从噪声逐步去噪，最后 VAE 解码出对应像素图。' }, deep: 'content/sd.md'
   },
 
   {
+    id: 'ddim',
+    num: '57',
+    emoji: '⚡',
+    name: '扩散加速采样',
+    en: 'DDIM & Fast Sampling',
+    cat: 'gen',
+    diff: 5,
+    accent: '#c084fc',
+    tagline: '把扩散的 1000 步采样压到几十步甚至 1 步——DDIM 走确定性捷径，蒸馏/一致性模型直接抄近道。',
+    intro: {
+      what: '一族减少扩散模型采样步数的技术：DDIM 通过去掉更新公式中的随机项并跳步，把采样从上千步压到 20~50 步；蒸馏与一致性模型进一步压到 1~4 步。',
+      problem: 'DDPM 采样要几百上千次前向（每步过一次 U-Net），生成一张图要几秒到几分钟——质量最好的模型成了最慢的生成模型，落地最大的障碍。',
+      idea: 'DDPM 的马尔可夫链只是训练目标的一种包装，采样不必「照着训练过程走」：把更新写成非马尔可夫形式，σ=0 时整条采样轨迹变成确定性曲线，可以任意跳步；再训练一个「一步直达」的学生网络就是蒸馏。'
+    },
+    principle: {
+      text: [
+        '广义更新公式：x_{t−1} = √ᾱ_{t−1}·x̂₀ + √(1−ᾱ_{t−1}−σₜ²)·ε̂ + σₜ·z。σₜ 取后验方差就是 DDPM（随机），取 0 就是 DDIM（确定）。',
+        'DDIM 的确定性带来两个红利：任意跳步（子序列采样 S 步）+ 同一噪声起点必得同一结果（图像编辑/插值可控）。',
+        '更激进的路线：渐进蒸馏（学生每步学两步）、一致性模型（约束任意时刻能一步映射回 x₀）、LCM——1~4 步出图，配合 SD 成为实时生成标配。'
+      ],
+      formula: {
+        html: '<span class="sym">x</span><sub>t−1</sub> = √<span class="sym">ᾱ</span><sub>t−1</sub> · <span class="sym">x̂</span><sub>0</sub> + √(1−<span class="sym">ᾱ</span><sub>t−1</sub>−<span class="sym">σ</span><sub>t</sub>²) · <span class="sym">ε̂</span> + <span class="sym">σ</span><sub>t</sub> <span class="sym">z</span>,　<span class="sym">σ</span><sub>t</sub>=0 ⇒ <span class="fn">DDIM</span>',
+        note: '一个公式统一两族采样器：σ 取后验方差=DDPM（随机游走），σ=0=DDIM（确定性捷径，可跳步）。'
+      }
+    },
+    example: {
+      analogy: '下山：DDPM 每步都掷骰子决定往哪歪（依赖随机性探索），只能小步走 1000 步；DDIM 先把下山路「画成一条线」，然后沿这条线大步跨——25 步就到山脚。',
+      mini: 'SD 出图默认 50 步 DDIM/Euler——比 DDPM 1000 步快 20 倍且质量相当；SD-Turbo/LCM 用蒸馏+一致性训练压到 1~4 步，实现实时画布。'
+    },
+    pros: ['DDIM：20~50 步达到 DDPM 数百步的质量，训练完全不用改（只改采样）', '确定性轨迹支持图像编辑、隐空间插值、seed 复现', '蒸馏/一致性模型：1~4 步出图，解锁实时交互应用'],
+    cons: ['跳步过少（<10 步）时质量下降，细节开始丢失', '蒸馏需要额外训练（教师-学生管线），复杂度高', '步数-质量权衡仍无统一理论，靠经验调'],
+    history: [
+      { year: '2020', text: 'DDPM 发布：质量惊艳但需要 1000 步采样。' },
+      { year: '2020', text: 'Song 等发布 DDIM：非马尔可夫视角 + 确定性采样，50 步追平 1000 步。' },
+      { year: '2022', text: '渐进蒸馏与 DPM-Solver（高阶 ODE 求解器）把步数压到 10~20。' },
+      { year: '2023+', text: '一致性模型 / LCM / SD-Turbo 到达 1~4 步；「扩散蒸馏」与 GAN 蒸馏组合成为实时生成标配。' }
+    ],
+    use: ['生产环境出图（默认就是 DDIM/DPM-Solver 类 20~50 步）', '需要 seed 可复现/隐空间编辑的创意工作流', '实时交互（画布、直播特效）——1~4 步蒸馏模型'],
+    avoid: ['追求极致质量且不在乎时间（多步 DDPM/DPM++ 仍略优）', '没有教师模型时从零训练一致性模型', '把「步数少」当唯一指标（质量-速度曲线要看全段）'],
+    learn: [
+      '在演示里对比 <strong>DDPM 100 步 vs DDIM 25 步</strong> 从同一噪声出发的差异。',
+      '理解 <strong>σ=0 为何等价于确定性</strong>，以及确定性为什么允许跳步。',
+      '看懂广义更新公式里 <strong>x̂₀ 的显式重构</strong>（这是跳步的钥匙）。',
+      '进阶：读 DPM-Solver（把采样看成解 ODE）与一致性模型的目标函数。'
+    ],
+    demo: { id: 'ddim', title: '扩散采样 · DDPM vs DDIM', note: '同一个噪声起点：DDPM 随机游走 100 步，DDIM 走确定性捷径 25 步到终点——实时对比 MSE。' }, deep: 'content/ddim.md'  },
+
+  {
     id: 'clip',
-    num: '55',
+    num: '58',
     emoji: '🔗',
     name: 'CLIP 多模态对齐',
     en: 'Contrastive Language–Image Pretraining',
@@ -2875,12 +2981,11 @@ const TOPICS = [
       '体验 <strong>零样本</strong>：类别名当文本，与图像比相似度。',
       '了解 CLIP 如何成为 <strong>Stable Diffusion</strong> 的文本编码器。'
     ],
-    demo: { id: 'clip', title: 'CLIP · 图文对齐演示', note: '三张图与三个词映射到同一空间，点击看匹配对的相似度如何远高于不匹配对。' }
-  },
+    demo: { id: 'clip', title: 'CLIP · 图文对齐演示', note: '三张图与三个词映射到同一空间，点击看匹配对的相似度如何远高于不匹配对。' }, deep: 'content/clip.md'  },
 
   {
     id: 'word2vec',
-    num: '56',
+    num: '59',
     emoji: '🧭',
     name: '词嵌入 Word2Vec',
     en: 'Word Embeddings (Word2Vec)',
@@ -2924,12 +3029,11 @@ const TOPICS = [
       '对比 <strong>CBOW vs Skip-gram</strong> 的训练目标。',
       '了解 Word2Vec → GloVe → BERT 的演进。'
     ],
-    demo: { id: 'word2vec', title: 'Word2Vec · 词向量空间演示', note: '在 2D 词向量空间里做「国王 − 男人 + 女人」，看结果落点如何接近「女王」。' }, deep: 'content/em.md'
-  },
+    demo: { id: 'word2vec', title: 'Word2Vec · 词向量空间演示', note: '在 2D 词向量空间里做「国王 − 男人 + 女人」，看结果落点如何接近「女王」。' }, deep: 'content/word2vec.md'  },
 
   {
     id: 'token',
-    num: '57',
+    num: '60',
     emoji: '✂️',
     name: 'Tokenization 分词',
     en: 'Tokenization (BPE / WordPiece)',
@@ -2973,12 +3077,12 @@ const TOPICS = [
       '记住实用结论：<strong>中文通常比英文更费 token</strong>。',
       '知道 <strong>BPE / WordPiece / SentencePiece</strong> 三者的定位差异。'
     ],
-    demo: { id: 'token', title: 'Tokenization · 分词演示', note: '输入一段中英混合文本，按子词规则切分，实时显示 token 块与数量。' }
+    demo: { id: 'token', title: 'Tokenization · 分词演示', note: '输入一段中英混合文本，按子词规则切分，实时显示 token 块与数量。' }, deep: 'content/token.md'
   },
 
   {
     id: 'bert',
-    num: '58',
+    num: '61',
     emoji: '🧩',
     name: 'BERT 与编码器模型',
     en: 'BERT & Encoder-only Models',
@@ -3027,7 +3131,7 @@ const TOPICS = [
 
   {
     id: 'gpt',
-    num: '59',
+    num: '62',
     emoji: '🔮',
     name: 'GPT 架构与预训练',
     en: 'GPT & Pretraining',
@@ -3076,7 +3180,7 @@ const TOPICS = [
 
   {
     id: 'lora',
-    num: '60',
+    num: '63',
     emoji: '🔩',
     name: '微调与 LoRA',
     en: 'Fine-tuning & LoRA',
@@ -3125,7 +3229,7 @@ const TOPICS = [
 
   {
     id: 'rlhf',
-    num: '61',
+    num: '64',
     emoji: '⚖️',
     name: 'RLHF 与对齐',
     en: 'Reinforcement Learning from Human Feedback',
@@ -3174,7 +3278,7 @@ const TOPICS = [
 
   {
     id: 'prompt',
-    num: '62',
+    num: '65',
     emoji: '💬',
     name: '提示工程',
     en: 'Prompt Engineering',
@@ -3219,12 +3323,11 @@ const TOPICS = [
       '练习 <strong>思维链</strong>：让模型先推理再给答案。',
       '了解 <strong>ReAct</strong>（思考+行动）如何与工具结合。'
     ],
-    demo: { id: 'prompt', title: '提示工程 · 策略对比演示', note: '同一道题，切换「直接问 / 给例子 / 思维链」，看模型答案如何从错到对。' }
-  },
+    demo: { id: 'prompt', title: '提示工程 · 策略对比演示', note: '同一道题，切换「直接问 / 给例子 / 思维链」，看模型答案如何从错到对。' }, deep: 'content/prompt.md'  },
 
   {
     id: 'posenc',
-    num: '63',
+    num: '66',
     emoji: '📐',
     name: '位置编码与长上下文',
     en: 'Positional Encoding & Long Context',
@@ -3269,12 +3372,12 @@ const TOPICS = [
       '搞清 <strong>RoPE 为什么能让内积只依赖相对距离</strong>。',
       '知道长上下文要靠 <strong>外推微调 + 注意力加速</strong> 两件事。'
     ],
-    demo: { id: 'posenc', title: '位置编码 · 波形与衰减', note: '左侧是正弦位置编码的波形矩阵，右侧对比三种编码下注意力随距离的衰减。' }
+    demo: { id: 'posenc', title: '位置编码 · 波形与衰减', note: '左侧是正弦位置编码的波形矩阵，右侧对比三种编码下注意力随距离的衰减。' }, deep: 'content/posenc.md'
   },
 
   {
     id: 'inference',
-    num: '64',
+    num: '67',
     emoji: '🚀',
     name: '推理优化与部署',
     en: 'LLM Inference Optimization',
@@ -3318,12 +3421,12 @@ const TOPICS = [
       '搞清 <strong>KV Cache 显存公式</strong> 里每一项的含义。',
       '知道 <strong>连续批处理 / 量化 / 投机解码</strong> 各自优化什么。'
     ],
-    demo: { id: 'inference', title: '推理 · KV Cache 显存估算', note: '拖动序列长度与 batch，实时估算 KV Cache 显存占用，并判断能否放进给定显卡。' }
+    demo: { id: 'inference', title: '推理 · KV Cache 显存估算', note: '拖动序列长度与 batch，实时估算 KV Cache 显存占用，并判断能否放进给定显卡。' }, deep: 'content/inference.md'
   },
 
   {
     id: 'quant',
-    num: '65',
+    num: '68',
     emoji: '📦',
     name: '模型量化',
     en: 'Model Quantization',
@@ -3367,12 +3470,11 @@ const TOPICS = [
       '理解 <strong>PTQ（训后量化）vs QAT（量化感知训练）</strong>的取舍。',
       '进阶：读 GPTQ 论文里「逐层 Hessian 补偿」的思路，与 XGBoost 的二阶信息遥相呼应。'
     ],
-    demo: { id: 'quant', title: '量化 · 把权重压到低比特', note: '拖到 4/3/2 bit 看量化台阶变粗、误差暴涨——这就是端侧部署大模型的核心权衡。' }
-  },
+    demo: { id: 'quant', title: '量化 · 把权重压到低比特', note: '拖到 4/3/2 bit 看量化台阶变粗、误差暴涨——这就是端侧部署大模型的核心权衡。' }, deep: 'content/quant.md'  },
 
   {
     id: 'cot',
-    num: '66',
+    num: '69',
     emoji: '💭',
     name: '思维链与推理模型',
     en: 'Chain-of-Thought & Reasoning Models',
@@ -3416,12 +3518,11 @@ const TOPICS = [
       '理解 <strong>测试时扩展</strong>：同样的模型，采样更多路径/更长思考 = 更准。',
       '进阶：了解 <strong>RLVR</strong>（可验证奖励强化学习）如何让 R1 类模型自发学会反思与回溯。'
     ],
-    demo: { id: 'cot', title: '思维链 · 为什么分步更准', note: '直接作答要把整题一口气算对；思维链把中间步骤写进上下文。拖动位数看成功率差距被指数级放大。' }
-  },
+    demo: { id: 'cot', title: '思维链 · 为什么分步更准', note: '直接作答要把整题一口气算对；思维链把中间步骤写进上下文。拖动位数看成功率差距被指数级放大。' }, deep: 'content/cot.md'  },
 
   {
     id: 'rag',
-    num: '67',
+    num: '70',
     emoji: '📚',
     name: 'RAG 检索增强生成',
     en: 'Retrieval-Augmented Generation',
@@ -3470,7 +3571,7 @@ const TOPICS = [
 
   {
     id: 'agent',
-    num: '68',
+    num: '71',
     emoji: '🕵️',
     name: 'Agent 与工具调用',
     en: 'AI Agent & Tool Use (ReAct)',
@@ -3514,12 +3615,11 @@ const TOPICS = [
       '对比 <strong>纯生成 vs ReAct Agent</strong> 的能力边界。',
       '动手用 LangChain/官方 SDK 搭一个最小 Agent。'
     ],
-    demo: { id: 'agent', title: 'Agent · ReAct 循环演示', note: '逐步推进「思考→调工具→观察」，看 Agent 如何查天气、算数字并给出最终答案。' }
-  },
+    demo: { id: 'agent', title: 'Agent · ReAct 循环演示', note: '逐步推进「思考→调工具→观察」，看 Agent 如何查天气、算数字并给出最终答案。' }, deep: 'content/agent.md'  },
 
   {
     id: 'multiagent',
-    num: '69',
+    num: '72',
     emoji: '🤝',
     name: '多智能体协作',
     en: 'Multi-Agent Collaboration',
@@ -3563,12 +3663,11 @@ const TOPICS = [
       '对比 <strong>单 Agent vs 多 Agent</strong> 的适用场景。',
       '了解 AutoGen / CrewAI / LangGraph 等框架。'
     ],
-    demo: { id: 'multiagent', title: '多智能体 · 协作演示', note: '三个角色 Agent 依次交接，看一段内容如何经「研究→写作→审校」逐步打磨成型。' }
-  },
+    demo: { id: 'multiagent', title: '多智能体 · 协作演示', note: '三个角色 Agent 依次交接，看一段内容如何经「研究→写作→审校」逐步打磨成型。' }, deep: 'content/multiagent.md'  },
 
   {
     id: 'causal',
-    num: '70',
+    num: '73',
     emoji: '🧭',
     name: '因果推断',
     en: 'Causal Inference',
@@ -3612,12 +3711,11 @@ const TOPICS = [
       '搞清 <strong>调整公式 / 后门准则</strong> 的直觉。',
       '知道 <strong>随机实验</strong> 为什么是黄金标准。'
     ],
-    demo: { id: 'causal', title: '因果推断 · 混淆偏差演示', note: '拖动混淆强度：只看相关会高估效应，控制混淆后估计才回到真实值。' }
-  },
+    demo: { id: 'causal', title: '因果推断 · 混淆偏差演示', note: '拖动混淆强度：只看相关会高估效应，控制混淆后估计才回到真实值。' }, deep: 'content/causal.md'  },
 
   {
     id: 'mlops',
-    num: '71',
+    num: '74',
     emoji: '🛠️',
     name: 'MLOps 与模型监控',
     en: 'MLOps & Model Monitoring',
@@ -3661,12 +3759,11 @@ const TOPICS = [
       '搞清 <strong>影子部署 / 灰度发布 / 回滚</strong> 的流程。',
       '知道 <strong>PSI</strong> 等漂移指标的用法与阈值。'
     ],
-    demo: { id: 'mlops', title: 'MLOps · 漂移监控演示', note: '拖动数据漂移强度，看线上分布偏离训练分布、准确率下滑，以及监控如何触发告警。' }
-  },
+    demo: { id: 'mlops', title: 'MLOps · 漂移监控演示', note: '拖动数据漂移强度，看线上分布偏离训练分布、准确率下滑，以及监控如何触发告警。' }, deep: 'content/mlops.md'  },
 
   {
     id: 'gbdt',
-    num: '72',
+    num: '75',
     emoji: '🌿',
     name: 'LightGBM 与 CatBoost',
     en: 'LightGBM & CatBoost',
@@ -3710,12 +3807,11 @@ const TOPICS = [
       '搞清 <strong>CatBoost 有序目标编码</strong> 在防什么（目标泄漏）。',
       '知道 <strong>num_leaves / min_data_in_leaf</strong> 是 LightGBM 最关键的调参项。'
     ],
-    demo: { id: 'gbdt', title: '提升树 · 两种生长策略', note: '切换 level-wise / leaf-wise，逐步展开节点，看它们的生长顺序与树形差异。' }
-  },
+    demo: { id: 'gbdt', title: '提升树 · 两种生长策略', note: '切换 level-wise / leaf-wise，逐步展开节点，看它们的生长顺序与树形差异。' }, deep: 'content/gbdt.md'  },
 
   {
     id: 'glm',
-    num: '73',
+    num: '76',
     emoji: '🔗',
     name: '广义线性模型 GLM',
     en: 'Generalized Linear Models',
@@ -3759,12 +3855,11 @@ const TOPICS = [
       '搞清 <strong>分布 + 链接</strong> 的组合怎么选（计数→log，比例→logit）。',
       '知道为什么 GLM 用<strong>最大似然而不是最小二乘</strong>。'
     ],
-    demo: { id: 'glm', title: 'GLM · 三种链接函数', note: '拖动线性预测 η，看恒等 / logit / log 三种链接把同一个 η 映射到完全不同的取值范围。' }
-  },
+    demo: { id: 'glm', title: 'GLM · 三种链接函数', note: '拖动线性预测 η，看恒等 / logit / log 三种链接把同一个 η 映射到完全不同的取值范围。' }, deep: 'content/glm.md'  },
 
   {
     id: 'vlm',
-    num: '74',
+    num: '77',
     emoji: '🖼️',
     name: '多模态大模型 VLM',
     en: 'Vision-Language Models',
@@ -3808,12 +3903,59 @@ const TOPICS = [
       '搞清 <strong>CLIP 对比学习</strong> 与 <strong>生成式 VLM</strong> 的区别。',
       '知道 <strong>视觉 token 数量</strong> 如何影响成本与长上下文。'
     ],
-    demo: { id: 'vlm', title: 'VLM · 视觉 token 拼接演示', note: '切换不同输入（图片 / 图表 / 代码截图），看图像被切成多少视觉 token，以及它如何与文本拼接。' }
-  },
+    demo: { id: 'vlm', title: 'VLM · 视觉 token 拼接演示', note: '切换不同输入（图片 / 图表 / 代码截图），看图像被切成多少视觉 token，以及它如何与文本拼接。' }, deep: 'content/vlm.md'  },
+
+  {
+    id: 'bench',
+    num: '78',
+    emoji: '📏',
+    name: '评测基准与数据污染',
+    en: 'Benchmarks & Data Contamination',
+    cat: 'llm',
+    diff: 3,
+    accent: '#34d399',
+    tagline: '榜单分数可能是「背过答案」——考题混进训练集，分数虚高而真实能力没变；评测的攻防是 LLM 时代的隐藏战场。',
+    intro: {
+      what: '研究「如何可靠地衡量大模型能力」的工程：静态基准（MMLU/GSM8K/HumanEval）的构建、评测方法（zero/few-shot、CoT）与数据污染（考题泄入训练语料）的检测和防范。',
+      problem: '网络爬取的语料天然包含基准考题及答案——模型可能是在「背题」而不是「会做题」；榜单分数与真实能力的差距随模型规模和爬取量增大而放大。',
+      idea: '污染让「基准分数」与「新题分数」之间出现系统性裂口。检测：n-gram/嵌入重叠检索、成员推断（模型认得旧题）、时间切割（只用基准发布后的语料训练）、改写重考（换数字答案应不变）。'
+    },
+    principle: {
+      text: [
+        '污染的数学：设真实能力为 p₀，污染比例 c，记忆强度 m——基准分数 ≈ p₀ + c·(1−p₀)·m。c 或 m 越大，虚高越多，而新题分数不变。',
+        '检测三件套：语料侧（把基准题与训练集做 n-gram/语义相似度检索，最直接）；模型侧（成员推断、对旧题的困惑度异常低）；评测侧（时间切割、动态换题重考）。',
+        '更根本的对策：私有动态基准（定期换题）、生成式评测（现场出新题）、真实任务 A/B（最终只有用户行为作数）。'
+      ],
+      formula: {
+        html: '<span class="fn">基准分</span> ≈ <span class="sym">p</span><sub>0</sub> + <span class="sym">c</span> · (1−<span class="sym">p</span><sub>0</sub>) · <span class="sym">m</span>，　<span class="fn">新题分</span> = <span class="sym">p</span><sub>0</sub>',
+        note: '虚高量 = c·(1−p₀)·m：污染比例 × 记忆强度决定「背题红利」。这就是为什么榜单领先 ≠ 产品领先。'
+      }
+    },
+    example: {
+      analogy: '考前混进了原题库：模拟卷从 70 分涨到 95 分，但真考场上换了数字的新题依然 70 分——那 25 分就是「背题」，不是「学会」。',
+      mini: 'GSM8K（2021 发布）的题目大量出现在 Common Crawl 的习题网站里；后期模型在该榜上饱和（>95%），但换成同难度的私有力学题立刻掉到 80% 以下——裂口就是污染证据。'
+    },
+    pros: ['静态基准便宜、可复现、可横向比较，仍是迭代最快的反馈信号', '污染检测方法成熟（重叠检索即可抓到大部分）', '动态/私有基准可以持续提供干净信号'],
+    cons: ['公开基准注定会被污染（发布即泄漏）', 'benchmark hacking：针对基准的定向优化扭曲了能力分布', '单一数字掩盖能力剖面（强数学弱代码 vs 反之）'],
+    history: [
+      { year: '2020~21', text: 'MMLU / GSM8K / HumanEval 相继发布，成为 LLM「高考三件套」。' },
+      { year: '2023', text: '研究集中披露爬虫语料吸收基准考题；各家开始做去污染（decontamination）流程。' },
+      { year: '2024', text: 'GSM1k（私有力学版 GSM8K）、LiveBench（按月换题）等动态基准出现；「榜单通胀」成为共识。' },
+      { year: '至今', text: '评测转向真实任务、人工盲测（Chatbot Arena 式 Elo）与自动生成式评测的组合。' }
+    ],
+    use: ['训练前对语料做去污染（重叠过滤）', '用改写/换数重考验证「会做」还是「背过」', '组合多个基准 + 动态基准交叉验证能力声明'],
+    avoid: ['把单一榜单当采购/立项依据', '用基准题目做 few-shot 示例（等于开卷考）', '忽视基准自身的错误答案与偏差（人工标注也有错）'],
+    learn: [
+      '在演示里拖动 <strong>污染比例与记忆强度</strong>，看基准分与新题分的裂口如何变化。',
+      '理解虚高公式里 <strong>c、m 各自的作用</strong>（模型再强背不动=虚高有限；记忆差=污染也无害）。',
+      '掌握 <strong>n-gram 重叠检测</strong> 的具体做法（10-gram 精确匹配是最简版）。',
+      '进阶：读 GSM1k 论文，看「私有力学基准」如何量化既有模型的污染程度。'
+    ],
+    demo: { id: 'bench', title: '评测 · 数据污染模拟', note: '拖动「污染比例」：考题混进训练集，基准分数立刻虚高，新题分数不变——虚高差值就是污染信号。' }, deep: 'content/bench.md'  },
 
   {
     id: 'hpo',
-    num: '75',
+    num: '79',
     emoji: '🎛️',
     name: '超参数优化与贝叶斯搜索',
     en: 'Hyperparameter Optimization',
@@ -3857,12 +3999,11 @@ const TOPICS = [
       '搞清 <strong>随机搜索为何常胜网格搜索</strong>。',
       '知道 <strong>Hyperband/ASHA 早停</strong> 适合什么场景。'
     ],
-    demo: { id: 'hpo', title: '调参 · 贝叶斯搜索演示', note: '逐步采样，看代理模型的均值/不确定性如何更新，采样点如何向最优区域集中。' }
-  },
+    demo: { id: 'hpo', title: '调参 · 贝叶斯搜索演示', note: '逐步采样，看代理模型的均值/不确定性如何更新，采样点如何向最优区域集中。' }, deep: 'content/hpo.md'  },
 
   {
     id: 'semi',
-    num: '76',
+    num: '80',
     emoji: '🌗',
     name: '半监督与主动学习',
     en: 'Semi-Supervised & Active Learning',
@@ -3906,12 +4047,11 @@ const TOPICS = [
       '搞清 <strong>自训练与一致性正则</strong> 的区别。',
       '知道 <strong>不确定性采样</strong> 是主动学习的核心准则。'
     ],
-    demo: { id: 'semi', title: '半监督 · 未标注数据的作用', note: '切换「只用标注 / 加上未标注」，看决策边界如何从偏移被拉回到正确的分界上。' }
-  },
+    demo: { id: 'semi', title: '半监督 · 未标注数据的作用', note: '切换「只用标注 / 加上未标注」，看决策边界如何从偏移被拉回到正确的分界上。' }, deep: 'content/semi.md'  },
 
   {
     id: 'speech',
-    num: '77',
+    num: '81',
     emoji: '🎙️',
     name: '语音识别与合成',
     en: 'Speech Recognition & Synthesis (ASR/TTS)',
@@ -3955,6 +4095,101 @@ const TOPICS = [
       '搞清 <strong>CTC 的 blank 与折叠规则</strong> 解决什么。',
       '知道 <strong>ASR 与 TTS</strong> 是互逆的两条流水线。'
     ],
-    demo: { id: 'speech', title: '语音 · 波形到文字', note: '看波形被切成帧、转成 Mel 频谱，再按时间对齐解码成文字。' }
-  }
+    demo: { id: 'speech', title: '语音 · 波形到文字', note: '看波形被切成帧、转成 Mel 频谱，再按时间对齐解码成文字。' }, deep: 'content/speech.md'  },
+
+  {
+    id: 'tts',
+    num: '82',
+    emoji: '🔊',
+    name: '语音合成 TTS',
+    en: 'Text-to-Speech',
+    cat: 'app',
+    diff: 4,
+    accent: '#2dd4bf',
+    tagline: '把文字变成声音的四代技术：拼接录音 → 参数合成 → 神经声码器 → LLM 式语音——越来越像人，也越来越能「即兴」。',
+    intro: {
+      what: '将文本转换为语音波形的技术。现代管线 = 文本前端（分词、注音、韵律）+ 声学模型（文字→频谱参数）+ 声码器（参数→波形）。',
+      problem: '语音是连续高维信号（每秒上万采样点），而文字是离散符号——中间的「怎么读」（多音字、声调、停顿、语气）与「什么音色」（共振峰、音高）都要模型决定。',
+      idea: '人说话 = 声带脉冲（基频 F0）过声道共鸣腔（共振峰 F1/F2/F3）。把合成拆成「源+滤波」两个可控部分，或干脆让神经网络端到端地从字直接学出波形。'
+    },
+    principle: {
+      text: [
+        '经典源-滤波模型：声带产生谐波串（基频 F0 决定音高），声道形状选择性放大某些频段（共振峰决定元音音色）——参数合成（本站演示）就是在算这两个东西。',
+        '神经 TTS 两阶段：声学模型（Tacotron2/FastSpeech2：文本→Mel 频谱）+ 声码器（WaveNet/HifiGAN：Mel→波形）；FastSpeech2 用非自回归并行出谱，速度快数十倍。',
+        'LLM 式语音（VALL-E/Codec-SLM 类）：音频离散化成 token（codec），语音生成变成「下一个 token 预测」——于是 inherits LLM 的零样本能力：3 秒样本克隆音色、可即兴对话。'
+      ],
+      formula: {
+        html: '<span class="sym">s</span>(<span class="sym">t</span>) = <span class="sym">Σ</span><sub>k</sub> <span class="frac"><span class="num"><span class="sym">A</span>(<span class="sym">k f₀</span>)</span><span class="den"><span class="sym">k</span></span></span> sin(2<span class="sym">πk f₀</span><span class="sym">t</span>)，　<span class="sym">A</span>(<span class="sym">f</span>) = <span class="fn">声道共鸣</span>(<span class="sym">F₁</span>, <span class="sym">F₂</span>)',
+        note: '源-滤波合成的骨架：谐波串（源）按共振峰加权（滤波）——参数合成时代一句话的物理模型，也是本站演示实时计算的公式。'
+      }
+    },
+    example: {
+      analogy: '乐器类比：声带是琴弦（定音高 F0），嘴巴喉咙是共鸣箱（定音色 F1/F2/F3）。说「啊」和「衣」就是同一根弦换了共鸣箱形状。',
+      mini: '同一句「你好」，改 F0 轨迹（330→380Hz vs 平直）立刻从「疑问」变「陈述」；改 F1/F2 就是换了元音——声调和音色是两条独立的控制轴。'
+    },
+    pros: ['内容创作/无障碍/智能助手的刚需技术', '神经 TTS 自然度已接近真人（MOS 4.3+/5）', 'LLM 式语音支持零样本克隆与即兴交互'],
+    cons: ['长文本的韵律与情感仍不如专业配音', '音色克隆的滥用风险（声纹诈骗、深度伪造）', '流式低延迟与高质量难兼得'],
+    history: [
+      { year: '1939', text: 'Voder（贝尔实验室）用电路实现共振峰合成，语音合成起点。' },
+      { year: '1990s', text: '拼接式 TTS（从录音库切音拼接）商用，但机械感强。' },
+      { year: '2016~20', text: 'WaveNet → Tacotron2 → FastSpeech2 + HifiGAN：端到端神经 TTS 自然度飞跃，工业普及。' },
+      { year: '2023+', text: 'VALL-E 等把语音变成 token 用 LLM 建模：3 秒克隆音色、实时对话语音助手（GPT-4o 式）成为标配。' }
+    ],
+    use: ['有声书/新闻播报/视频配音（批量低成本）', '无障碍阅读（视障辅助）与智能助手语音交互', '实时翻译同传、游戏 NPC 动态台词'],
+    avoid: ['对情感细腻度要求极高的广告级配音（仍需人类）', '未授权克隆他人音色（法律与伦理红线）', '极低延迟场景上用重自回归模型（选流式架构）'],
+    learn: [
+      '在演示里点「播放声音」，对照波形与 F0/共振峰轨迹听懂声调怎么来的。',
+      '理解 <strong>源-滤波模型</strong>：F0 是音高、F1/F2 是元音音色。',
+      '分清 <strong>声学模型与声码器</strong> 两阶段的分工。',
+      '进阶：读 VALL-E——看「语音=token、生成=LM」如何统一 ASR/TTS/翻译。'
+    ],
+    demo: { id: 'tts', title: 'TTS · 共振峰合成', note: '选一句话点「播放声音」：音节被拆成基频轨迹 + 共振峰目标，逐样本叠加谐波实时合成。' }, deep: 'content/tts.md'  },
+
+  {
+    id: 'dp',
+    num: '83',
+    emoji: '🔒',
+    name: '差分隐私',
+    en: 'Differential Privacy',
+    cat: 'app',
+    diff: 4,
+    accent: '#2dd4bf',
+    tagline: '给统计结果注入恰到好处的噪声，让「任何一个人在不在数据里」都几乎无法被反推——隐私成为可数学证明的属性。',
+    intro: {
+      what: '隐私保护的数学框架：对查询结果加校准噪声，使得任意单个个体的加入或退出，对输出分布的影响都被限制在 e^ε 因子内。代表技术是 Laplace 机制与高斯机制。',
+      problem: '「匿名化」并不可靠：噪声删除姓名后，邮编+生日+性别组合仍能重新识别 87% 的美国人（Sweeney 的著名研究）；聚合统计也可能被差分攻击反推出个体（「是否包含某条记录」的查询差值）。',
+      idea: '不看「发布的结果像不像有隐私」，而是定义并证明「结果对单个个体不敏感」：相邻数据集（差一个人）上的输出分布几乎相同（比值 ≤ e^ε），任何攻击者的后验推断都被钳制。'
+    },
+    principle: {
+      text: [
+        '定义：对只差一个个体的相邻数据集 D、D\'，机制 M 满足 P[M(D)∈S] ≤ e^ε · P[M(D\')∈S]——ε 就是「隐私预算」，越小越私密。',
+        'Laplace 机制：数值查询加 Laplace(Δf/ε) 噪声，Δf 是查询的敏感度（单个体能改变结果的最大幅度，计数查询 Δf=1）。',
+        '组合定理：发布 k 次的总预算约 k·ε（串行组合）——隐私是消耗品，每次查询都在花钱，必须有预算管理。'
+      ],
+      formula: {
+        html: 'P[<span class="fn">M</span>(<span class="sym">D</span>) ∈ <span class="sym">S</span>] ≤ e<sup><span class="sym">ε</span></sup> · P[<span class="fn">M</span>(<span class="sym">D</span>′) ∈ <span class="sym">S</span>]，　<span class="fn">M</span>(<span class="sym">D</span>) = <span class="fn">f</span>(<span class="sym">D</span>) + <span class="fn">Lap</span>(<span class="frac"><span class="num">Δ<span class="fn">f</span></span><span class="den"><span class="sym">ε</span></span></span>)',
+        note: '左：差分隐私的严格定义（相邻数据集输出分布几乎不变）；右：Laplace 机制——噪声尺度 = 敏感度/ε。'
+      }
+    },
+    example: {
+      analogy: '投票计票员故意报一个四舍五入的数：你投没投这一票，从公布的数字里几乎看不出差别——但整体统计（谁当选）仍然准确。',
+      mini: '「这个街区平均收入 45,200 元」：反查某人是否参与只需对比有无他的两次查询差值。加 Laplace(1/ε) 噪声后，单个体的影响被噪声淹没，而 10 万人级别的统计依然可用。'
+    },
+    pros: ['可证明、可量化的隐私保证（不依赖「攻击者不会想到」的假设）', '与查询类型无关：计数、直方图、机器学习训练都能套机制', '组合定理让多轮发布的总泄露可控（预算制度）'],
+    cons: ['隐私-效用天然权衡：ε 小噪声大，精度下降', '预算管理复杂：多次分析持续消耗，长期数据资产要精打细算', '纯 DP 训练大模型代价大（梯度裁剪+噪声，精度损失明显）'],
+    history: [
+      { year: '2006', text: 'Dwork 等提出差分隐私的严格定义与 Laplace 机制，密码学视角进入统计发布。' },
+      { year: '2016', text: 'Abadi 等提出 DP-SGD（梯度裁剪+噪声的差分隐私深度学习）。' },
+      { year: '2019', text: '苹果在 iOS（键盘/表情统计）、Google 在 Chrome（使用统计）大规模部署本地化差分隐私。' },
+      { year: '2023+', text: 'DP 训练语言模型（含 DP-LoRA）与联邦学习深度融合；各国隐私法规（GDPR 等）开始认可 DP 作为合规手段。' }
+    ],
+    use: ['人口统计/医疗数据的对外发布（ Census 2020 正式采用）', '设备端遥测（键盘建议、热度榜——本地化 DP）', '联邦学习的隐私加固（DP-SGD + 安全聚合）'],
+    avoid: ['ε 设得很大还宣称「有差分隐私」（形同虚设）', '忽略组合定理：无限次「轻微泄露」会累计成大泄露', '把匿名化/去标识化当成差分隐私的替代品'],
+    learn: [
+      '在演示里调 <strong>ε</strong> 再多点几次「发布」，看噪声与精度的跷跷板。',
+      '理解定义里 <strong>「相邻数据集」与 e^ε</strong> 为什么构成严格保证。',
+      '记住 <strong>敏感度 Δf</strong> 决定噪声大小（计数=1，求和=最大值）。',
+      '进阶：读 DP-SGD（梯度裁剪 + 噪声乘子），看差分隐私如何进入深度学习训练。'
+    ],
+    demo: { id: 'dp', title: '差分隐私 · Laplace 机制', note: '调 ε 再点「发布一次」：每次查询都注入 Laplace 噪声——单个体在不在数据里，结果几乎不变。' }, deep: 'content/dp.md'  }
 ];
