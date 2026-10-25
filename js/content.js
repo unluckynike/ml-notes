@@ -60,32 +60,32 @@ const ROADMAP = [
   {
     title: '进阶与应用',
     color: '#c084fc',
-    items: ['GAN 生成模型', '强化学习 · 策略梯度 · DQN', '迁移学习', '推荐系统', '异常检测', '联邦学习', '差分隐私', '具身智能', '语音合成 TTS']
+    items: ['GAN 生成模型', '强化学习 · 策略梯度 · DQN', '迁移学习', '推荐系统', '异常检测', '世界模型与自动驾驶', '联邦学习', '差分隐私', '具身智能', '语音对话系统', '语音合成 TTS']
   },
   {
     title: '计算机视觉',
     color: '#38bdf8',
-    items: ['ResNet 残差网络', '目标检测 YOLO', '图像分割 U-Net', 'OCR 文档智能', '数据增强', '对抗鲁棒性', '3D 视觉 NeRF', '视觉 Transformer']
+    items: ['ResNet 残差网络', '目标检测 YOLO', '图像分割 U-Net', '视频理解', 'OCR 文档智能', '数据增强', '对抗鲁棒性', '3D 视觉 NeRF', '视觉 Transformer']
   },
   {
     title: '生成模型',
     color: '#c084fc',
-    items: ['VAE 变分自编码器', '扩散模型 DDPM', '扩散加速采样 DDIM', '文生图 Stable Diffusion', '图像控制编辑 ControlNet', '视频生成', 'CLIP 多模态']
+    items: ['VAE 变分自编码器', '扩散模型 DDPM', '扩散加速采样 DDIM', '流匹配', '文生图 Stable Diffusion', '图像控制编辑 ControlNet', '视频生成', 'CLIP 多模态']
   },
   {
     title: '大语言模型',
     color: '#34d399',
-    items: ['Tokenization 分词', '词嵌入 Word2Vec', 'BERT 编码器', 'GPT 架构与预训练', '位置编码与长上下文', '微调与 LoRA', 'RLHF 对齐', '分布式训练与并行', '提示工程', '推理优化与部署', '模型量化', '思维链与推理模型', '多模态 VLM', '评测基准与数据污染', 'AI 安全与对齐']
+    items: ['数据工程与合成数据', 'Tokenization 分词', '词嵌入 Word2Vec', 'BERT 编码器', 'GPT 架构与预训练', '位置编码与长上下文', '上下文工程', '微调与 LoRA', 'RLHF 对齐', '分布式训练与并行', '提示工程', '推理优化与部署', '模型量化', '思维链与推理模型', '代码生成与结构化解码', '多模态检索与嵌入', '数学推理', '多模态 VLM', '评测基准与数据污染', 'AI 安全与对齐']
   },
   {
     title: '智能体 Agent',
     color: '#fb7185',
-    items: ['RAG 检索增强生成', 'Agent 与工具调用', '计算机使用 CUA', '多智能体协作']
+    items: ['RAG 检索增强生成', '信息检索 BM25', '知识图谱', 'Agent 与工具调用', '计算机使用 CUA', '多智能体协作']
   },
   {
     title: '工程方法论',
     color: '#f59e0b',
-    items: ['AI 历史与流派', '特征工程', '模型评估与调参', '共形预测', '因果推断', '序列预测·时间序列', '时间序列 ARIMA', 'MLOps 与监控']
+    items: ['AI 历史与流派', '特征工程', '模型评估与调参', 'LLM 评测与裁判', 'AutoML', '机制可解释性', '算法公平性', '共形预测', '因果推断', '序列预测·时间序列', '时间序列 ARIMA', 'MLOps 与监控', 'AI 芯片与算力']
   }
 ];
 
@@ -2547,8 +2547,51 @@ const TOPICS = [
   },
 
   {
-    id: 'conformal',
+    id: 'fairness',
     num: '50',
+    emoji: '⚖️',
+    name: '算法公平性',
+    en: 'Algorithmic Fairness',
+    cat: 'method',
+    diff: 3,
+    accent: '#f59e0b',
+    tagline: '三种「公平」在数学上互不相容：统计均等、机会平等、校准——拖动审批阈值看它们互相打架，公平的选型是价值判断不是技术优化。',
+    intro: {
+      what: '算法公平性研究机器学习决策对不同群体（性别/种族/地域）的系统性差异：度量（统计均等/机会平等/校准）、来源（数据偏移/标签偏差/基础率差异）与缓解（预处理/训练中/后处理）。',
+      problem: '模型在整体准确率 95% 的背后，可能对某群体的错误率是另一群体的 3 倍——信贷/招聘/医疗里这构成现实伤害与合规风险（算法备案/EEOC）。',
+      idea: '先度量（分群审计）再定位（偏差来自数据还是标签还是阈值）后缓解（重采样/约束优化/分组阈值）——并认识到三种公平定义在基础率不同时数学上不可兼得。'
+    },
+    principle: {
+      text: [
+        '统计均等（demographic parity）：各群体通过率相同——基础率不同时会「配额化」，牺牲准确率。',
+        '机会平等（equal opportunity）：真实合格者的通过率（TPR）相同——「该过的都过」，但总通过率可以不同。',
+        '校准（calibration）：同分数下各群体的实际违约率一致——「分数含义跨群体统一」，与前两者不可兼得（ impossibility 定理）。选择哪个定义是政策与法律问题。'
+      ],
+      formula: {
+        html: 'Impossibility：基础率不同时，统计均等 与 校准 + TPR 相等 不可同时成立',
+        note: '一组不可能定理说明公平定义之间的冲突是数学结构性的——工程的任务是把取舍摆上台面，而非假装有免费午餐。'
+      }
+    },
+    example: {
+      analogy: '三家医院的分诊规则：按「病情轻重」是机会平等（该救的都救）；按「各院通过率一样」是统计均等（配额）——病情分布不同时，两个目标必然打架。',
+      mini: '演示里组 B 的分数分布系统性偏移：拖动阈值，通过率差、TPR 差此消彼长——任何单一阈值都无法同时让三种指标相等。'
+    },
+    pros: ['分群审计让隐性伤害显性化', '分组阈值/校准是低成本后处理手段', '公平性指标已进入法规（信贷/雇佣）'],
+    cons: ['不可能定理：多目标无法同时满足', '群体定义本身粗颗粒（交叉群体更差）', '公平与隐私张力（分群审计需要群体数据）'],
+    history: [
+      { year: '2012~16', text: 'ProPublica 的 COMPAS 报告引爆算法公平议题；impossibility 定理确立。' },
+      { year: '2018+', text: 'Google/微软发布 Fairness 工具箱（AIF360/What-If）；Lipton 提出校准的伦理争论。' },
+      { year: '2021+', text: '欧盟 AI Act 把高风险系统的公平审计写入法规。' },
+      { year: '至今', text: 'LLM 时代扩展到表征偏见（性别/文化刻板印象）的评测与缓解。' },
+    ],
+    use: ['信贷/雇佣/医疗等高风险决策的审计', 'LLM 输出的表征偏见评测（红队一环）', '数据采集与标注的偏差治理'],
+    avoid: ['只看整体指标不做分群（伤害藏在分群里）', '把公平指标当超参自动调（价值判断不能外包）', '一次性审计（分布漂移会让公平性退化）'],
+    learn: ['在演示里拖 <strong>阈值</strong>，看三指标如何打架。', '理解 <strong>不可能定理</strong> 为什么成立（基础率不同）。', '掌握 <strong>审计三步</strong>：度量→定位→缓解。', '进阶：读 COMPAS 案例的两种读法（ProPublica vs Northpointe）。'],
+    demo: { id: 'fairness', title: '公平性 · 指标与权衡', note: '两组分数分布 + 阈值滑杆：通过率/TPR/校准的冲突实时可见——公平选型是价值判断。' }, deep: 'content/fairness.md'  },
+
+  {
+    id: 'conformal',
+    num: '51',
     emoji: '🎯',
     name: '共形预测',
     en: 'Conformal Prediction',
@@ -2596,7 +2639,7 @@ const TOPICS = [
 
   {
     id: 'resnet',
-    num: '51',
+    num: '52',
     emoji: '🛣️',
     name: 'ResNet 残差网络',
     en: 'Residual Network (ResNet)',
@@ -2644,7 +2687,7 @@ const TOPICS = [
 
   {
     id: 'yolo',
-    num: '52',
+    num: '53',
     emoji: '🎯',
     name: '目标检测 · YOLO',
     en: 'Object Detection (YOLO)',
@@ -2692,7 +2735,7 @@ const TOPICS = [
 
   {
     id: 'segment',
-    num: '53',
+    num: '54',
     emoji: '🧩',
     name: '图像分割 · 语义分割',
     en: 'Image Segmentation (U-Net)',
@@ -2740,7 +2783,7 @@ const TOPICS = [
 
   {
     id: 'augment',
-    num: '54',
+    num: '55',
     emoji: '🪞',
     name: '数据增强',
     en: 'Data Augmentation',
@@ -2788,7 +2831,7 @@ const TOPICS = [
 
   {
     id: 'adv',
-    num: '55',
+    num: '56',
     emoji: '🛡️',
     name: '对抗鲁棒性',
     en: 'Adversarial Robustness',
@@ -2836,7 +2879,7 @@ const TOPICS = [
 
   {
     id: 'ocr',
-    num: '56',
+    num: '57',
     emoji: '📄',
     name: 'OCR 与文档智能',
     en: 'OCR & Document AI',
@@ -2884,7 +2927,7 @@ const TOPICS = [
 
   {
     id: 'nerf',
-    num: '57',
+    num: '58',
     emoji: '🧊',
     name: '3D 视觉 NeRF',
     en: 'NeRF & 3D Vision',
@@ -2931,8 +2974,51 @@ const TOPICS = [
     demo: { id: 'nerf', title: 'NeRF · 射线体渲染', note: '每条像素射线步进采样、按密度 alpha 合成——拖拽旋转视角实时重渲染。' }, deep: 'content/nerf.md'  },
 
   {
+    id: 'videounder',
+    num: '59',
+    emoji: '🎥',
+    name: '视频理解',
+    en: 'Video Understanding',
+    cat: 'cv',
+    diff: 4,
+    accent: '#38bdf8',
+    tagline: '一分钟视频数千帧，全喂必爆——视频理解的第一个问题是「选哪几帧」：均匀/关键帧/流式采样，同一预算下精度天差地别。',
+    intro: {
+      what: '视频理解 = 时间维的视觉理解：动作识别（Kinetics）、时序定位（哪段发生什么）、视频问答（VideoQA）与长视频摘要；架构上以「图像编码器 + 时间建模」为主。',
+      problem: '帧率高、帧间冗余极大（相邻帧 95% 相同）、关键信息稀疏（几秒的转折决定整段语义）——算力预算永远不够全量喂入。',
+      idea: '两层方案：采样层（均匀 fps/关键帧检测/自适应）决定「看哪些帧」；时间建模层（3D 卷积/时间注意力/帧间 token 交互）决定「帧之间怎么关联」（见视频生成深读的对称问题）。'
+    },
+    principle: {
+      text: [
+        '采样策略即先验：均匀采样简单但漏瞬时事件；关键帧/摘要采样省预算但依赖检测器；流式（在线）模型只看过去、适合直播场景。',
+        '时间建模三代：3D 卷积（C3D/I3D 局部时间感受野）→ 时间注意力（TimeSformer 全局交互）→ 序列化 token（VideoMAE 掩码预训练 + LLM 对接做 VideoQA）。',
+        '长视频的分水岭：把「视频 token」直接对接 LLM（视频版 RAG/摘要）——帧 token 的数量经济学成为核心约束（Qwen-VL-Video/InternVideo 的竞争力所在）。'
+      ],
+      formula: {
+        html: '信息量 = Σ 所选帧的判别力，预算 = 帧数 × 每 token 成本 → 采样即优化',
+        note: '在「帧数预算」约束下最大化判别信息——均匀采样是基线，关键帧/不确定性采样是优化，流式是部署形态。'
+      }
+    },
+    example: {
+      analogy: '看球赛录像：快进扫一遍（均匀）能看懂剧情，但要复盘关键进球必须跳到转折点（关键帧）——两者花费时间相同，信息量天差地别。',
+      mini: '演示里识别「上-下-上」运动：均匀 4 帧漏掉转折几乎必错，同样 8 帧预算下关键帧采样接近全对——「选哪几帧」比「模型多好」更先起作用。'
+    },
+    pros: ['采样策略对精度的影响立竿见影（零成本换收益）', 'VideoMAE 类自监督让时间建模可复用', '与 LLM 对接打开长视频问答/摘要的大门'],
+    cons: ['长视频 token 经济学仍未解决（小时级视频）', '细粒度时序定位（精确到秒）仍难', '音频/字幕与画面的联合建模工程复杂'],
+    history: [
+      { year: '2014~18', text: 'C3D/I3D 把 3D 卷积带进动作识别；Kinetics 数据集定标。' },
+      { year: '2021', text: 'TimeSformer/ViT 系时间注意力化；VideoMAE 掩码自监督。' },
+      { year: '2023', text: 'LLM 对接视频（Video-LLaMA 等），VideoQA 范式转移。' },
+      { year: '2025+', text: '长视频（流式/小时级）与音画联合理解是主战场。' },
+    ],
+    use: ['监控/直播的实时事件检测', '视频检索与摘要（素材库管理）', '多模态 Agent 的视频感知端'],
+    avoid: ['全量逐帧处理（除非算力无限）', '忽视音频/字幕通道（信息浪费过半）', '用图像指标评视频（时序指标不同）'],
+    learn: ['在演示里对比 <strong>均匀/关键帧</strong> 的识别率差。', '理解 <strong>采样即先验</strong>：选错帧神仙模型也救不回。', '了解 <strong>VideoMAE</strong>（时间掩码重建）的预训练思路。', '进阶：读 Qwen-VL-Video 的时间 token 经济学设计。'],
+    demo: { id: 'videounder', title: '视频理解 · 帧采样', note: '识别「上-下-上」运动：同预算下均匀采样漏转折、关键帧采样保转折——选哪几帧先于模型好坏。' }, deep: 'content/videounder.md'  },
+
+  {
     id: 'vit',
-    num: '58',
+    num: '60',
     emoji: '👁️',
     name: '视觉 Transformer',
     en: 'Vision Transformer (ViT)',
@@ -2980,7 +3066,7 @@ const TOPICS = [
 
   {
     id: 'vae',
-    num: '59',
+    num: '61',
     emoji: '🎲',
     name: '变分自编码器 VAE',
     en: 'Variational Autoencoder',
@@ -3029,7 +3115,7 @@ const TOPICS = [
 
   {
     id: 'diffusion',
-    num: '60',
+    num: '62',
     emoji: '🌫️',
     name: '扩散模型 · DDPM',
     en: 'Diffusion Model (DDPM)',
@@ -3079,7 +3165,7 @@ const TOPICS = [
 
   {
     id: 'control',
-    num: '61',
+    num: '63',
     emoji: '🎛️',
     name: '图像控制编辑',
     en: 'ControlNet & Image Editing',
@@ -3125,8 +3211,51 @@ const TOPICS = [
     demo: { id: 'control', title: 'ControlNet · 条件控制', note: '同一个噪声起点，切换条件图：结构完全由条件决定，纹理质感与噪声同源。' }, deep: 'content/control.md'  },
 
   {
+    id: 'flowmatch',
+    num: '64',
+    emoji: '➡️',
+    name: '流匹配',
+    en: 'Flow Matching & Rectified Flow',
+    cat: 'gen',
+    diff: 5,
+    accent: '#c084fc',
+    tagline: '扩散的下一代采样范式：学一个把噪声「直运」到数据的速度场——确定性直线轨迹，几步出图（SD3/FLUX/Movie Gen 的共同选择）。',
+    intro: {
+      what: '流匹配（Flow Matching）与整流流（Rectified Flow）学习一个速度场 v(x,t)，沿概率流 ODE 从噪声分布推到数据分布；与 DDPM 的随机 SDE 相比路径直、步数少、理论更简。',
+      problem: '扩散 SDE 采样要几百步（每步都是「加噪-预测-去噪」的随机修正）；想少步就得蒸馏——有没有「原生就能少步」的训练目标？',
+      idea: '把噪声与数据用直线插值构造「概率路径」，回归其速度场 v = x1 − x0（条件期望）；轨迹是直线，ODE 求解器 1~4 步即可高质量采样。'
+    },
+    principle: {
+      text: [
+        '与扩散的等价性：两者都在建模「噪声→数据」的分布变换，只是路径族不同（SDE vs ODE、弯曲 vs 直线）——扩散模型也可以用 ODE 采样（见 DDIM 深读），流匹配把它做成训练目标本身。',
+        '整流流（ReFlow）：用「噪声-数据」配对训练直线速度场；迭代整流让轨迹更直（把两步弯路拉直）——1 步生成成为可能。',
+        '落地：SD3/FLUX/Movie Gen 全部采用流匹配/MMDiT 骨干；训练更稳（无噪声调度表调参）、采样更快、理论更干净。'
+      ],
+      formula: {
+        html: 'x<sub>t</sub> = (1−t)·x₀ + t·x₁,　v(x<sub>t</sub>, t) = x₁ − x₀（条件期望即目标速度场）',
+        note: '直线插值的速度场是常数（沿路径不变）——ODE 积分一步到位；训练目标只是「回归这个速度」，无调度表、无方差表。'
+      }
+    },
+    example: {
+      analogy: '机场摆渡车（扩散：绕圈停靠站多）vs 直航（流匹配：起飞直达）——同样从 A 到 B，路线设计决定了「几步到」。',
+      mini: '演示里同一批噪声运往双月分布：粉弯线（扩散 40 步随机路径）vs 青直线（流匹配 1 步等效）——终点相同，路径哲学完全不同。'
+    },
+    pros: ['少步采样原生支持（1~4 步高质量）', '训练简单稳定（回归速度场，无调度超参）', '确定性轨迹 → 可编辑/可插值（同 DDIM 红利）'],
+    cons: ['配对独立时最优传输结构复杂（OT-CFM）', '小步数下细节仍逊多步扩散（边缘场景）', '生态与工具链成熟度略晚于 SD1.5 系'],
+    history: [
+      { year: '2022', text: 'Lipman 等提出 Flow Matching；Liu 等提出 Rectified Flow（同期独立工作）。' },
+      { year: '2023', text: 'SDXL 时代后期社区开始实验 RF 采样器。' },
+      { year: '2024', text: 'SD3/FLUX 采用 MM-DiT + 流匹配，少步高质量成主流。' },
+      { year: '2025+', text: '视频模型（Movie Gen 等）沿用；「少步原生」成为生成模型新默认。' },
+    ],
+    use: ['新文生图/视频模型的默认训练目标', '实时应用（1~4 步出图/出帧）', '需要确定性轨迹的编辑工作流'],
+    avoid: ['已有成熟扩散管线的存量维护（迁移需重训）', '极高质量要求的离线场景（多步扩散仍略优）', '理论洁癖式迁移（收益要在重训时才兑现）'],
+    learn: ['在演示里对比 <strong>直线与弯曲</strong> 轨迹的步数差异。', '理解 <strong>速度场回归</strong> 与扩散噪声预测的对应。', '搞清 <strong>整流流迭代</strong> 如何让路径更直。', '进阶：读 SD3 论文的 Rectified Flow 章节。'],
+    demo: { id: 'flowmatch', title: '流匹配 · 直路 vs 弯路', note: '同一噪声运往双月分布：粉弯线（扩散 40 步）vs 青直线（流匹配 1 步等效）。' }, deep: 'content/flowmatch.md'  },
+
+  {
     id: 'sd',
-    num: '62',
+    num: '65',
     emoji: '🖼️',
     name: '文生图 · Stable Diffusion',
     en: 'Text-to-Image (Stable Diffusion)',
@@ -3175,7 +3304,7 @@ const TOPICS = [
 
   {
     id: 'ddim',
-    num: '63',
+    num: '66',
     emoji: '⚡',
     name: '扩散加速采样',
     en: 'DDIM & Fast Sampling',
@@ -3223,7 +3352,7 @@ const TOPICS = [
 
   {
     id: 'video',
-    num: '64',
+    num: '67',
     emoji: '🎬',
     name: '视频生成',
     en: 'Video Generation',
@@ -3270,7 +3399,7 @@ const TOPICS = [
 
   {
     id: 'clip',
-    num: '65',
+    num: '68',
     emoji: '🔗',
     name: 'CLIP 多模态对齐',
     en: 'Contrastive Language–Image Pretraining',
@@ -3318,7 +3447,7 @@ const TOPICS = [
 
   {
     id: 'word2vec',
-    num: '66',
+    num: '69',
     emoji: '🧭',
     name: '词嵌入 Word2Vec',
     en: 'Word Embeddings (Word2Vec)',
@@ -3365,8 +3494,94 @@ const TOPICS = [
     demo: { id: 'word2vec', title: 'Word2Vec · 词向量空间演示', note: '在 2D 词向量空间里做「国王 − 男人 + 女人」，看结果落点如何接近「女王」。' }, deep: 'content/word2vec.md'  },
 
   {
+    id: 'embed',
+    num: '70',
+    emoji: '🧲',
+    name: '多模态检索与嵌入',
+    en: 'Embeddings & Multimodal Retrieval',
+    cat: 'llm',
+    diff: 4,
+    accent: '#34d399',
+    tagline: '把文字、图片、表格压进同一个向量空间——「用什么搜什么」：余弦相似度召回 + 交叉编码器重排，是 RAG 与向量数据库的地基。',
+    intro: {
+      what: '嵌入模型将任意内容编码为语义向量（相似内容向量相近）；多模态嵌入（CLIP 式）让不同模态共享一个空间。检索管线 = 双塔召回（快）+ 交叉编码器重排（准）。',
+      problem: '关键词匹配只能命中字面相同的词（「退货」搜不到「退款流程」）；图片/表格根本没法用文本搜索——需要语义级、跨模态的匹配。',
+      idea: '对比学习训练编码器（见 CLIP 深读），使语义相似的内容在向量空间相邻；检索时用最近邻搜索（HNSW 等）快速召回，再用更精细但更慢的模型重排。'
+    },
+    principle: {
+      text: [
+        '双塔（bi-encoder）：查询与文档各自编码成向量、算余弦——文档向量可离线建库，检索毫秒级，但两塔独立编码丢失交互信息。',
+        '交叉编码器（cross-encoder）：查询+文档拼成对过模型直接打分——逐 token 交互、精度高，但每对都要前向，无法预计算。',
+        '生产管线 = 双塔粗筛 top-50~100 + 交叉编码器精排 top-3~8：粗召回保覆盖、精排保顺序——重排通常是性价比最高的单项优化（见 RAG 深读）。'
+      ],
+      formula: {
+        html: '相似度(查询, 文档) = <span class="sym">E</span><sub>q</sub> · <span class="sym">E</span><sub>d</sub> / (|<span class="sym">E</span><sub>q</sub>| |<span class="sym">E</span><sub>d</sub>|)',
+        note: '双塔的余弦相似度：向量各自离线/在线编码后做内积归一——这是可规模化检索的形态；交叉编码器则是 f(q, d) 联合打分。'
+      }
+    },
+    example: {
+      analogy: '图书馆的两层找书法：先用索引卡（双塔）从十万本书里挑出 50 本可能相关的，再逐本翻目录（交叉编码器）确定最相关的 3 本。',
+      mini: '搜「找一张猫的图」：嵌入空间里查询点最近的四个内容是「猫的照片/猫的定义/宠物销量表」——余弦召回后，交叉编码器把「猫的照片」重排到第一（图文对齐分更高）。'
+    },
+    pros: ['语义泛化：同义改写、跨语言都能命中', '多模态统一：文字搜图/表/音频', '可离线建库：增量更新便宜、检索毫秒级'],
+    cons: ['双塔无法捕捉细粒度交互（必须靠重排补）', '嵌入有幻觉相似（字面像≠语义像）', '领域迁移需要微调或换模型'],
+    history: [
+      { year: '2021', text: 'CLIP 证明图文共享嵌入空间可行，多模态检索爆发。' },
+      { year: '2022~23', text: 'E5/BGE/GTE 等文本嵌入模型在 MTEB 榜单竞赛，检索质量飞升。' },
+      { year: '2023+', text: 'RAG 兴起带动向量数据库（Milvus/LanceDB）与混合检索生态。' },
+      { year: '至今', text: '多模态检索（ColPali 视觉嵌入）与重排小模型成为标配组件。' },
+    ],
+    use: ['RAG 的检索层、语义搜索、以文搜图', '推荐/去重/聚类的向量化底座', '跨语言检索（多语嵌入共享空间）'],
+    avoid: ['需要精确匹配的场景（编号/代码名——用 BM25 混合）', '嵌入模型与领域差太远又无微调预算', '把余弦分数当概率用（只是相对排序）'],
+    learn: ['在演示里切换查询，看 <strong>召回与重排的顺序变化</strong>。', '理解 <strong>双塔与交叉编码器</strong> 的速度-精度分工。', '掌握 <strong>混合检索</strong>（BM25+向量+RRF）的组合逻辑。', '进阶：了解 late-interaction（ColBERT）——交互信息与速度的折中。'],
+    demo: { id: 'embed', title: '嵌入检索 · 召回与重排', note: '查询点按余弦取 top-4（双塔召回），再用「交叉编码器」精排——初排第 3 可能升到第 1。' }, deep: 'content/embed.md'  },
+
+  {
+    id: 'dataeng',
+    num: '71',
+    emoji: '🧹',
+    name: '数据工程与合成数据',
+    en: 'Data Engineering & Synthetic Data',
+    cat: 'llm',
+    diff: 3,
+    accent: '#34d399',
+    tagline: '模型上限由数据决定：去重、过滤、配比、合成——预训练语料流水线是「看不见的护城河」，数据质量每一分都比算力便宜。',
+    intro: {
+      what: '数据工程覆盖预训练/微调数据全流程：采集与清洗（质量分类器）、去重（MinHash/精确）、去污染（见评测基准主题）、配比实验（domain mixing）、合成数据生成（自我改进的燃料）。',
+      problem: '「垃圾进垃圾出」在 LLM 上是字面意义：语料重复会记忆化放大、低质数据拖垮损失、领域配比错则能力偏科——这些都无法靠加大算力弥补。',
+      idea: '清洗三件套：启发式规则 + 质量分类器（用「高质量种子」训练打分）+ 去重（MinHash 近似 + 精确指纹）；配比靠小规模代理实验外推；合成数据靠强模型生成 + 过滤验证。'
+    },
+    principle: {
+      text: [
+        '去重为什么第一优先：重复样本被记忆放大（重复 100 次的文本可被逐字复述）、浪费算力、污染评测——MinHash 把 N² 比对降到近似线性（演示真实计算）。',
+        '数据配比（domain mixing）：网页/代码/书籍/数学的比例显著影响能力分布——小模型上做配比实验、外推到大模型（Scaling Law 的数据维度）。',
+        '合成数据的三个等级：验证型（代码执行/数学判定，最可靠）、蒸馏型（强模型生成+过滤，Phi 系列的「教科书式数据」）、自产自销型（自指令），风险是模式坍缩与「近亲繁殖」。'
+      ],
+      formula: {
+        html: 'Jaccard(A,B) = |A∩B| / |A∪B| ≈ 签名一致率（MinHash 近似）',
+        note: 'MinHash 用 k 个哈希的最小值签名近似集合 Jaccard——签名一致比例即相似度估计，一次比对 O(k)，配合 LSH 分桶避免全对比。'
+      }
+    },
+    example: {
+      analogy: '淘金：挖出来（采集）只是开始——筛掉泥沙（清洗）、去掉重复的假金粒（去重）、按含量配矿（配比）、人造高纯金（合成）——炼出好模型靠的是选矿学。',
+      mini: '演示里 30 条语料经 MinHash+LSH 后，8 组改写重复被自动揪出（「深度学习是机器学习的一个分支」的三胞胎全部命中）——调阈值看精确率/召回率摆动。'
+    },
+    pros: ['去重立竿见影：训练更稳、评测更可信', '合成数据可规模化（Phi 系列小模型高质量的反例证明）', '配比实验可迁移（小模型结论外推）'],
+    cons: ['合成数据分布偏窄（长期自我训练会坍缩）', '质量过滤器有偏见（会系统性丢弃方言/低资源语言）', '评测污染与数据工程互相纠缠（清洗即防御）'],
+    history: [
+      { year: '2019~20', text: 'GPT-2/3 时代 Common Crawl 清洗管线（C4）公开方法论。' },
+      { year: '2021', text: 'The Pile 发布；Raffle/Deduplicate 文本去重研究兴起。' },
+      { year: '2023', text: 'Phi-1/2 证明「教科书级合成数据」小模型也能强；FineWeb 等开放语料流水线。' },
+      { year: '2025+', text: '合成数据占比持续上升；数据工程成为模型团队核心壁垒。' },
+    ],
+    use: ['预训练/继续预训练语料构建', 'SFT 数据合成与质量过滤', '领域适配（代码/医疗/法律语料混比）'],
+    avoid: ['无验证器场景盲目放合成数据', '只清洗一次（数据管线要随评测反馈迭代）', '忽视多语言/长尾群体的清洗偏见'],
+    learn: ['在演示里调 <strong>阈值</strong>，观察精确率/召回率摆动。', '理解 <strong>MinHash 为什么快</strong>（签名比对代替全文比对）。', '掌握 <strong>配比实验</strong> 的代理外推思路。', '进阶：读 FineWeb 技术报告——一条完整公开流水线。'],
+    demo: { id: 'dataeng', title: '数据工程 · MinHash 去重', note: '30 条语料真实 MinHash+LSH：8 组改写重复被自动揪出，阈值可调。' }, deep: 'content/dataeng.md'  },
+
+  {
     id: 'token',
-    num: '67',
+    num: '72',
     emoji: '✂️',
     name: 'Tokenization 分词',
     en: 'Tokenization (BPE / WordPiece)',
@@ -3415,7 +3630,7 @@ const TOPICS = [
 
   {
     id: 'bert',
-    num: '68',
+    num: '73',
     emoji: '🧩',
     name: 'BERT 与编码器模型',
     en: 'BERT & Encoder-only Models',
@@ -3464,7 +3679,7 @@ const TOPICS = [
 
   {
     id: 'gpt',
-    num: '69',
+    num: '74',
     emoji: '🔮',
     name: 'GPT 架构与预训练',
     en: 'GPT & Pretraining',
@@ -3513,7 +3728,7 @@ const TOPICS = [
 
   {
     id: 'lora',
-    num: '70',
+    num: '75',
     emoji: '🔩',
     name: '微调与 LoRA',
     en: 'Fine-tuning & LoRA',
@@ -3562,7 +3777,7 @@ const TOPICS = [
 
   {
     id: 'rlhf',
-    num: '71',
+    num: '76',
     emoji: '⚖️',
     name: 'RLHF 与对齐',
     en: 'Reinforcement Learning from Human Feedback',
@@ -3611,7 +3826,7 @@ const TOPICS = [
 
   {
     id: 'prompt',
-    num: '72',
+    num: '77',
     emoji: '💬',
     name: '提示工程',
     en: 'Prompt Engineering',
@@ -3660,7 +3875,7 @@ const TOPICS = [
 
   {
     id: 'posenc',
-    num: '73',
+    num: '78',
     emoji: '📐',
     name: '位置编码与长上下文',
     en: 'Positional Encoding & Long Context',
@@ -3710,7 +3925,7 @@ const TOPICS = [
 
   {
     id: 'inference',
-    num: '74',
+    num: '79',
     emoji: '🚀',
     name: '推理优化与部署',
     en: 'LLM Inference Optimization',
@@ -3759,7 +3974,7 @@ const TOPICS = [
 
   {
     id: 'quant',
-    num: '75',
+    num: '80',
     emoji: '📦',
     name: '模型量化',
     en: 'Model Quantization',
@@ -3807,7 +4022,7 @@ const TOPICS = [
 
   {
     id: 'cot',
-    num: '76',
+    num: '81',
     emoji: '💭',
     name: '思维链与推理模型',
     en: 'Chain-of-Thought & Reasoning Models',
@@ -3855,7 +4070,7 @@ const TOPICS = [
 
   {
     id: 'parallel',
-    num: '77',
+    num: '82',
     emoji: '🧩',
     name: '分布式训练与并行',
     en: 'Distributed Training & Parallelism',
@@ -3904,7 +4119,7 @@ const TOPICS = [
 
   {
     id: 'safety',
-    num: '78',
+    num: '83',
     emoji: '🚨',
     name: 'AI 安全与对齐',
     en: 'AI Safety & Alignment',
@@ -3950,8 +4165,179 @@ const TOPICS = [
     demo: { id: 'safety', title: 'AI 安全 · 越狱攻防', note: '四种攻击策略 × 三道防御的真实规则判定矩阵——单一防御必有盲区。' }, deep: 'content/safety.md'  },
 
   {
+    id: 'mathllm',
+    num: '84',
+    emoji: '🧮',
+    name: '数学推理',
+    en: 'Mathematical Reasoning',
+    cat: 'llm',
+    diff: 4,
+    accent: '#34d399',
+    tagline: 'LLM 的算术是「模式匹配 + 逐 token 采样」，天生不可靠——数学推理的正确姿势是：语义理解归模型、精确计算归工具、逻辑正确性归形式验证。',
+    intro: {
+      what: '研究如何让大模型可靠地做数学：思维链分步降低级联错误、工具调用消除算术错误、形式化验证（Lean）提供可证明的正确性，加上专用的数学预训练与 RL。',
+      problem: '模型直接心算多位数乘法，错误率随位数指数增长（逐位采样错误的级联）；而数学的价值恰恰在于「每一步都必须对」。',
+      idea: '三条腿：CoT 把计算分解成小步（写下来条件化后续）；工具（解释器/计算器/符号计算）把算术外置；RLVR 用「答案对错」的硬信号训练推理策略。'
+    },
+    principle: {
+      text: [
+        '算术级联：n 位运算全对概率 ≈ p^n——直接作答的 p 远低于分步（每步简单），更低于工具调用（一次调用几乎不出错）。',
+        '工具增强（Program-of-Thoughts）：模型只写「怎么算」的代码，执行交给解释器——语义与计算解耦，正确率从概率级变成工程级。',
+        '形式化路线：Lean/Metamath 里每个证明步骤被机器校验——AlphaProof/DeepSeek-Prover 把 LLM 的直觉与定理证明器的严格性结合，达到奥赛奖牌水平。'
+      ],
+      formula: {
+        html: 'P(全对) ≈ <span class="sym">p</span><sup>n</sup>：心算 p≈0.93　&lt;&lt;　竖式分步 p≈0.997　&lt;&lt;　工具 p≈0.99995',
+        note: '同样的指数结构、不同的底数：分步抬高每步正确率，工具把底数做到接近 1——位数越多差距越大（演示可拖动验证）。'
+      }
+    },
+    example: {
+      analogy: '考试允许带计算器后，粗心错的不再是被扣分的重点——考察的重心从「算得对」变成「列得对」。LLM 的进化正在重演这一步。',
+      mini: '347×28：心算一步到位（错率叠加）；竖式拆成 6 次个位乘加（每步简单但会级联）；写一行 Python 交给解释器——语义理解归模型、计算归工具。'
+    },
+    pros: ['分步+工具的实测提升巨大（GSM8K 从 50% 到 90%+）', '形式化验证给「可证明的正确」——不只像对，而是真对', '数学是 RLVR 的理想靶场（答案可自动判定）'],
+    cons: ['形式化语言生态小（Lean 定理库覆盖有限）', '几何/图类问题工具链不成熟', '过度依赖工具可能弱化模型自身数感'],
+    history: [
+      { year: '2022', text: 'CoT 显示分步推理大幅提升数学准确率。' },
+      { year: '2023', text: 'Program-of-Thoughts/PAL：代码作为推理媒介成为主流。' },
+      { year: '2024', text: 'AlphaProof 达到 IMO 银牌水平；o1 用 RLVR 训练数学长推理。' },
+      { year: '2025+', text: '开源推理模型（R1 类）把数学推理解力普及；形式化证明库加速扩张。' },
+    ],
+    use: ['科学计算/工程计算的自然语言接口', '教育场景的解题讲解与批改', 'Agent 里所有需要精确计算的环节'],
+    avoid: ['纯心算多位数运算（交给工具）', '把模型的「自信」当正确（数学必须验证）', '跳过单位/定义域检查直接信答案'],
+    learn: ['在演示里拖 <strong>位数</strong>，看心算/竖式/工具的指数差距。', '理解 <strong>「写代码代替心算」</strong>为什么是范式级改进。', '了解 <strong>形式化验证</strong> 与自然语言证明的本质区别。', '进阶：读 PAL/Program-of-Thoughts——程序作为思维链。'],
+    demo: { id: 'mathllm', title: '数学推理 · 心算/分步/工具', note: '多位数乘法三种解法的蒙特卡洛：心算/竖式/工具的正确率随位数指数分化。' }, deep: 'content/mathllm.md'  },
+
+  {
+    id: 'ir',
+    num: '85',
+    emoji: '🔎',
+    name: '信息检索',
+    en: 'Information Retrieval',
+    cat: 'agent',
+    diff: 3,
+    accent: '#fb7185',
+    tagline: 'BM25 与倒排索引——向量检索诞生前四十年里「搜索」的全部，也是今天 RAG 混合检索里不可替代的那一半。',
+    intro: {
+      what: '信息检索（IR）研究如何从大规模文档集合中找到与查询相关的内容：核心组件是倒排索引（词→文档列表的数据结构）与排序模型（TF-IDF→BM25→学习排序）。',
+      problem: '语义嵌入检索会漏掉精确词（型号、错误码、人名）；且「关键词命中」在很多场景就是用户预期——稀疏检索是语义检索的互补而非过时技术。',
+      idea: '倒排索引把「文档→词」反转成「词→文档」：查询时按词取链表求交，O(命中数) 完成亿级文档的筛选；BM25 用词频饱和 + 逆文档频率 + 长度归一给候选打分。'
+    },
+    principle: {
+      text: [
+        '倒排索引：term → postings list（文档 id + 词频 + 位置）——一次构建、增量更新、查询毫秒级，四十年搜索引擎的骨架。',
+        'BM25 三要素：idf（常见词权重低）、tf 饱和（堆砌关键词无效：贡献随词频递减）、长度归一（长文档不因词多占便宜）。',
+        '现代分工：稀疏（BM25）抓精确命中、稠密（向量）抓语义泛化，RRF 融合两者排名——生产 RAG 的默认形态（见 RAG 深读）。'
+      ],
+      formula: {
+        html: 'BM25 = <span class="sym">idf</span>(t) · <span class="frac"><span class="num">tf·(k₁+1)</span><span class="den">tf + k₁·(1−b+b·|d|/avg)</span></span>',
+        note: 'k₁ 控制词频饱和速度、b 控制长度归一强度（b=0 不归一、b=1 完全归一）——经验值 k₁=1.5、b=0.75 四十年不大改。'
+      }
+    },
+    example: {
+      analogy: '图书馆的卡片目录：按「关键词」而非按书架找书——倒排索引就是数字化的卡片抽屉，BM25 是管理员判断「哪张卡最相关」的经验法则。',
+      mini: '查询「猫 宠物」：倒排链表命中 D1/D3/D5；idf 让常见词「宠物」权重低于「猫」，长度归一防止 D5 靠长文本堆分——演示里可切 TF-IDF 对比差异。'
+    },
+    pros: ['精确词命中（型号/代码/名字）不可替代', '无需训练、可解释、增量更新便宜', '查询毫秒级，亿级文档可服务'],
+    cons: ['字面匹配不懂同义改写（要靠混合检索补）', '中文需要分词（子词切分质量影响召回）', '排序特征有限——精排要靠交叉编码器/学习排序'],
+    history: [
+      { year: '1970s~80s', text: '倒排索引与 TF-IDF 成为检索系统标准。' },
+      { year: '1994', text: 'BM25 发表——经验公式统治排序二十年。' },
+      { year: '2019', text: 'BERT 类模型进入检索（稠密检索兴起），混合形态萌芽。' },
+      { year: '至今', text: 'BM25 + 向量 + 重排的三层管线是生产标配。' },
+    ],
+    use: ['RAG 的稀疏检索通道与混合融合', '法律/医疗/代码等术语敏感场景的主力检索', '搜索引擎与电商搜索的召回层'],
+    avoid: ['纯语义泛化任务单用 BM25', '词表外的语言（分词烂则召回烂）', '把 BM25 分数跨查询比较（只是文档内排序）'],
+    learn: ['在演示里看 <strong>倒排链表与打分</strong> 的逐文档计算。', '调 <strong>TF-IDF/BM25</strong> 对比，体会长度归一的作用。', '记住 <strong>k₁ 与 b</strong> 各控制什么。', '进阶：了解学习排序（LTR）——用模型替代打分公式。'],
+    demo: { id: 'ir', title: '信息检索 · 倒排索引与 BM25', note: '小语料库上真实构建倒排索引：看 BM25 逐文档打分（词频×idf×长度归一），可切 TF-IDF 对比。' }, deep: 'content/ir.md'  },
+
+  {
+    id: 'codegen',
+    num: '86',
+    emoji: '👨‍💻',
+    name: '代码生成与结构化解码',
+    en: 'Code Generation & Structured Decoding',
+    cat: 'llm',
+    diff: 4,
+    accent: '#34d399',
+    tagline: 'LLM 写代码的两层保障：语义靠训练与验证反馈，语法靠「受约束解码」——把 JSON/DSL 的文法做成掩码加在 logits 上，格式错误率归零。',
+    intro: {
+      what: '代码生成涵盖代码补全/改写/测试生成与 Agent 的程序合成；工程关键件包括语法约束解码（grammar masking）、仓库级上下文（跨文件依赖）、执行反馈循环（跑测试→修错）。',
+      problem: '自由采样的 LLM 会产出括号不配对、JSON 断裂、调用不存在的 API——下游解析崩溃；Agent 场景里「格式错一步全盘皆输」。',
+      idea: '受约束解码：把目标文法（JSON Schema/GBNF/正则）编译成状态机，每步只允许合法 token（其余 logits 掩成 −∞）——格式正确率数学上=100%（演示逐步可见）。'
+    },
+    principle: {
+      text: [
+        '语法层：约束解码（演示）——Outlines/guidance/llama.cpp GBNF 把文法编译成每步掩码；JSON mode/Function calling 都由此实现。',
+        '语义层：执行反馈循环（生成→跑测试→按报错修复）——AlphaCode/SWE-bench 系的核心套路；模型自己当自己的编译器用户。',
+        '仓库级：跨文件上下文检索（哪个函数在哪定义）+ 补全位置感知（FIM 填充式训练）——Copilot/Cursor 类产品的真正壁垒在上下文工程而非模型。'
+      ],
+      formula: {
+        html: 'P(语法合法) = 1（掩码下），　合法 token 集合 = 状态机(q<sub>t</sub>) 的转移边',
+        note: '每步解码前按当前文法状态取合法 token 集，其余 logits 置 −∞ 再 softmax——采样分布被「修剪」但不会卡死（总能前进）。'
+      }
+    },
+    example: {
+      analogy: '填表软件 vs 自由写作：约束解码像带校验的表单（想填错都不让），自由生成像空白文档（全靠自觉）——生产接口要的是表单。',
+      mini: '演示逐点「下一步」：生成 {"name": "张三", "age": 25} 时每个位置只亮出合法 token——「引号后只能跟冒号」这类规则被硬性执行。'
+    },
+    pros: ['格式正确率 100%（Agent/接口调用的地基）', '小模型+强约束也能上生产（格式不再卡人）', '执行反馈循环同时提升语义正确率'],
+    cons: ['约束过强伤害语义质量（合法≠正确）', '文法状态机在大 schema 下有性能开销', '仓库级上下文贵（长文件检索与截断策略）'],
+    history: [
+      { year: '2021~23', text: 'Copilot（FIM 补全）确立代码补全产品形态；AlphaCode 用大规模采样+过滤过竞赛题。' },
+      { year: '2023', text: 'Outlines/guidance 等约束解码库出现；JSON mode 进入主流 API。' },
+      { year: '2024', text: 'SWE-bench 成为代码 Agent 主战场；Cursor/Devin 把执行反馈做成产品。' },
+      { year: '2025+', text: '约束解码成为推理引擎标配能力（vLLM/llama.cpp 原生）。' },
+    ],
+    use: ['Function calling / JSON mode / 结构化输出', 'Agent 的工具调用参数生成', '代码补全与自动化测试生成'],
+    avoid: ['把「格式合法」当「内容正确」', '大 schema 无缓存直接上（状态机编译要缓存）', '跳过执行验证（语法对≠逻辑对）'],
+    learn: ['在演示里逐点 <strong>下一步</strong>，观察掩码随状态收紧。', '理解 <strong>文法→状态机→logits 掩码</strong> 的实现链。', '对比 <strong>语法约束与执行反馈</strong> 各解决哪层错误。', '进阶：读 Outlines 的文法编译原理（正则→FSM→掩码）。'],
+    demo: { id: 'codegen', title: '代码生成 · 受约束解码', note: 'JSON 语法状态机掩码：每个位置只允许合法 token，逐步生成保证 100% 合法。' }, deep: 'content/codegen.md'  },
+
+  {
+    id: 'context',
+    num: '87',
+    emoji: '📋',
+    name: '上下文工程',
+    en: 'Context Engineering',
+    cat: 'llm',
+    diff: 3,
+    accent: '#34d399',
+    tagline: '提示工程之上的空间管理学：决定「什么进上下文、按什么顺序、占多少预算」——位置利用率、压缩策略与预算分配的三维优化。',
+    intro: {
+      what: '上下文工程（Context Engineering）在提示工程之上系统化管理 LLM 的输入窗口：系统提示/少样本/检索内容/对话历史的取舍、排序、压缩与动态组装。',
+      problem: '窗口虽大（128K+）但有效注意力有限：中间位置利用率低（lost in the middle）、无关内容稀释关键指令、历史堆积稀释当前目标——「塞得多」反而「答得差」。',
+      idea: '三件事：筛选（什么值得进窗口）、排序（关键内容放首尾，U 形利用率）、压缩（摘要/结构化历史）；配合检索（RAG）与记忆（Agent 深读）形成「动态组装的上下文」。'
+    },
+    principle: {
+      text: [
+        '位置利用率呈 U 形：开头（首因）与结尾（近因）注意力高、中间低谷——检索内容的重排（最高分放两端）是零成本优化。',
+        '压缩三式：滚动摘要（旧对话浓缩成卡片）、结构化状态（待办/事实清单替代流水账）、分层检索（原文在库，窗口里放指针）。',
+        '预算分配是场景问题：客服（检索优先）、教学（示例优先）、陪聊（历史优先）——没有万能配比，只有「随任务动态组装」（演示四种方案可对比）。'
+      ],
+      formula: {
+        html: '有效信息 = Σ 位置利用率(fᵢ) · 相关性(i)，预算 Σ fᵢ·len = 窗口上限',
+        note: '把「相关内容放在利用率高的位置」是可优化的目标函数——这就是上下文工程的形式化版本。'
+      }
+    },
+    example: {
+      analogy: '书桌管理学：桌面（上下文）面积有限——参考书（检索）放正前方、便签（系统提示）贴屏幕边、旧草稿（历史）收抽屉只留摘要；全堆桌上反而找不到东西。',
+      mini: '演示：把「针」（关键事实）拖到 40% 位置掉进 U 形低谷，召回率骤降；切到「检索优先」预算方案，关键内容被放在高利用率区——两个旋钮联合优化。'
+    },
+    pros: ['零训练成本的结构优化（重排/压缩立竿见影）', '与 RAG/记忆系统天然咬合（动态组装）', '长任务 Agent 的稳定性抓手'],
+    cons: ['压缩有损（摘要丢细节，需评估闭环）', '利用率曲线随模型/任务变化（需实测）', '过度工程化：很多场景「少即是多」'],
+    history: [
+      { year: '2023', text: 'Lost in the Middle 论文系统揭示位置偏置；长窗口竞赛开启。' },
+      { year: '2024', text: 'Anthropic「上下文工程」概念普及；记忆/压缩成为 Agent 标配件。' },
+      { year: '2025+', text: '动态上下文组装框架（检索+排序+压缩一体化）成为 Agent 基建。' },
+    ],
+    use: ['长对话/长任务 Agent 的窗口管理', 'RAG 的检索内容排布（重排+位置）', '多源信息（文档+代码+历史）的组装'],
+    avoid: ['把长窗口当「无限内存」堆料', '静态模板一套走天下（应随任务动态组装）', '忽视压缩的损失评估（要有召回回归测试）'],
+    learn: ['在演示里拖 <strong>针位置</strong>，看 U 形谷底的召回坍塌。', '切换 <strong>四种预算方案</strong>，比较检索内容的平均位置。', '掌握 <strong>压缩三式</strong> 与各自风险。', '进阶：读 Lost in the Middle + Anthropic 的上下文工程博客。'],
+    demo: { id: 'context', title: '上下文工程 · 位置与预算', note: 'U 形利用率曲线 + 四种预算分配方案：位置与预算的联合优化演示。' }, deep: 'content/context.md'  },
+
+  {
     id: 'rag',
-    num: '79',
+    num: '88',
     emoji: '📚',
     name: 'RAG 检索增强生成',
     en: 'Retrieval-Augmented Generation',
@@ -4000,7 +4386,7 @@ const TOPICS = [
 
   {
     id: 'agent',
-    num: '80',
+    num: '89',
     emoji: '🕵️',
     name: 'Agent 与工具调用',
     en: 'AI Agent & Tool Use (ReAct)',
@@ -4048,7 +4434,7 @@ const TOPICS = [
 
   {
     id: 'multiagent',
-    num: '81',
+    num: '90',
     emoji: '🤝',
     name: '多智能体协作',
     en: 'Multi-Agent Collaboration',
@@ -4096,7 +4482,7 @@ const TOPICS = [
 
   {
     id: 'cua',
-    num: '82',
+    num: '91',
     emoji: '🖱️',
     name: '计算机使用智能体',
     en: 'Computer-Use Agents',
@@ -4142,8 +4528,94 @@ const TOPICS = [
     demo: { id: 'cua', title: '计算机使用 · Agent 操作回放', note: '选指令点「执行下一步」：屏幕→思考→坐标动作→观察，完整复刻人类操作电脑的循环。' }, deep: 'content/cua.md'  },
 
   {
+    id: 'kg',
+    num: '92',
+    emoji: '💠',
+    name: '知识图谱',
+    en: 'Knowledge Graphs',
+    cat: 'agent',
+    diff: 4,
+    accent: '#fb7185',
+    tagline: '把知识装进「实体-关系-实体」的三元组网络——多跳问题在图上就是路径搜索：精确、可解释、可推理。',
+    intro: {
+      what: '知识图谱（KG）用节点（实体）和边（关系）组织结构化知识（如 姚明-效力于→火箭队）；配套技术包括构建（抽取/对齐）、存储（图数据库）、查询（SPARQL/Cypher）与推理。',
+      problem: '向量检索回答「什么相似」，答不了「A 和 B 是什么关系」「谁通过谁连接」——关系型问题需要显式的图结构与多跳遍历。',
+      idea: '知识以三元组（头实体, 关系, 尾实体）存储；多跳推理 = 图上的 BFS/路径搜索；与 LLM 结合（GraphRAG）：LLM 把问题翻译成图查询，图谱负责精确回答。'
+    },
+    principle: {
+      text: [
+        '三元组与属性图：RDF 三元组（简单规范）vs 属性图（边可带属性，Neo4j 模型）——工程主流是属性图。',
+        '构建管线：实体抽取（NER）→ 关系抽取 → 实体对齐（「IBM」vs「国际商业机器」）→ 消歧与融合——构建成本是 KG 落地的最大门槛。',
+        'GraphRAG：沿图检索多跳证据子图 → 生成时引用路径——比纯向量检索更能回答关系型/全局型问题（「这批文档的主要主题与联系」）。'
+      ],
+      formula: {
+        html: '路径(姚明 → Houston) = 姚明 -效力于→ 火箭队 -位于→ 休斯顿　（两跳推理）',
+        note: '多跳问题转成图遍历：答案不是「最相似的内容」而是「路径的终点」——精确性来自图结构本身，不依赖概率。'
+      }
+    },
+    example: {
+      analogy: '公司的组织架构与通讯录：想知道「谁的领导的领导是谁」，不用翻聊天记录（向量检索），顺着汇报线走两级（图遍历）就是答案。',
+      mini: '「姚明在哪个城市效力过？」——BFS 沿「效力于→位于」两跳找到休斯顿；同法可查「乔丹和姚明的共同点」（共同参加 NBA、都从事篮球）。'
+    },
+    pros: ['关系型/多跳问题精确可解释', '知识可增量更新、可审计溯源', '与 LLM 互补：图管事实、LLM 管语言'],
+    cons: ['构建与维护成本高（抽取/对齐/更新）', '长尾知识覆盖不全（图是稀疏的）', '模式设计（schema）前期投入大'],
+    history: [
+      { year: '2012', text: '谷歌提出 Knowledge Graph，搜索进入「事物而非字符串」时代。' },
+      { year: '2013~18', text: '知识图谱嵌入（TransE 等）与 NLP 抽取管线成熟，企业级 KG 普及。' },
+      { year: '2020+', text: '图谱 + 预训练模型结合（K-BERT/KAG）；向量库与图库融合查询。' },
+      { year: '2024', text: '微软 GraphRAG 引爆「图增强生成」路线，KG 成为 RAG 升级热点。' },
+    ],
+    use: ['企业内部知识管理（制度/产品/人员关系）', '金融风控（股权/担保网络穿透）与反欺诈', 'GraphRAG：关系型/全局型问答'],
+    avoid: ['纯文本相似度场景（向量检索更省）', '知识快速变化且无更新管线', '冷启动无抽取预算的团队'],
+    learn: ['在演示里点 <strong>推理</strong>，看多跳路径在图上高亮。', '理解 <strong>三元组</strong> 与关系数据库表的差别。', '搞清 <strong>GraphRAG 与向量 RAG</strong> 各自擅长的问题类型。', '进阶：了解知识图谱嵌入（TransE）——关系 = 向量空间的平移。'],
+    demo: { id: 'kg', title: '知识图谱 · 多跳推理', note: '小型知识图谱 + 真实 BFS：选多跳问题，图上高亮关系路径、答案节点标黄。' }, deep: 'content/kg.md'  },
+
+  {
+    id: 'interp',
+    num: '93',
+    emoji: '🔬',
+    name: '机制可解释性',
+    en: 'Mechanistic Interpretability',
+    cat: 'method',
+    diff: 5,
+    accent: '#f59e0b',
+    tagline: '把神经网络「读」成算法：找到检测某个概念的神经元与特征方向，把亿级参数拆成人类能懂的电路——Anthropic 押注的「AI 显微镜」。',
+    intro: {
+      what: '机制可解释性（MechInterp）研究神经网络的内部计算：权重可视化、激活探针、电路分析（attention head 的算法角色）、稀疏自编码器（SAE）分解叠加特征。',
+      problem: '模型是黑盒：我们只看到输入输出，无法回答「它为什么这样判断」——安全审计、幻觉归因、对齐验证都需要打开这个盒子。',
+      idea: '从小到大：单神经元权重可视化（本站演示）→ 激活探针（线性读出概念）→ 电路（多头协同实现 Induction Head 等算法）→ SAE 把「叠加」的多概念神经元分解成单概念特征。'
+    },
+    principle: {
+      text: [
+        '权重可视化：隐层神经元的输入权重就是它检测的模式（边缘/条纹/概念方向）——训练充分后自发形成可读结构。',
+        '叠加（superposition）：网络用比概念数更少的神经元表示更多概念——单神经元混杂多个语义，SAE 用稀疏编码把它们「解压」成干净特征。',
+        '电路级发现：Induction Head（[A][B]…[A]→预测[B]）是 Transformer 内实现的复制算法——两层的注意力组合即可，且其出现对应 in-context 能力跃升。'
+      ],
+      formula: {
+        html: 'h = <span class="fn">ReLU</span>(<span class="sym">W</span><span class="sym">x</span> + <span class="sym">b</span>) → <span class="fn">读出</span> W<sub>行</sub> = 该神经元检测的概念方向',
+        note: '单个隐层神经元的权重向量 W 行 = 它在输入空间里的「感受野」——训练后往往对齐到人类可命名的模式（演示可逐个查看）。'
+      }
+    },
+    example: {
+      analogy: '拆收音机：不满足于「能响」，把每根线的作用查清——电路图对上了，才能预测它坏在哪、怎么改装。机制可解释性就是对神经网络做这件事。',
+      mini: '演示里 10 个隐层神经元训练后逐个点击：有的权重像「竖条」、有的像「横条」——概念被自发分配给了不同神经元（小规模无叠加时）。'
+    },
+    pros: ['审计：发现欺骗/后门/偏见回路而非只看输出', '定位幻觉与拒绝回答的内部机制', '为对齐提供「白盒证据」而非行为统计'],
+    cons: ['大规模网络的电路组合爆炸（百万特征）', 'SAE 特征未必因果（相关≠机制）', '发现易、严格验证因果性难（需激活修补消融）'],
+    history: [
+      { year: '2019~20', text: 'Berkeley 视觉实验室与 Distill 发布 Circuits 系列（视觉特征可视化）。' },
+      { year: '2021', text: 'Induction Head 论文：Transformer 电路的首次系统分析。' },
+      { year: '2023', text: 'Anthropic 推 SAE（Sparse Autoencoders）分解叠加特征；OpenAI 同步跟进。' },
+      { year: '2024+', text: 'Golden Gate Claude（单特征放大演示）出圈；可解释性成为对齐的核心赌注之一。' },
+    ],
+    use: ['高风险模型的安全审计与上线评审', '幻觉/拒答/偏见的归因分析', '模型压缩（剪枝无害化验证）与蒸馏监控'],
+    avoid: ['把相关当因果（需要因果消融实验）', '只在玩具模型上验证就外推到大模型', '忽视叠加：单神经元解释在小模型好用、大模型会失效'],
+    learn: ['在演示里训练并 <strong>逐个点击神经元</strong>，读出概念。', '理解 <strong>叠加</strong> 为什么让「单神经元=单概念」失效。', '了解 <strong>激活修补（activation patching）</strong> 如何验证因果性。', '进阶：读 Anthropic 的 SAE 论文与 Golden Gate 案例研究。'],
+    demo: { id: 'interp', title: '可解释性 · 概念神经元', note: '训练小 MLP 后逐个点击隐层神经元：权重热图就是它检测的概念——可解释性的最小样本。' }, deep: 'content/interp.md'  },
+
+  {
     id: 'causal',
-    num: '83',
+    num: '94',
     emoji: '🧭',
     name: '因果推断',
     en: 'Causal Inference',
@@ -4191,7 +4663,7 @@ const TOPICS = [
 
   {
     id: 'mlops',
-    num: '84',
+    num: '95',
     emoji: '🛠️',
     name: 'MLOps 与模型监控',
     en: 'MLOps & Model Monitoring',
@@ -4239,7 +4711,7 @@ const TOPICS = [
 
   {
     id: 'gbdt',
-    num: '85',
+    num: '96',
     emoji: '🌿',
     name: 'LightGBM 与 CatBoost',
     en: 'LightGBM & CatBoost',
@@ -4287,7 +4759,7 @@ const TOPICS = [
 
   {
     id: 'glm',
-    num: '86',
+    num: '97',
     emoji: '🔗',
     name: '广义线性模型 GLM',
     en: 'Generalized Linear Models',
@@ -4335,7 +4807,7 @@ const TOPICS = [
 
   {
     id: 'vlm',
-    num: '87',
+    num: '98',
     emoji: '🖼️',
     name: '多模态大模型 VLM',
     en: 'Vision-Language Models',
@@ -4383,7 +4855,7 @@ const TOPICS = [
 
   {
     id: 'bench',
-    num: '88',
+    num: '99',
     emoji: '📏',
     name: '评测基准与数据污染',
     en: 'Benchmarks & Data Contamination',
@@ -4431,7 +4903,7 @@ const TOPICS = [
 
   {
     id: 'hpo',
-    num: '89',
+    num: '100',
     emoji: '🎛️',
     name: '超参数优化与贝叶斯搜索',
     en: 'Hyperparameter Optimization',
@@ -4479,7 +4951,7 @@ const TOPICS = [
 
   {
     id: 'semi',
-    num: '90',
+    num: '101',
     emoji: '🌗',
     name: '半监督与主动学习',
     en: 'Semi-Supervised & Active Learning',
@@ -4527,7 +4999,7 @@ const TOPICS = [
 
   {
     id: 'speech',
-    num: '91',
+    num: '102',
     emoji: '🎙️',
     name: '语音识别与合成',
     en: 'Speech Recognition & Synthesis (ASR/TTS)',
@@ -4575,7 +5047,7 @@ const TOPICS = [
 
   {
     id: 'tts',
-    num: '92',
+    num: '103',
     emoji: '🔊',
     name: '语音合成 TTS',
     en: 'Text-to-Speech',
@@ -4623,7 +5095,7 @@ const TOPICS = [
 
   {
     id: 'dp',
-    num: '93',
+    num: '104',
     emoji: '🔒',
     name: '差分隐私',
     en: 'Differential Privacy',
@@ -4671,8 +5143,94 @@ const TOPICS = [
   },
 
   {
+    id: 'automl',
+    num: '105',
+    emoji: '🏭',
+    name: 'AutoML',
+    en: 'Automated Machine Learning',
+    cat: 'method',
+    diff: 3,
+    accent: '#f59e0b',
+    tagline: '把「调参/选模型/搜结构」交给算法：进化、贝叶斯与可微搜索三大门派，加上多保真评估——预算有限时自动找到足够好的配置。',
+    intro: {
+      what: 'AutoML 用搜索算法自动化机器学习流程：超参优化（HPO）、神经架构搜索（NAS）、全管线选择（预处理+模型+后处理）。核心三要素：搜索空间、搜索策略、评估预算。',
+      problem: '人工调参靠经验与运气，搜索空间组合爆炸（学习率×深度×宽度×正则……）；数据科学家的工时是最贵的资源。',
+      idea: '定义搜索空间 + 选策略（网格/随机/贝叶斯/进化/可微）+ 在预算内评估（多保真：小 epoch 先筛差配置）——「足够好」比「最优」更重要。'
+    },
+    principle: {
+      text: [
+        '三大门派：进化（种群+变异，天然并行、可搜离散结构）、贝叶斯优化（代理模型+采集函数，样本效率高，见调参深读）、可微（DARTS：结构松弛成连续参数端到端梯度优化）。',
+        '评估是瓶颈：一次完整训练几小时 → 多保真（Hyperband/BOHB：低保真淘汰+高保真精评）与早停把有效评估数放大一个量级。',
+        'NAS 的经典产出（EfficientNet 的复合缩放、NASNet 的 cell）证明搜索能发现人类想不到的好结构；但后来「人工设计+缩放」常追平——搜索的价值集中在资源充足的场景。'
+      ],
+      formula: {
+        html: '搜索 = argmax<sub>配置∈空间</sub> 评估(配置, 预算)：策略决定「下一个试什么」，预算决定「每次试多准」',
+        note: '评估带噪且贵——好策略的差别在于：每单位预算换回的「关于空间的信息」更多（贝叶斯的 EI/进化的并行探索/DARTS 的梯度）。'
+      }
+    },
+    example: {
+      analogy: '老中医 vs 体检中心：老中医（人类调参）凭经验一摸便知，一天看几十人；体检中心（AutoML）批量筛查全覆盖——复杂疑难找前者，规模问题靠后者。',
+      mini: '演示里 14 个随机架构在双峰适应度地形上进化 30 代：种群逐渐聚集到高峰——没有梯度，只靠「选择+变异」也能收敛。'
+    },
+    pros: ['把工时从调参转到问题定义与特征', '多保真让搜索在预算内实用化', '搜索常发现反直觉的好配置（如复合缩放）'],
+    cons: ['搜索本身耗算力（总预算可能超过人工几次试验）', '搜索空间的设计仍需专家（垃圾空间搜出垃圾）', '「过拟合验证集」风险：搜索越狠越要防'],
+    history: [
+      { year: '2012~13', text: 'Hyperopt/TPE 与 Spearmint 把贝叶斯调参工程化。' },
+      { year: '2017', text: '谷歌 NASNet：RL 搜架构耗资数千 GPU 时，引发关注与质疑。' },
+      { year: '2018~19', text: 'DARTS 可微搜索与 EfficientNet（搜索发现的缩放规律）。' },
+      { year: '2020+', text: 'AutoGluon/FLAML 等表格 AutoML 成熟；NAS 热度让位于基础模型微调。' },
+    ],
+    use: ['表格数据竞赛/大规模重复建模任务', '没有资深调参工程师的团队', '搜索空间结构化程度高的任务（检测/分割骨干）'],
+    avoid: ['一次性的小任务（直接调基线更快）', '搜索空间完全未知的问题', '把 AutoML 当免思考按钮（空间设计仍是关键输入）'],
+    learn: ['在演示里跑 <strong>进化 30 代</strong>，看种群收敛。', '对比 <strong>进化/贝叶斯/DARTS</strong> 的适用场景。', '理解 <strong>多保真评估</strong> 为什么是实用化关键。', '进阶：读 AutoGluon 的「集成一切」哲学。'],
+    demo: { id: 'automl', title: 'AutoML · 进化搜索', note: '适应度地形上的真实进化循环：锦标赛选择→交叉→变异，种群逐渐聚到高适应度区。' }, deep: 'content/automl.md'  },
+
+  {
+    id: 'chip',
+    num: '106',
+    emoji: '🔌',
+    name: 'AI 芯片与算力',
+    en: 'AI Chips & Compute',
+    cat: 'method',
+    diff: 3,
+    accent: '#f59e0b',
+    tagline: '为什么同一个 GPU 上大矩阵乘吃满算力、LayerNorm 只有 5%？Roofline 一张图讲清：算力与带宽的双重天花板，以及算子融合的全部意义。',
+    intro: {
+      what: 'AI 计算硬件（GPU/TPU/NPU）的性能模型与选型：峰值算力（FLOPS）、显存带宽（TB/s）与算术强度（FLOP/字节）共同决定每个算子的实际吞吐——Roofline 模型把它们统一成一条「屋檐曲线」。',
+      problem: '买卡看峰值算力，跑起来只有 30%——因为多数算子是「喂不饱」的（数据搬运慢于计算）；理解瓶颈在哪，才能解释训练利用率、指导算子优化与硬件选型。',
+      idea: 'Roofline：算子可达到的性能 = min(峰值算力, 带宽 × 算术强度)。算术强度低于拐点的算子受带宽限制（LayerNorm/逐元素），高于拐点的受算力限制（大 GEMM）。'
+    },
+    principle: {
+      text: [
+        '带宽受限区（屋檐左坡）：每个字节搬运只做少量计算——LayerNorm/Softmax/逐元素操作的强度只有 1~3 FLOP/Byte，无论算力多强都被内存速度卡死。',
+        '算力受限区（平台）：GEMM 强度数百（数据复用率高），能吃到峰值——所以大 batch 训练与推理的 prefill 高效，decode（每 token 一次 GEMV）低效。',
+        '优化就是「把点右移」：算子融合（多个低强度操作合并，中间数据留在寄存器/SRAM）、FlashAttention（分块减少 HBM 往返）、量化（每字节携带更多有效计算）。'
+      ],
+      formula: {
+        html: '可达到 TFLOPS = <span class="fn">min</span>(峰值算力, 带宽 × 算术强度)',
+        note: '一条公式解释所有现象：为什么算子融合有效、为什么 decode 慢、为什么 batch 大效率高、为什么 H100 的拐点让老算子掉利用率。'
+      }
+    },
+    example: {
+      analogy: '洗碗流水线：洗碗工（算力）手速再快，传送带（带宽）送盘子慢就闲着——高峰时段把「冲洗+烘干+消毒」合并成一个工位（算子融合），传送带跑一趟干完三件事。',
+      mini: '演示里切到「手机 NPU」：带宽仅 0.06TB/s，连 GEMM 都被拖下屋檐——端侧部署必须激进量化+融合的原因一目了然。'
+    },
+    pros: ['一张图解释训练/推理的一切性能现象', '指导算子优化方向（融合/分块/量化）', '硬件选型与容量规划的第一性工具'],
+    cons: ['真实芯片还有缓存层次/调度开销等未建模因素', 'Roofline 是上限估计，不是性能预测', '需要知道算子的实际强度（要 profile）'],
+    history: [
+      { year: '1967', text: 'Roofline 思想源于体系结构的性能分析方法。' },
+      { year: '2009', text: 'Williams 等提出 Roofline 模型论文，成为多核性能分析标准。' },
+      { year: '2012+', text: '深度学习时代 GPU 称霸：CUDA 生态+算力/带宽每代翻倍。' },
+      { year: '至今', text: 'HBM/Chiplet/NPU 定制（TPU/NPU）竞赛；「算力即国力」成为产业叙事。' },
+    ],
+    use: ['训练/推理性能分析与算子优化', 'GPU/NPU 选型与容量估算', '解释「为什么慢」的技术沟通语言'],
+    avoid: ['用它做精确性能预测（只是上限模型）', '忽略 profile 直接套结论', '只看峰值算力买卡（带宽与显存同样致命）'],
+    learn: ['在演示里切换 <strong>硬件档位</strong>，看算子点在屋檐上的移动。', '算出 <strong>拐点 = 峰值/带宽</strong>，理解两侧含义。', '用 Roofline 解释 <strong>decode 为什么慢</strong>。', '进阶：结合 KV cache 显存公式（见推理优化深读）做容量规划。'],
+    demo: { id: 'chip', title: 'AI 芯片 · Roofline 模型', note: '屋檐曲线 = min(峰值算力, 带宽×强度)：切换硬件看 GEMM/LayerNorm/注意力各自卡在哪。' }, deep: 'content/chip.md'  },
+
+  {
     id: 'history',
-    num: '94',
+    num: '107',
     emoji: '🏛️',
     name: 'AI 历史与流派',
     en: 'History & Schools of AI',
@@ -4720,7 +5278,7 @@ const TOPICS = [
 
   {
     id: 'embodied',
-    num: '95',
+    num: '108',
     emoji: '🤖',
     name: '具身智能',
     en: 'Embodied AI & Robotics',
@@ -4764,5 +5322,134 @@ const TOPICS = [
       '对比 <strong>模仿学习与 RL</strong> 在机器人上的分工。',
       '进阶：读 RT-2 的「涌现能力」章节——语言通识如何帮助操作。'
     ],
-    demo: { id: 'embodied', title: '具身智能 · VLA 循环', note: '「看到哪→听懂啥→怎么动」：视觉检测目标、语言匹配指令、BFS 规划执行。' }, deep: 'content/embodied.md'  }
+    demo: { id: 'embodied', title: '具身智能 · VLA 循环', note: '「看到哪→听懂啥→怎么动」：视觉检测目标、语言匹配指令、BFS 规划执行。' }, deep: 'content/embodied.md'  },
+
+  {
+    id: 'world',
+    num: '109',
+    emoji: '🌍',
+    name: '世界模型与自动驾驶',
+    en: 'World Models & Autonomous Driving',
+    cat: 'app',
+    diff: 5,
+    accent: '#2dd4bf',
+    tagline: '让 AI 在「脑内」拥有一个可推演的世界：学一个环境模型、在想象里试错规划——从自动驾驶占用网络到 Sora 的「世界模拟器」叙事。',
+    intro: {
+      what: '世界模型指学习环境动力学（给定状态与动作预测未来状态）的模型；在自动驾驶中承担感知（BEV/占用网络）、预测（他车轨迹）与规划（想象式 rollout）。',
+      problem: '真实世界试错代价不可接受（撞车/伤人）；纯端到端「刺激-反应」又缺乏对物理规律的理解——需要在脑内模拟「如果我这样做会怎样」。',
+      idea: '学一个可 rollout 的动力学模型，规划时在模型里并行试演多个候选动作的未来，选想象中最好的执行（model-based RL）；表示上从像素级（视频生成）到抽象状态级（JEPA/占用栅格）。'
+    },
+    principle: {
+      text: [
+        '想象式规划：对未来 K 步做 rollout，评估候选动作的代价（碰撞/出界/舒适度），选最优执行——模型越准，想象越可靠。',
+        '自动驾驶技术栈：BEV 感知（多相机统一鸟瞰）→ 占用网络（3D 体素占用，不依赖类别先验）→ 预测 → 规划；端到端（特斯拉 FSD v12+）把全栈压成一个网络。',
+        '表示之争：像素生成（Sora 路线，信息全但贵）vs 抽象状态（JEPA：只预测与决策相关的特征，效率高）——后者是 LeCun 力主的路线。'
+      ],
+      formula: {
+        html: '想象代价 = <span class="sym">Σ</span><sub>t=1..K</sub> <span class="fn">C</span>(<span class="sym">s</span><sub>t</sub>, <span class="sym">a</span><sub>t</sub>)，<span class="sym">s</span><sub>t+1</sub> = <span class="fn">f</span><sub>θ</sub>(<span class="sym">s</span><sub>t</sub>, <span class="sym">a</span><sub>t</sub>)',
+        note: '在学到的动力学 f_θ 上向前推演 K 步、累计代价选动作——f_θ 的误差会随 rollout 放散（演示里的「失真度」旋钮）。'
+      }
+    },
+    example: {
+      analogy: '棋手在脑内推演十几步再落子：好的棋手不是反应快，而是「想象力准」——世界模型就是 AI 的脑内棋盘。',
+      mini: '演示里小车每次行动前先想象三条候选路径的未来 5 步；把「模型失真」拉高，想象开始骗人、事故率上升——模型基方法的命门就是模型误差。'
+    },
+    pros: ['试错在脑内完成，现实零风险', '数据效率高（模型可复用样本外推）', '可做长时程规划与反事实分析'],
+    cons: ['模型误差随 rollout 复合放大（compounding error）', '学世界模型本身很难（高维/部分可观测）', '像素级生成的算力代价巨大'],
+    history: [
+      { year: '2018', text: 'Ha & Schmidhuber 的 World Models：在梦境中训练的小车。' },
+      { year: '2021~23', text: '特斯拉 BEV/占用网络；Waymo 多模态世界模型用于仿真。' },
+      { year: '2024', text: 'Sora 引爆「视频生成=世界模拟器」讨论；JEPA 路线（LeCun）对立发展。' },
+      { year: '2025+', text: '世界模型成为自动驾驶与机器人共同的「下一战场」（Genie/宇宙级仿真）。' },
+    ],
+    use: ['自动驾驶规划与仿真（罕见场景生成测试）', '机器人 model-based RL', '游戏 NPC 与可控视频生成'],
+    avoid: ['模型误差敏感且无安全兜底的关键控制', '完全可建模的简单环境（直接规划器更好）', '把生成质量当理解能力（会画≠懂物理）'],
+    learn: ['在演示里调 <strong>模型失真</strong>，体会想象失真→事故的因果。', '理解 <strong>model-based 与 model-free</strong> RL 的取舍。', '分清 <strong>像素级与抽象级</strong> 世界模型两条路线。', '进阶：读 World Models 原论文——「在梦里训练」的实验设计。'],
+    demo: { id: 'world', title: '世界模型 · 想象式规划', note: '小车在脑内模型里试演三个候选动作的未来 5 步（虚线），选最优执行；失真度可调。' }, deep: 'content/world.md'  },
+
+  {
+    id: 'voicechat',
+    num: '110',
+    emoji: '🎙️',
+    name: '语音对话系统',
+    en: 'Spoken Dialogue Systems',
+    cat: 'app',
+    diff: 4,
+    accent: '#2dd4bf',
+    tagline: '从「语音助手」（说完等你）到「语音对话」（像人一样抢话、停顿、听语气）：级联管线的延迟战争与全双工端到端的范式转移。',
+    intro: {
+      what: '语音对话系统实现自然的多轮语音交互：传统级联管线（VAD→ASR→LLM→TTS）与新一代端到端语音大模型（语音 token 直进 LLM，GPT-4o 式全双工）。',
+      problem: '级联管线首响延迟 1.5~4 秒、无法中途打断、丢失语气与情绪（文本中转丢信息）——「像和对讲机说话」而不是「和人说话」。',
+      idea: '两条路线：工程优化级联（流式 ASR/首包 TTS/打断检测把延迟压到 1 秒内）；端到端（语音-语音一个模型，保留副语言信息，首响 <300ms）。'
+    },
+    principle: {
+      text: [
+        '级联五段：VAD 判断说完 → ASR 转文本 → LLM 生成 → TTS 合成 → 播放——每段独立优化，延迟与信息损失累加。',
+        '全双工三难：回声消除（别听到自己的声音）、轮替管理（什么时候开口/闭嘴的礼貌策略）、barge-in（用户插话即刻停播转听）。',
+        '端到端：音频 codec 离散化成 token（见 TTS 深读），与文本 token 共享一个 Transformer——副语言信息（语气/情绪/停顿）天然保留，还涌现出实时翻译、歌唱等能力。'
+      ],
+      formula: {
+        html: '首响延迟 = 检测完句 + 识别 + 生成首 token + 合成首包；全双工 = 边说边识别边生成',
+        note: '级联的首响是五段延迟之和；全双工把五段压成一段流——从「轮次制」到「双工制」是质变不是量变（演示可对比时序）。'
+      }
+    },
+    example: {
+      analogy: '对讲机 vs 面对面聊天：对讲机必须「说完-按-等」；面对面可以随时插话、靠语气判断对方是否说完——这正是级联与全双工的差别。',
+      mini: '演示里开启「中途插话」：级联模式下系统要播完才理你（聋的几秒）；全双工模式 3.15 秒即刻停播转听——对话自然度的分水岭。'
+    },
+    pros: ['端到端保留语气/情绪，交互质感质变', '流式级联也可把延迟压到可用（工程渐进路线）', '语音是并发比文字更自然的交互通道（开车/家务场景）'],
+    cons: ['全双工工程难度高（回声/轮替/打断三难）', '端到端模型难做内容审核与转写留痕', '实时算力成本高（流式 token 密集）'],
+    history: [
+      { year: '2011', text: 'Siri 开启语音助手时代（级联管线的巅峰形态）。' },
+      { year: '2016~21', text: '全双工助手研究（Google Duplex 预订电话）惊艳但未普及。' },
+      { year: '2023', text: 'GPT-4o 演示端到端语音对话（<300ms 首响、会笑会抢话）。' },
+      { year: '2025+', text: '开源端到端语音模型（GLM-Voice/Moshi 等）兴起，实时语音成为 AI 标配交互。' },
+    ],
+    use: ['客服/外呼的语音机器人（级联仍主流）', '车载/家居的全双工助手', '实时翻译与无障碍交流'],
+    avoid: ['强合规场景直接上端到端（转写留痕难）', '延迟预算 <100ms 的场景（任何方案都难）', '方言/嘈杂环境无回声消除方案'],
+    learn: ['在演示里对比 <strong>级联/全双工</strong> 的首响与打断行为。', '理解 <strong>barge-in</strong> 为什么是对话自然度的分水岭。', '分清 <strong>级联优化与端到端</strong> 两条路线的适用域。', '进阶：了解音频 codec token 化——端到端语音的技术底座。'],
+    demo: { id: 'voicechat', title: '语音对话 · 级联 vs 全双工', note: '同一段对话的时序对比：级联首响 4.7s、打断无效；全双工 2.2s、即刻 barge-in。' }, deep: 'content/voicechat.md'  },
+
+  {
+    id: 'llmeval',
+    num: '111',
+    emoji: '🧑‍⚖️',
+    name: 'LLM 评测与裁判',
+    en: 'LLM-as-a-Judge',
+    cat: 'method',
+    diff: 3,
+    accent: '#f59e0b',
+    tagline: '用 LLM 给 LLM 打分是规模化评测的命脉——但裁判自己有口味（长/先/自信）：评测工具本身必须先被校准。',
+    intro: {
+      what: 'LLM-as-a-Judge 用强模型给候选回答打分/排序，替代昂贵的人工标注；配套方法论包括成对比较、参考答案对比、辩论式裁判、以及裁判偏差的检测与校准。',
+      problem: '人工评测贵且慢（每个回答几分钟），自动指标（BLEU/ROUGE）与人类判断相关性差——需要一种「规模化且接近人类」的评法。',
+      idea: '成对比较（A 好于 B）比绝对打分更稳（人/模型对绝对分数不一致）；用交换顺序、多裁判、参考对照来抑制偏差；最终与人类标注做一致性校准（Cohen κ）。'
+    },
+    principle: {
+      text: [
+        '四大裁判偏差：位置偏好（先出现的占优）、长度偏好（长=详尽的错觉）、自我偏好（偏自家模型输出）、风格偏好（自信/列表体加分）。',
+        '缓解工程：交换位置取平均、长度归一/控制、匿名化（去模型名）、多裁判集成、按维度拆分打分（有用性/正确性/安全性分开评）。',
+        '评测即博弈：模型（或团队）会过拟合裁判的口味（reward hacking，见 RLHF 深读）——榜单分数与真实体验的裂口需要人类盲测兜底（Arena 式）。'
+      ],
+      formula: {
+        html: '<span class="sym">κ</span> = (P<sub>一致</sub> − P<sub>偶然一致</sub>) / (1 − P<sub>偶然一致</sub>)',
+        note: '裁判与人类的一致性用 Cohen κ 校正掉「碰巧一致」——κ<0.6 的裁判不可用于生产评测。'
+      }
+    },
+    example: {
+      analogy: '美食大赛请了一位偏爱辣味的评委：川菜全线飘红——不是菜变好了，是评委的舌头有先验。换评委、盲测、去掉摆盘加分，才是公平赛制。',
+      mini: '模拟里 A 真实胜率 55%，裁判位置/长度偏差开启后综合测出 65%+ 且「A 在前胜率 vs 在后胜率」出现两位数裂口——偏差被直接量化。'
+    },
+    pros: ['规模化：几万对回答几小时评完（人工需数月）', '成对比较比绝对打分一致性好', '偏差可检测可缓解（交换/投票/校准）'],
+    cons: ['裁判偏差系统性存在（位置/长度/自我）', '可被过拟合（模型学会讨好裁判）', '细粒度专业判断仍需人类专家'],
+    history: [
+      { year: '2023', text: 'MT-Bench 与 Chatbot Arena 确立 LLM-as-judge 方法论与偏差分析。' },
+      { year: '2023', text: '位置/长度/自我偏好偏差被系统量化（GPT-4 偏自家）。' },
+      { year: '2024', text: '评测污染与裁判过拟合成为共识问题；多裁判与人类锚点成标配。' },
+      { year: '2025+', text: '过程奖励模型（PRM）作为「细分维度裁判」兴起。' },
+    ],
+    use: ['模型迭代的快速回归评测（CI 化）', 'RLHF/RLVR 之外的偏好数据规模化生产', 'Arena 式榜单与内部 A/B 的自动化分层'],
+    avoid: ['单裁判不校准直接定胜负', '裁判与被评模型同源（自我偏好污染）', '只看总分不看分维度（偏好掩盖短板）'],
+    learn: ['在演示里调 <strong>偏差强度</strong>，看测出胜率失真。', '对比 <strong>A 在前/在后</strong> 胜率裂口——位置偏差实锤。', '记住 <strong>缓解四件套</strong>：交换/控制/投票/校准。', '进阶：读 MT-Bench 论文的偏差分析与 Arena 的一致性研究。'],
+    demo: { id: 'llmeval', title: 'LLM 评测 · 裁判偏差', note: '位置/长度偏差的蒙特卡洛：测出胜率如何偏离真实水平——评测工具本身要被校准。' }, deep: 'content/llmeval.md'  }
 ];

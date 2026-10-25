@@ -6888,6 +6888,1257 @@
     gen();
   }
 
+  // ============================================================
+  // 世界模型与自动驾驶：想象式规划（真实 rollout）
+  // ============================================================
+  function world(container) {
+    const d = demoShell('世界模型 · 想象式规划', '小车在网格路上行驶，前方有移动障碍：每次行动前先在「脑内模型」里试演三个候选动作的未来 5 步（虚线），选想象中最好的执行。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 470);
+    const rng = makeRng(9090);
+    const GW = 14, GH = 9, cell = 40, gx0 = 70, gy0 = 96;
+    let car = { x: 1, y: 7 }, obs = [{ x: 8, y: 7, vy: -1 }, { x: 11, y: 4, vy: 1 }], noise = 0.0, imagined = null, crashed = 0, steps = 0;
+    const inObs = (x, y, os) => os.some(o => o.x === x && o.y === y);
+    function simulate(sx, sy, ax, ay, os, noisy) {
+      let x = sx, y = sy, cost = 0;
+      const simObs = os.map(o => ({ x: o.x, y: o.y, vy: o.vy }));
+      for (let t = 0; t < 5; t++) {
+        simObs.forEach(o => { o.y += o.vy; if (o.y <= 0 || o.y >= GH - 1) o.vy *= -1; });
+        if (t === 0) { x += ax; y += ay; } else { x += 1; }
+        if (noisy && rng() < noise) y += rng() < 0.5 ? 1 : -1;
+        y = clamp(y, 0, GH - 1);
+        if (x >= GW) break;
+        if (inObs(x, y, simObs)) cost += 10;
+        if (y === 0 || y === GH - 1) cost += 2;
+      }
+      return { cost: cost, ex: clamp(x, 0, GW - 1), ey: y };
+    }
+    function step() {
+      const cands = [[1, 0], [1, -1], [1, 1]];
+      imagined = cands.map(c => ({ a: c, s: simulate(car.x, car.y, c[0], c[1], obs, true) }));
+      imagined.sort((a, b) => a.s.cost - b.s.cost);
+      const best = imagined[0];
+      car.x += best.a[0]; car.y = clamp(car.y + best.a[1], 0, GH - 1);
+      if (car.x >= GW - 1) car.x = 1;
+      obs.forEach(o => { o.y += o.vy; if (o.y <= 0 || o.y >= GH - 1) o.vy *= -1; });
+      if (inObs(car.x, car.y, obs)) { crashed++; car = { x: 1, y: 7 }; }
+      steps++;
+      draw();
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) {
+        ctx.fillStyle = (y === 0 || y === GH - 1) ? 'rgba(120,140,190,0.16)' : 'rgba(18,26,46,0.8)';
+        ctx.fillRect(gx0 + x * cell, gy0 + y * cell, cell - 2, cell - 2);
+      }
+      if (imagined) {
+        imagined.forEach((im, i) => {
+          ctx.strokeStyle = i === 0 ? 'rgba(0,230,160,0.85)' : 'rgba(255,184,92,0.35)';
+          ctx.lineWidth = i === 0 ? 2 : 1.4;
+          ctx.setLineDash([4, 4]);
+          ctx.beginPath();
+          ctx.moveTo(gx0 + car.x * cell + cell / 2, gy0 + car.y * cell + cell / 2);
+          ctx.lineTo(gx0 + im.s.ex * cell + cell / 2, gy0 + im.s.ey * cell + cell / 2);
+          ctx.stroke(); ctx.setLineDash([]);
+          text(ctx, im.s.cost === 0 ? '安全' : '代价' + im.s.cost, gx0 + im.s.ex * cell + cell / 2, gy0 + im.s.ey * cell - 8, i === 0 ? C.green : C.orange, 'center', 9);
+        });
+      }
+      obs.forEach(o => {
+        ctx.fillStyle = '#ff6b6b';
+        ctx.fillRect(gx0 + o.x * cell + 6, gy0 + o.y * cell + 6, cell - 14, cell - 14);
+      });
+      ctx.fillStyle = '#ffe066';
+      ctx.beginPath(); ctx.arc(gx0 + car.x * cell + cell / 2 - 1, gy0 + car.y * cell + cell / 2 - 1, 13, 0, 7); ctx.fill();
+      text(ctx, '步数 ' + steps + '　模型失真 ' + Math.round(noise * 100) + '%　事故 ' + crashed + ' 次', 70, 40, C.yellow, 'left', 13);
+      text(ctx, '绿虚线 = 想象最优动作的未来 5 步；橙 = 落选候选。模型越准想象越可靠，规划越稳', 70, 64, C.text, 'left', 11);
+      text(ctx, '「模型基强化学习」与自动驾驶规划的核心：学一个可 rollout 的环境模型，在脑内试错而不是在现实里试错', 70, H - 38, C.text, 'left', 11);
+      text(ctx, 'Sora 类生成模型被称作「世界模型雏形」；JEPA/占用网络则是「不生成像素、只预测抽象状态」的路线', 70, H - 20, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeRange(0, 60, 10, 0, v => { noise = v / 100; }, '失真%'));
+    d.controls.appendChild(makeButton('前进一步', step, true));
+    d.controls.appendChild(makeButton('自动 20 步', () => { let n = 0; const t = () => { step(); if (++n < 20) setTimeout(t, 160); }; t(); }));
+    d.controls.appendChild(makeButton('重置', () => { car = { x: 1, y: 7 }; crashed = 0; steps = 0; imagined = null; draw(); }));
+    draw();
+  }
+
+  // ============================================================
+  // 语音对话系统：级联 vs 全双工时序（真实延迟模拟）
+  // ============================================================
+  function voicechat(container) {
+    const d = demoShell('语音对话 · 级联 vs 全双工', '同一段对话的时序：级联要等「听完→识别→思考→合成」才开口（首响 4.7s）；全双工流式边听边想、随时可被打断（2.2s）。开启「中途插话」看差别。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 470);
+    let mode = 'cascade', events = [], bargeIn = false;
+    const T = 8.2;
+    const add = (row, s, e, kind, label) => events.push({ row: row, s: s, e: e, kind: kind, label: label });
+    function build() {
+      events = [];
+      if (mode === 'cascade') {
+        add(0, 0.0, 1.8, 'user', '用户：「今天上海天气？」');
+        add(1, 1.8, 2.1, 'sys', 'VAD 判定说完');
+        add(2, 2.1, 2.9, 'sys', 'ASR 整句识别');
+        add(3, 2.9, 4.2, 'sys', 'LLM 思考生成');
+        add(4, 4.2, 4.7, 'sys', 'TTS 首包');
+        add(5, 4.7, 7.4, 'bot', '系统播报回答');
+        if (bargeIn) add(0, 5.6, 6.4, 'user2', '用户插话（系统还在播…）');
+      } else {
+        add(0, 0.0, 1.8, 'user', '用户：「今天上海天气？」');
+        add(1, 0.3, 1.8, 'sys', '流式 ASR 边说边识别');
+        add(3, 1.4, 2.2, 'sys', 'LLM 流式生成');
+        add(4, 2.0, 2.2, 'sys', 'TTS 首包');
+        add(5, 2.2, 4.6, 'bot', '系统播报');
+        if (bargeIn) {
+          add(0, 3.0, 3.9, 'user2', '用户插话');
+          add(2, 3.15, 3.4, 'sys', 'barge-in 即刻停播');
+          add(3, 3.4, 4.4, 'sys', 'LLM 响应新问题');
+          add(4, 4.4, 4.6, 'sys', 'TTS');
+          add(5, 4.6, 6.8, 'bot', '系统回答新问题');
+        }
+      }
+      draw();
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const rows = ['用户语音', 'VAD', 'ASR', 'LLM', 'TTS', '系统语音'];
+      const rowH = 46, x0 = 120, y0 = 96;
+      const sx = t => x0 + t / T * 620;
+      rows.forEach((r, i) => text(ctx, r, x0 - 10, y0 + rowH * i + rowH / 2, C.text, 'right', 11));
+      for (let s = 0; s <= 8; s++) text(ctx, s + 's', sx(s), y0 + rowH * 6 + 14, C.muted, 'center', 9);
+      const COLORS = { user: 'rgba(0,212,255,0.55)', user2: 'rgba(0,212,255,0.28)', sys: 'rgba(255,184,92,0.45)', bot: 'rgba(0,230,160,0.55)' };
+      events.forEach(ev => {
+        const y = y0 + ev.row * rowH + 6;
+        ctx.fillStyle = COLORS[ev.kind];
+        ctx.fillRect(sx(ev.s), y, Math.max(2, (ev.e - ev.s) / T * 620), rowH - 12);
+        if ((ev.e - ev.s) / T * 620 > 70 && ev.label) text(ctx, ev.label, sx(ev.s) + 6, y + (rowH - 12) / 2, (ev.kind === 'bot' || ev.kind === 'user') ? '#0c1224' : C.text, 'left', 9.5);
+      });
+      const first = mode === 'cascade' ? 4.7 : 2.2;
+      ctx.strokeStyle = C.yellow; ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(sx(first), y0); ctx.lineTo(sx(first), y0 + rowH * 6); ctx.stroke(); ctx.setLineDash([]);
+      text(ctx, '首响 ' + first.toFixed(1) + 's', sx(first) + 6, y0 - 10, C.yellow, 'left', 11);
+      text(ctx, (mode === 'cascade' ? '级联管线（听完才开始算）' : '全双工流式（边听边想边说）') + (bargeIn ? '　+ 中途插话' : ''), 70, 40, C.yellow, 'left', 13);
+      text(ctx, '级联：用户 5.6s 插话，系统 7.4s 才播完——「聋的几秒」；全双工：3.15s 即刻停播转听（barge-in），对话像人一样自然', 70, 64, C.text, 'left', 11);
+      text(ctx, 'GPT-4o 式端到端语音把五段管线压成一段（语音 token 直进 LLM）：首响 <300ms、能听语气、会适时抢话', 70, H - 36, C.text, 'left', 11);
+      text(ctx, '工程三难：回声消除（自己别听到自己）/ 谁在说话（VAD+说话人分离）/ 何时开口的礼貌策略——语音对话是延迟与状态机的艺术', 70, H - 18, C.text, 'left', 10);
+    }
+    let bargeBtn;
+    d.controls.appendChild(makeSelect([
+      { value: 'cascade', label: '级联管线' }, { value: 'full', label: '全双工流式' }
+    ], v => { mode = v; build(); }));
+    bargeBtn = makeButton('开启中途插话', () => {
+      bargeIn = !bargeIn;
+      bargeBtn.textContent = (bargeIn ? '关闭' : '开启') + '中途插话';
+      build();
+    }, true);
+    d.controls.appendChild(bargeBtn);
+    build();
+  }
+
+  // ============================================================
+  // 多模态检索与嵌入：召回 + 重排（真实计算）
+  // ============================================================
+  function embed(container) {
+    const d = demoShell('嵌入检索 · 召回与重排', '内容铺在嵌入空间：查询点按余弦取 top-4（双塔召回），再用「交叉编码器」精排——初排第 3 的答案重排后可能升到第 1。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 470);
+    const ITEMS = [
+      { n: '猫的照片', x: 0.82, y: 0.74, m: 'img', rel: 0.9 },
+      { n: '狗的照片', x: 0.90, y: 0.62, m: 'img', rel: 0.55 },
+      { n: '猫的定义', x: 0.72, y: 0.85, m: 'txt', rel: 0.75 },
+      { n: '宠物销量表', x: 0.66, y: 0.58, m: 'tab', rel: 0.42 },
+      { n: '汽车照片', x: 0.16, y: 0.20, m: 'img', rel: 0.05 },
+      { n: '贷款利率表', x: 0.22, y: 0.86, m: 'tab', rel: 0.08 },
+      { n: '狗的定义', x: 0.88, y: 0.40, m: 'txt', rel: 0.35 },
+      { n: '猫的叫声', x: 0.58, y: 0.90, m: 'aud', rel: 0.5 }
+    ];
+    const QUERIES = [
+      { n: '找一张猫的图', x: 0.78, y: 0.70 },
+      { n: '什么是狗', x: 0.86, y: 0.34 },
+      { n: '宠物卖了多少', x: 0.64, y: 0.56 }
+    ];
+    let qi = 0;
+    const MC = { img: C.cyan, txt: C.magenta, tab: C.orange, aud: C.green };
+    function results() {
+      const q = QUERIES[qi];
+      const cos = ITEMS.map(it => {
+        const dot = it.x * q.x + it.y * q.y;
+        return { it: it, cos: dot / (Math.hypot(it.x, it.y) * Math.hypot(q.x, q.y)) };
+      }).sort((a, b) => b.cos - a.cos).slice(0, 4);
+      const re = cos.map(r => ({ it: r.it, cos: r.cos, ce: 0.3 * r.cos + 0.7 * r.it.rel })).sort((a, b) => b.ce - a.ce);
+      return { q: q, recalled: cos, reranked: re };
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const box = { l: 70, r: 470, t: 96, b: 426 };
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      const sx = v => box.l + v * (box.r - box.l), sy = v => box.b - v * (box.b - box.t);
+      const R = results();
+      ITEMS.forEach(it => {
+        ctx.fillStyle = MC[it.m];
+        ctx.beginPath(); ctx.arc(sx(it.x), sy(it.y), 7, 0, 7); ctx.fill();
+        text(ctx, it.n, sx(it.x) + 10, sy(it.y), 'rgba(150,165,200,0.85)', 'left', 9);
+      });
+      const q = R.q;
+      ctx.strokeStyle = 'rgba(255,224,102,0.35)'; ctx.setLineDash([3, 4]);
+      ctx.beginPath(); ctx.arc(sx(q.x), sy(q.y), 118, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle = C.yellow; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(sx(q.x), sy(q.y), 10, 0, 7); ctx.stroke();
+      R.recalled.forEach(r => {
+        ctx.strokeStyle = 'rgba(255,224,102,0.45)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(sx(q.x), sy(q.y)); ctx.lineTo(sx(r.it.x), sy(r.it.y)); ctx.stroke();
+      });
+      const lx = 500;
+      text(ctx, '查询：' + q.n, lx, 100, C.yellow, 'left', 12);
+      text(ctx, '① 双塔召回 top-4（余弦）', lx, 128, C.cyan, 'left', 11);
+      R.recalled.forEach((r, i) => text(ctx, (i + 1) + '. ' + r.it.n + ' cos=' + r.cos.toFixed(2), lx + 8, 150 + i * 20, C.text, 'left', 10.5));
+      text(ctx, '② 交叉编码器重排', lx, 246, C.magenta, 'left', 11);
+      R.reranked.forEach((r, i) => {
+        const oldIdx = R.recalled.findIndex(x => x.it === r.it);
+        const moved = oldIdx !== i;
+        text(ctx, (i + 1) + '. ' + r.it.n + ' ce=' + r.ce.toFixed(2) + (moved ? (i === 0 ? ' ↑升顶' : ' ↓') : ''), lx + 8, 268 + i * 20, moved ? C.green : C.text, 'left', 10.5);
+      });
+      text(ctx, '双塔：查询与文档各自编码（快、可离线建库）→ 只能算余弦；交叉编码器：拼对过模型（准、慢）→ 生产 = 双塔粗筛 + 交叉精排', 70, H - 30, C.text, 'left', 11);
+      text(ctx, '多模态嵌入（CLIP 式统一空间）让「用文字搜图/表/音」成为可能——RAG 与向量数据库的地基', 70, H - 12, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeSelect(QUERIES.map((q, i) => ({ value: i, label: q.n })), v => { qi = +v; draw(); }));
+    draw();
+  }
+
+  // ============================================================
+  // AutoML：进化搜索（真实进化循环）
+  // ============================================================
+  function automl(container) {
+    const d = demoShell('AutoML · 进化搜索', '适应度地形上的真实进化循环：锦标赛选择 → 交叉 → 变异 → 新一代。进化/贝叶斯/可微（DARTS）是 AutoML 的三大搜索门派。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 470);
+    const rng = makeRng(3333);
+    let pop = [], gen = 0, history = [];
+    function fitness(w, dp) {
+      return Math.exp(-((w - 0.72) ** 2 + (dp - 0.78) ** 2) * 14) * 0.95
+           + Math.exp(-((w - 0.25) ** 2 + (dp - 0.3) ** 2) * 22) * 0.7;
+    }
+    function init() {
+      pop = [];
+      for (let i = 0; i < 14; i++) pop.push({ w: rng(), d: rng() });
+      gen = 0; history = [];
+      draw();
+    }
+    function evolve() {
+      const scored = pop.map(p => ({ w: p.w, d: p.d, f: fitness(p.w, p.d) + gauss(rng) * 0.03 }));
+      scored.sort((a, b) => b.f - a.f);
+      history.push(scored[0].f);
+      const tour = () => Array.from({ length: 4 }, () => scored[Math.floor(rng() * scored.length)]).sort((a, b) => b.f - a.f)[0];
+      const next = [];
+      while (next.length < pop.length) {
+        const p1 = tour(), p2 = tour();
+        next.push({
+          w: clamp(p1.w * 0.5 + p2.w * 0.5 + gauss(rng) * 0.09, 0, 1),
+          d: clamp(p1.d * 0.5 + p2.d * 0.5 + gauss(rng) * 0.09, 0, 1)
+        });
+      }
+      pop = next; gen++;
+      draw();
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const box = { l: 70, r: 480, t: 96, b: 426 };
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      const N = 46;
+      for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+        const f = fitness(i / (N - 1), j / (N - 1));
+        ctx.fillStyle = 'rgba(0,212,255,' + (Math.pow(f, 1.6) * 0.4).toFixed(3) + ')';
+        ctx.fillRect(box.l + i / N * (box.r - box.l), box.b - (j + 1) / N * (box.b - box.t), (box.r - box.l) / N + 1, (box.b - box.t) / N + 1);
+      }
+      let bestF = 0;
+      pop.forEach(p => {
+        const f = fitness(p.w, p.d);
+        if (f > bestF) bestF = f;
+        ctx.fillStyle = f >= bestF ? '#ffe066' : 'rgba(255,122,198,0.9)';
+        ctx.beginPath(); ctx.arc(box.l + p.w * (box.r - box.l), box.b - p.d * (box.b - box.t), 4.5, 0, 7); ctx.fill();
+      });
+      text(ctx, '宽度 →', (box.l + box.r) / 2, box.b + 18, C.text, 'center', 10);
+      text(ctx, '深度 ↑', box.l - 8, box.t - 10, C.text, 'right', 10);
+      const pb = { l: 520, r: 720, t: 96, b: 426 };
+      ctx.strokeStyle = C.axis; ctx.strokeRect(pb.l, pb.t, pb.r - pb.l, pb.b - pb.t);
+      ctx.strokeStyle = C.green; ctx.lineWidth = 2;
+      ctx.beginPath();
+      history.forEach((f, i) => {
+        const x = pb.l + 8 + i / 40 * (pb.r - pb.l - 16);
+        const y = pb.b - 8 - f * 0.95 * (pb.b - pb.t - 16);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      text(ctx, '历代最优适应度（gen ' + gen + '）', pb.l, 84, C.green, 'left', 10.5);
+      text(ctx, '当前最优 ' + (history.length ? Math.max.apply(null, history).toFixed(3) : '—'), pb.l, pb.b + 18, C.yellow, 'left', 11);
+      text(ctx, '种群逐渐聚到高适应度区——没有梯度、只靠「选择+变异」也能收敛；AutoML 把它套在结构/超参/管线搜索上', 70, H - 30, C.text, 'left', 11);
+      text(ctx, '三大策略：进化（本演示）/ 贝叶斯（见调参主题）/ 可微 DARTS；评估贵是共同瓶颈 → 多保真（小预算先筛）是标配', 70, H - 12, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeButton('进化一代', evolve, true));
+    d.controls.appendChild(makeButton('自动 30 代', () => { let n = 0; const t = () => { evolve(); if (++n < 30) setTimeout(t, 70); }; t(); }));
+    d.controls.appendChild(makeButton('重置', init));
+    init();
+  }
+
+  // ============================================================
+  // 数学推理：心算 vs 分步 vs 工具（蒙特卡洛）
+  // ============================================================
+  function mathllm(container) {
+    const d = demoShell('数学推理 · 心算/分步/工具', '多位数乘法的三种解法蒙特卡洛：心算直接出（逐位错率相乘）、竖式分步（写下来错率低）、调计算器（几乎不出错）——工具消除了算术层的不确定性。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 470);
+    const rng = makeRng(20241025);
+    const P_MENTAL = 0.93, P_STEP = 0.997, P_TOOL = 0.99995;
+    let digits = 4, sim = null;
+    function run() {
+      const N = 300, out = { mental: 0, step: 0, tool: 0 };
+      for (let i = 0; i < N; i++) {
+        let okM = true, okS = true;
+        const ops = digits * 2;                       // 竖式需要的逐位乘加次数
+        for (let k = 0; k < ops; k++) { if (rng() > P_STEP) okS = false; }
+        for (let k = 0; k < digits; k++) { if (rng() > P_MENTAL) okM = false; }  // 心算约每位一次复合运算
+        if (okM) out.mental++;
+        if (okS) out.step++;
+        if (rng() < P_TOOL) out.tool++;
+      }
+      sim = { n: N, mental: out.mental / N, step: out.step / N, tool: out.tool / N };
+      draw();
+    }
+    function theory(p, nOps) { return Math.pow(p, nOps); }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const box = { l: 90, r: 700, t: 110, b: 360 };
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      const sx = d2 => box.l + (d2 - 2) / 5 * (box.r - box.l);
+      const sy = p => box.b - clamp(p, 0, 1) * (box.b - box.t);
+      [0, 0.25, 0.5, 0.75, 1].forEach(p => {
+        ctx.strokeStyle = 'rgba(120,145,200,0.12)';
+        ctx.beginPath(); ctx.moveTo(box.l, sy(p)); ctx.lineTo(box.r, sy(p)); ctx.stroke();
+        text(ctx, Math.round(p * 100) + '%', box.l - 8, sy(p), C.text, 'right', 10);
+      });
+      for (let n = 2; n <= 7; n++) text(ctx, n + ' 位数', sx(n), box.b + 18, C.text, 'center', 10);
+      const line = (p, color, label) => {
+        ctx.strokeStyle = color; ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        for (let k = 1; k <= 100; k++) {
+          const n2 = 2 + k / 100 * 5;
+          const v = theory(p, n2 * 2);
+          if (k === 1) ctx.moveTo(sx(n2), sy(v)); else ctx.lineTo(sx(n2), sy(v));
+        }
+        ctx.stroke();
+        text(ctx, label, box.r - 6, sy(theory(p, digits * 2)) - 12, color, 'right', 11);
+      };
+      line(P_TOOL, C.green, '工具 0.99995^n');
+      line(P_STEP, C.cyan, '竖式分步 0.997^n');
+      line(P_MENTAL, C.red, '心算 0.93^n');
+      // 模拟柱
+      if (sim) {
+        const bw = 14, x = sx(digits);
+        ctx.fillStyle = 'rgba(255,107,107,0.65)';
+        ctx.fillRect(x - bw - 4, sy(sim.mental), bw, box.b - sy(sim.mental));
+        ctx.fillStyle = 'rgba(0,212,255,0.65)';
+        ctx.fillRect(x, sy(sim.step), bw, box.b - sy(sim.step));
+        ctx.fillStyle = 'rgba(0,230,160,0.65)';
+        ctx.fillRect(x + bw + 4, sy(sim.tool), bw, box.b - sy(sim.tool));
+      }
+      text(ctx, digits + ' 位数：心算 ' + ((sim ? sim.mental : theory(P_MENTAL, digits * 2)) * 100).toFixed(1) + '%　竖式 ' + ((sim ? sim.step : theory(P_STEP, digits * 2)) * 100).toFixed(1) + '%　工具 ' + ((sim ? sim.tool : theory(P_TOOL, digits * 2)) * 100).toFixed(1) + '%（柱=各 300 次模拟）', 70, 40, C.yellow, 'left', 13);
+      text(ctx, '机制：LLM 的算术是「模式匹配 + 逐 token 采样」，天生不可靠；把计算外置给解释器/计算器，正确率从「乘法级联」变成「一次调用」', 70, 66, C.text, 'left', 11);
+      text(ctx, '例：347 × 28：心算一步到位；竖式拆成 6 次个位乘 + 加法进位（每步简单但会级联）；工具 = 一段代码，语义理解归模型、精确计算归解释器', 70, H - 36, C.text, 'left', 11);
+      text(ctx, '现代推理模型 = CoT 分步 × 工具调用 × 自我验证；形式化路线（Lean/定理证明器）则给数学推理以「可验证」的确定性', 70, H - 18, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeRange(2, 7, 1, digits, v => { digits = v; run(); }, '位数'));
+    d.controls.appendChild(makeButton('再跑 300 次', run, true));
+    run();
+  }
+
+  // ============================================================
+  // 知识图谱：力导向布局 + 多跳推理（真实 BFS）
+  // ============================================================
+  function kg(container) {
+    const d = demoShell('知识图谱 · 多跳推理', '一张小型知识图谱（人物/公司/城市/领域），选一个多跳问题：图上真实做 BFS 找关系路径——「谁和谁通过什么联系」一目了然，这就是 GraphRAG 的推理底座。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 470);
+    const rng = makeRng(555);
+    const NODES = [
+      { id: '姚明', t: '人', x: 0.30, y: 0.30 }, { id: '火箭队', t: '组', x: 0.62, y: 0.18 },
+      { id: '休斯顿', t: '城', x: 0.88, y: 0.42 }, { id: 'NBA', t: '领', x: 0.50, y: 0.52 },
+      { id: '乔丹', t: '人', x: 0.16, y: 0.72 }, { id: '公牛队', t: '组', x: 0.44, y: 0.85 },
+      { id: '芝加哥', t: '城', x: 0.76, y: 0.85 }, { id: '篮球', t: '领', x: 0.20, y: 0.45 }
+    ];
+    const EDGES = [
+      ['姚明', '火箭队', '效力于'], ['火箭队', '休斯顿', '位于'], ['姚明', 'NBA', '参加'],
+      ['乔丹', '公牛队', '效力于'], ['公牛队', '芝加哥', '位于'], ['乔丹', 'NBA', '参加'],
+      ['姚明', '篮球', '从事'], ['乔丹', '篮球', '从事'], ['NBA', '篮球', '属于']
+    ];
+    const QS = [
+      { q: '姚明在哪个城市效力过？', from: '姚明', rel: '效力于→位于', hops: 2 },
+      { q: '乔丹和姚明的共同点？', from: '乔丹', rel: '效力于→参加 ←效力于', hops: 2 },
+      { q: '公牛队所在城市？', from: '公牛队', rel: '位于', hops: 1 }
+    ];
+    let qi = 0, highlight = null;
+    const TC = { 人: '#ff7ac6', 组: '#00d4ff', 城: '#ffb85c', 领: '#00e6a0' };
+    function solve() {
+      // BFS：从 from 出发沿边走 ≤hops 步，收集路径
+      const q = QS[qi];
+      const adj = {};
+      EDGES.forEach(([a, b, r]) => { (adj[a] = adj[a] || []).push({ to: b, r: r }); (adj[b] = adj[b] || []).push({ to: a, r: r + '←' }); });
+      const paths = [];
+      const dfs = (node, depth, path) => {
+        if (depth === q.hops) { paths.push(path.slice()); return; }
+        (adj[node] || []).forEach(e => dfs(e.to, depth + 1, path.concat([{ from: node, to: e.to, r: e.r }])));
+      };
+      dfs(q.from, 0, []);
+      highlight = paths;
+      draw();
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const box = { l: 70, r: 700, t: 96, b: 420 };
+      const sx = v => box.l + v * (box.r - box.l), sy = v => box.t + v * (box.b - box.t);
+      const pos = {};
+      NODES.forEach(n => { pos[n.id] = { x: sx(n.x), y: sy(n.y) }; });
+      // 高亮路径集合
+      let hlEdges = [];
+      if (highlight) {
+        highlight.forEach(p => p.forEach(st => hlEdges.push(st.from + '→' + st.to + ':' + st.r)));
+      }
+      EDGES.forEach(([a, b, r]) => {
+        const isHl = hlEdges.some(h => (h.startsWith(a + '→' + b + ':') || h.startsWith(b + '→' + a + ':')));
+        ctx.strokeStyle = isHl ? 'rgba(0,230,160,0.85)' : 'rgba(120,140,190,0.3)';
+        ctx.lineWidth = isHl ? 2.5 : 1.2;
+        ctx.beginPath(); ctx.moveTo(pos[a].x, pos[a].y); ctx.lineTo(pos[b].x, pos[b].y); ctx.stroke();
+        text(ctx, r, (pos[a].x + pos[b].x) / 2, (pos[a].y + pos[b].y) / 2 - 8, isHl ? C.green : 'rgba(150,165,200,0.6)', 'center', 9.5);
+      });
+      NODES.forEach(n => {
+        const isAns = highlight && qi === 0 && n.id === '休斯顿' || highlight && qi === 2 && n.id === '芝加哥';
+        ctx.fillStyle = TC[n.t];
+        ctx.beginPath(); ctx.arc(pos[n.id].x, pos[n.id].y, isAns ? 20 : 15, 0, 7); ctx.fill();
+        if (isAns) { ctx.strokeStyle = C.yellow; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(pos[n.id].x, pos[n.id].y, 26, 0, 7); ctx.stroke(); }
+        text(ctx, n.id, pos[n.id].x, pos[n.id].y, '#0c1224', 'center', 10.5);
+      });
+      const legend = ['人:粉', '组:青', '城:橙', '领:绿'].join('　');
+      text(ctx, '问题：' + QS[qi].q + '　（关系路径：' + QS[qi].rel + '）', 70, 40, C.yellow, 'left', 12.5);
+      text(ctx, '点击「推理」后：绿线 = BFS 找到的多跳路径，答案节点标黄　[' + legend + ']', 70, 64, C.text, 'left', 11);
+      text(ctx, '知识图谱 = 实体 + 关系的三元组网络：多跳推理就是图上的路径搜索——LLM 负责把问题翻译成路径查询，图谱负责精确回答', 70, H - 36, C.text, 'left', 11);
+      text(ctx, 'GraphRAG：先沿图检索多跳证据再生成——比纯向量检索更能回答「关系型」问题；构建成本（抽取/对齐）是主要门槛', 70, H - 18, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeSelect(QS.map((q, i) => ({ value: i, label: q.q })), v => { qi = +v; highlight = null; draw(); }));
+    d.controls.appendChild(makeButton('推理', solve, true));
+    solve();
+  }
+
+  // ============================================================
+  // AI 芯片与算力：Roofline 模型（真实计算）
+  // ============================================================
+  function chip(container) {
+    const d = demoShell('AI 芯片 · Roofline 模型', '为什么同一个 GPU 上 GEMM 吃满算力、LayerNorm 却只有 5%？拖动硬件档位：屋檐曲线 = min(峰值算力, 带宽×强度)——算子的算术强度决定它卡在哪。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 470);
+    const HW = {
+      '4090': { peak: 82, bw: 1.0 },          // TFLOPS, TB/s
+      'A100': { peak: 156, bw: 1.9 },
+      'H100(SXM)': { peak: 395, bw: 3.35 },
+      '手机 NPU': { peak: 30, bw: 0.06 }
+    };
+    const OPS = [
+      { n: 'GEMM（大矩阵乘）', ai: 300, c: C.green },
+      { n: '小 batch GEMV', ai: 8, c: C.cyan },
+      { n: 'LayerNorm/Softmax', ai: 2.5, c: C.orange },
+      { n: '逐元素加法', ai: 1, c: '#ff8787' },
+      { n: '注意力（中等序列）', ai: 60, c: C.magenta }
+    ];
+    let hw = 'H100(SXM)';
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const box = { l: 90, r: 710, t: 100, b: 370 };
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      const XMIN = 0.5, XMAX = 1000, YMIN = 0.5, YMAX = 1000;
+      const lx = v => Math.log10(v);
+      const sx = ai => box.l + (lx(ai) - lx(XMIN)) / (lx(XMAX) - lx(XMIN)) * (box.r - box.l);
+      const sy = f => box.b - (lx(f) - lx(YMIN)) / (lx(YMAX) - lx(YMIN)) * (box.b - box.t);
+      [1, 10, 100, 1000].forEach(v => {
+        text(ctx, v + '', sx(v), box.b + 16, C.text, 'center', 10);
+        text(ctx, v + '', box.l - 8, sy(v), C.text, 'right', 10);
+      });
+      text(ctx, '算术强度（FLOP / 字节）→', (box.l + box.r) / 2, box.b + 36, C.text, 'center', 11);
+      const h = HW[hw];
+      // roofline：attain = min(peak, bw*ai)
+      ctx.strokeStyle = C.yellow; ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      const knee = h.peak / h.bw;
+      for (let k = 0; k <= 200; k++) {
+        const ai = Math.pow(10, lx(XMIN) + k / 200 * (lx(XMAX) - lx(XMIN)));
+        const f = Math.min(h.peak, h.bw * ai);
+        if (k === 0) ctx.moveTo(sx(ai), sy(f)); else ctx.lineTo(sx(ai), sy(f));
+      }
+      ctx.stroke();
+      // 拐点
+      ctx.strokeStyle = 'rgba(255,224,102,0.4)'; ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(sx(knee), sy(h.peak)); ctx.lineTo(sx(knee), box.b); ctx.stroke(); ctx.setLineDash([]);
+      text(ctx, '拐点 AI=' + knee.toFixed(0) + '（左侧=带宽受限，右侧=算力受限）', sx(knee) + 6, box.t + 16, C.muted, 'left', 10);
+      // 算子点
+      OPS.forEach(op => {
+        const f = Math.min(h.peak, h.bw * op.ai);
+        ctx.fillStyle = op.c;
+        ctx.beginPath(); ctx.arc(sx(op.ai), sy(f), 7, 0, 7); ctx.fill();
+        const pct = (f / h.peak * 100).toFixed(0);
+        text(ctx, op.n + ' ' + pct + '%', sx(op.ai) + 10, sy(f) + 4, op.c, 'left', 10);
+      });
+      text(ctx, hw + '：峰值 ' + h.peak + ' TFLOPS · 带宽 ' + h.bw + ' TB/s', 70, 40, C.yellow, 'left', 13);
+      text(ctx, '可达到算力 = min( 峰值算力, 带宽 × 算术强度 )——屋檐左坡是「喂不饱」（内存搬运是瓶颈），平台是「吃得饱」', 70, 64, C.text, 'left', 11);
+      text(ctx, '这就是算子融合/FlashAttention 的意义：把多个低强度算子合并，数据留在显存/SRAM 里少搬运，强度整体右移', 70, H - 36, C.text, 'left', 11);
+      text(ctx, '训练大模型 = 在这条曲线上排布数万次/秒的算子调用；集群利用率的战争，本质是把更多点推向屋檐平台', 70, H - 18, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeSelect(Object.keys(HW).map(k => ({ value: k, label: k })), v => { hw = v; draw(); }));
+    draw();
+  }
+
+  // ============================================================
+  // 信息检索：倒排索引 + BM25（真实实现）
+  // ============================================================
+  function ir(container) {
+    const d = demoShell('信息检索 · 倒排索引与 BM25', '一个小语料库上真实构建倒排索引：选个查询看 BM25 怎么逐文档打分（词频 × 逆文档频率 × 长度归一）——这是 RAG 里与向量检索互补的那一半。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 470);
+    const DOCS = [
+      { id: 'D1', t: '猫是一种可爱的宠物，猫会抓老鼠' },
+      { id: 'D2', t: '狗是忠诚的宠物，狗会看家' },
+      { id: 'D3', t: '宠物医院的猫和狗都需要疫苗' },
+      { id: 'D4', t: '老鼠药不能放在宠物能碰到的地方' },
+      { id: 'D5', t: '猫粮和狗粮的销量都在增长' }
+    ];
+    const QUERIES = ['猫 宠物', '宠物 疫苗', '狗 老鼠'];
+    let query = 0, useBM25 = true;
+    const tokenize = s => (s.match(/[一-龥a-zA-Z0-9]+/g) || []).flatMap(w => w.length > 1 && /^[一-龥]+$/.test(w) ? [w[0] + w[1], ...tokenize(w.slice(1))] : [w]);
+    function build() {
+      const index = {};   // term -> [{doc, tf}]
+      DOCS.forEach(doc => {
+        const terms = tokenize(doc.t);
+        doc.len = terms.length;
+        doc.tf = {};
+        terms.forEach(t => { doc.tf[t] = (doc.tf[t] || 0) + 1; });
+        Object.keys(doc.tf).forEach(t => {
+          (index[t] = index[t] || []).push({ doc: doc.id, tf: doc.tf[t] });
+        });
+      });
+      return index;
+    }
+    function score(query) {
+      const index = build();
+      const avgLen = DOCS.reduce((s, x) => s + x.len, 0) / DOCS.length;
+      const k1 = 1.5, b = 0.75, N = DOCS.length;
+      const terms = query.split(' ');
+      return DOCS.map(doc => {
+        let s = 0;
+        terms.forEach(t => {
+          const df = (index[t] || []).length;
+          if (!df || !doc.tf[t]) return;
+          const idf = Math.log(1 + (N - df + 0.5) / (df + 0.5));
+          const tf = doc.tf[t];
+          s += useBM25
+            ? idf * tf * (k1 + 1) / (tf + k1 * (1 - b + b * doc.len / avgLen))
+            : idf * tf;
+        });
+        return { id: doc.id, s: s, hits: terms.filter(t => doc.tf[t]) };
+      }).sort((a, b2) => b2.s - a.s);
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const q = QUERIES[query];
+      const res = score(q);
+      // 左：倒排索引条目
+      const terms = q.split(' ');
+      const idx = build();
+      terms.forEach((t, i) => {
+        const y = 120 + i * 88;
+        text(ctx, '「' + t + '」的倒排链表：', 70, y, C.cyan, 'left', 11.5);
+        const postings = idx[t] || [];
+        if (!postings.length) { text(ctx, '（语料中未出现）', 90, y + 22, C.muted, 'left', 10.5); return; }
+        let x = 90;
+        postings.forEach((p, j) => {
+          ctx.fillStyle = 'rgba(0,212,255,0.15)'; ctx.strokeStyle = C.cyan;
+          ctx.fillRect(x, y + 8, 74, 30); ctx.strokeRect(x, y + 8, 74, 30);
+          text(ctx, p.doc + ' tf=' + p.tf, x + 37, y + 23, C.text, 'center', 10);
+          x += 84;
+          if (j < postings.length - 1) { ctx.strokeStyle = C.cyan; ctx.beginPath(); ctx.moveTo(x - 10, y + 23); ctx.lineTo(x, y + 23); ctx.stroke(); }
+        });
+        text(ctx, 'df=' + postings.length + ' → idf=' + Math.log(1 + (DOCS.length - postings.length + 0.5) / (postings.length + 0.5)).toFixed(2), x + 6, y + 23, C.orange, 'left', 10.5);
+      });
+      // 右：排序结果
+      const rx = 560;
+      text(ctx, '排序结果（' + (useBM25 ? 'BM25' : 'TF-IDF') + '）：', rx, 100, C.yellow, 'left', 11.5);
+      res.forEach((r, i) => {
+        const y = 122 + i * 46;
+        ctx.fillStyle = i === 0 ? 'rgba(0,230,160,0.14)' : 'rgba(18,26,46,0.6)';
+        ctx.fillRect(rx, y - 12, 200, 38);
+        text(ctx, (i + 1) + '. ' + r.id + '  score=' + r.s.toFixed(2), rx + 8, y, i === 0 ? C.green : C.text, 'left', 11);
+        text(ctx, '命中：' + (r.hits.join(' ') || '无'), rx + 8, y + 16, C.muted, 'left', 9.5);
+      });
+      text(ctx, '查询：' + q.split(' ').join(' + '), 70, 40, C.yellow, 'left', 13);
+      text(ctx, 'BM25 = idf × tf饱和 × 长度归一：常见词权重低（idf）、堆砌关键词没用（tf 饱和）、长文档不占便宜（b 归一）', 70, 64, C.text, 'left', 11);
+      text(ctx, '切到 TF-IDF 对比：无长度归一时长文档靠词频堆分；BM25 修正了这一点——它至今仍是稀疏检索的工业基线（RAG 混合检索的一半）', 70, H - 36, C.text, 'left', 11);
+      text(ctx, '倒排索引 = 词 → 文档列表的字典：一次构建、查询 O(命中数)——与向量检索（语义泛化）互补，两者融合（RRF）是生产标配', 70, H - 18, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeSelect(QUERIES.map((q, i) => ({ value: i, label: q })), v => { query = +v; draw(); }));
+    d.controls.appendChild(makeButton('切换 BM25 / TF-IDF', () => { useBM25 = !useBM25; draw(); }, true));
+    draw();
+  }
+
+  // ============================================================
+  // 机制可解释性：权重可视化（真实训练小 MLP）
+  // ============================================================
+  function interp(container) {
+    const d = demoShell('可解释性 · 概念神经元', '输入是 8 像素的小图案（竖条/横条/斜条三类），训练后点选隐层神经元：它的权重热图就是这个「概念」长什么样——可解释性就是把权重读成概念。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 470);
+    const rng = makeRng(4321);
+    // 数据：8 像素(2x4) 三类图案 + 噪声
+    const PATS = [
+      [1,0, 1,0, 1,0, 1,0],   // 竖条（左列）
+      [0,1, 0,1, 0,1, 0,1],   // 竖条（右列）
+      [1,1, 1,1, 0,0, 0,0],   // 横条（上）
+      [0,0, 0,0, 1,1, 1,1],   // 横条（下）
+      [1,0, 0,1, 1,0, 0,1],   // 斜A
+      [0,1, 1,0, 0,1, 1,0]    // 斜B
+    ];
+    const NIN = 8, NHID = 10, NOUT = 3;
+    let W1 = [], b1 = [], W2 = [], b2 = [], data = [], epoch = 0, sel = 0;
+    function genData() {
+      data = [];
+      for (let i = 0; i < 240; i++) {
+        const c = i % 6;
+        const x = PATS[c].map(v => v + gauss(rng) * 0.25);
+        data.push({ x: x, c: Math.floor(c / 2) });
+      }
+    }
+    function init() {
+      W1 = zerosM(NHID, NIN).map(r => r.map(() => gauss(rng) * 0.6));
+      b1 = zeros(NHID); W2 = zerosM(NOUT, NHID).map(r => r.map(() => gauss(rng) * 0.6)); b2 = zeros(NOUT);
+      epoch = 0;
+    }
+    function train(steps) {
+      for (let s = 0; s < steps; s++) {
+        epoch++;
+        for (const sm of data) {
+          const z1 = W1.map((r, i) => r.reduce((a, w, j) => a + w * sm.x[j], b1[i]));
+          const a1 = z1.map(v => Math.max(0, v));
+          const z2 = W2.map((r, o) => r.reduce((a, w, j) => a + w * a1[j], b2[o]));
+          const p = softmax(z2);
+          // 反传（真实梯度）
+          const dz2 = p.map((v, o) => v - (o === sm.c ? 1 : 0));
+          for (let o = 0; o < NOUT; o++) for (let j = 0; j < NHID; j++) W2[o][j] -= 0.03 * dz2[o] * a1[j];
+          for (let o = 0; o < NOUT; o++) b2[o] -= 0.03 * dz2[o];
+          const da1 = zeros(NHID);
+          for (let j = 0; j < NHID; j++) for (let o = 0; o < NOUT; o++) da1[j] += W2[o][j] * dz2[o];
+          for (let j = 0; j < NHID; j++) if (z1[j] > 0) {
+            for (let i2 = 0; i2 < NIN; i2++) W1[j][i2] -= 0.03 * da1[j] * sm.x[i2];
+            b1[j] -= 0.03 * da1[j];
+          }
+        }
+      }
+      draw();
+    }
+    function acc() {
+      let ok = 0;
+      for (const sm of data) {
+        const a1 = W1.map((r, i) => Math.max(0, r.reduce((a, w, j) => a + w * sm.x[j], b1[i])));
+        const z2 = W2.map((r, o) => r.reduce((a, w, j) => a + w * a1[j], b2[o]));
+        if (z2.indexOf(Math.max.apply(null, z2)) === sm.c) ok++;
+      }
+      return ok / data.length;
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      // 左：数据样例（6 图案）
+      text(ctx, '输入图案（8 像素）→ 3 类：竖 / 横 / 斜', 70, 40, C.yellow, 'left', 13);
+      PATS.forEach((p, i) => {
+        const x0 = 70 + (i % 6) * 58, y0 = 64;
+        for (let k = 0; k < 8; k++) {
+          const px = x0 + (k % 2) * 12, py = y0 + Math.floor(k / 2) * 12;
+          ctx.fillStyle = p[k] ? 'rgba(0,212,255,0.8)' : 'rgba(120,140,190,0.2)';
+          ctx.fillRect(px, py, 10, 10);
+        }
+      });
+      // 中：选中神经元的权重热图
+      const mid = { x: 70, y: 150 };
+      const n = W1[sel];
+      const mn = Math.min.apply(null, n.map(Math.abs)), cmax = Math.max.apply(null, n.map(Math.abs)) || 1;
+      text(ctx, '隐层神经元 #' + sel + ' 的权重热图（蓝=正 红=负）', mid.x, 140, C.text, 'left', 12);
+      for (let k = 0; k < 8; k++) {
+        const v = n[k] / cmax;
+        ctx.fillStyle = v > 0 ? 'rgba(0,' + Math.round(120 + 100 * v) + ',255,' + (0.2 + 0.7 * v) + ')'
+                             : 'rgba(255,' + Math.round(107 - 60 * v) + ',' + Math.round(107 - 60 * v) + ',' + (0.2 - 0.6 * v) + ')';
+        ctx.fillRect(mid.x + (k % 2) * 34, 160 + Math.floor(k / 2) * 34, 30, 30);
+        text(ctx, v.toFixed(1), mid.x + (k % 2) * 34 + 15, 160 + Math.floor(k / 2) * 34 + 15, C.text, 'center', 9);
+      }
+      // 右：全部神经元的权重条形
+      const rx = 240;
+      text(ctx, '10 个隐层神经元（点击选择）——每个都在检测某个「概念」', rx, 140, C.text, 'left', 12);
+      for (let i = 0; i < NHID; i++) {
+        const y = 160 + i * 27;
+        ctx.fillStyle = i === sel ? 'rgba(255,224,102,0.2)' : 'rgba(18,26,46,0.7)';
+        ctx.fillRect(rx, y, 460, 22);
+        for (let k = 0; k < 8; k++) {
+          const v = W1[i][k] / cmax;
+          ctx.fillStyle = v > 0 ? 'rgba(0,180,255,' + Math.min(1, 0.3 + v) + ')' : 'rgba(255,100,100,' + Math.min(1, 0.3 - v) + ')';
+          ctx.fillRect(rx + 10 + k * 54, y + 3, 50 * Math.abs(v), 16);
+        }
+        text(ctx, '#' + i, rx + 445, y + 11, C.muted, 'left', 10);
+      }
+      text(ctx, 'epoch ' + epoch + '　训练准确率 ' + (acc() * 100).toFixed(1) + '%　——训练越久，权重越「像图案」（可解释的结构自己长出来）', 70, H - 38, C.text, 'left', 11);
+      text(ctx, '机制可解释性（Anthropic/Superposition）把这做到大模型上：找「电路」与「特征方向」——现代用稀疏自编码器（SAE）分解激活', 70, H - 20, C.text, 'left', 10);
+    }
+    d.canvas.addEventListener('click', e => {
+      const rect = d.canvas.getBoundingClientRect();
+      const my = (e.clientY - rect.top) * (470 / rect.height);
+      if (my > 150 && my < 440) { sel = clamp(Math.floor((my - 160) / 27), 0, NHID - 1); draw(); }
+    });
+    d.controls.appendChild(makeButton('训练 3 epoch', () => train(3), true));
+    d.controls.appendChild(makeButton('训练 30 epoch', () => train(30)));
+    d.controls.appendChild(makeButton('重新初始化', () => { init(); draw(); }));
+    genData(); init(); train(6);
+  }
+
+  // ============================================================
+  // 数据工程：MinHash 去重（真实实现）
+  // ============================================================
+  function dataeng(container) {
+    const d = demoShell('数据工程 · MinHash 去重', '30 条「网页」里有 8 组近似重复：真实计算 shingle 集合的 MinHash 签名，LSH 分桶找候选对，估算相似度去重——大模型预训练语料清洗的核心一步。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 470);
+    const rng = makeRng(777777);
+    const RAW = [
+      '深度学习是机器学习的一个分支', '深度学习是机器学习的一个重要分支', '深度学习属于机器学习的分支领域',
+      '今天天气很好适合出门散步', '今天天气很好，适合出门散步呢', '明天下雨不适合出门散步',
+      '股票市场今日大涨三个点', '股票市场今日大涨了三个百分点', '股票今天大涨',
+      'This is a duplicate sentence', 'This is a duplicate sentence!', 'this is a Duplicate sentence',
+      '量子计算使用量子比特进行运算', '量子计算机依靠量子比特来计算', '量子比特是量子计算的基本单位',
+      '咖啡因能够提升短期的注意力', '咖啡因可以提升短期注意力水平', '咖啡因提升注意力',
+      '数据库索引能加速查询', '数据库的索引可以加速查询速度', '索引让数据库查询变快',
+      '随机样本无关句子甲', '随机样本无关句子乙', '又一句完全不相关的文本内容', '再补充一条独立语料数据', '纯噪声文本没有任何主题', '最后一条独立样本数据', '还有一条独立无关节选'
+    ];
+    // shingle（2-gram 字符）→ MinHash 签名
+    function shingles(s) {
+      const t = s.toLowerCase().replace(/[，。！？,!. ]/g, '');
+      const out = new Set();
+      for (let i = 0; i < t.length - 1; i++) out.add(t.slice(i, i + 2));
+      return out;
+    }
+    const NH = 16;
+    const hashSeeds = Array.from({ length: NH }, () => Math.floor(rng() * 2 ** 30));
+    function minhash(sh) {
+      return hashSeeds.map(seed => {
+        let mn = Infinity;
+        sh.forEach(g => {
+          let h = seed;
+          for (let k = 0; k < g.length; k++) h = (h * 31 + g.charCodeAt(k)) | 0;
+          if (h < mn) mn = h;
+        });
+        return mn;
+      });
+    }
+    const shSets = RAW.map(shingles);
+    const sigs = shSets.map(minhash);
+    let threshold = 0.55;
+    function estSim(a, b) {
+      let eq = 0; for (let i = 0; i < NH; i++) if (sigs[a][i] === sigs[b][i]) eq++;
+      return eq / NH;
+    }
+    function dupPairs() {
+      const out = [];
+      for (let i = 0; i < RAW.length; i++) for (let j = i + 1; j < RAW.length; j++) {
+        const es = estSim(i, j);
+        if (es >= threshold) out.push([i, j, es]);
+      }
+      return out;
+    }
+    let removed = null;
+    function computeRemoved() {
+      const drop = new Set();
+      dupPairs().forEach(([i, j]) => drop.add(j));   // 保留先出现的
+      removed = drop;
+    }
+    function draw() {
+      computeRemoved();
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      text(ctx, '阈值 ' + threshold.toFixed(2) + '　发现重复对 ' + dupPairs().length + ' 组　移除 ' + (removed ? removed.size : 0) + ' 条　保留 ' + (RAW.length - (removed ? removed.size : 0)) + ' 条', 70, 40, C.yellow, 'left', 13);
+      // 文档列表
+      RAW.forEach((t, i) => {
+        const col = i % 2, row = Math.floor(i / 2);
+        const x = 70 + col * 360, y = 66 + row * 30;
+        const isDup = removed && removed.has(i);
+        ctx.fillStyle = isDup ? 'rgba(255,107,107,0.16)' : 'rgba(0,230,160,0.08)';
+        ctx.fillRect(x - 6, y - 12, 350, 26);
+        text(ctx, (i + 1) + '. ' + t.slice(0, 17) + (isDup ? '　✕ 移除' : '　✓'), x, y, isDup ? '#ff8787' : C.text, 'left', 11);
+      });
+      text(ctx, '机制：文档 → 字符 2-gram 集合 → k 个哈希取最小值 = MinHash 签名（16 维）；签名相同比例 ≈ Jaccard 相似度', 70, H - 38, C.text, 'left', 11);
+      text(ctx, '为什么不用逐对比对？N² 太贵——MinHash+LSH 把「近似重复检测」降到近似线性；预训练语料清洗（去重/去毒/质量过滤）决定模型上限', 70, H - 20, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeRange(30, 90, 5, Math.round(threshold * 100), v => { threshold = v / 100; draw(); }, '阈值%'));
+    draw();
+  }
+
+  // ============================================================
+  // 流匹配：直线路径 vs 扩散弯曲路径（2D 真实模拟）
+  // ============================================================
+  function flowmatch(container) {
+    const d = demoShell('流匹配 · 直路 vs 弯路', '同一份噪声（左侧云）运送到同一份数据（右侧双月）：扩散走随机弯曲小步（100 步），流匹配/整流流走确定性直线（可以 1~4 步）——轨迹越直，采样越快。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 470);
+    const rng = makeRng(24680);
+    const N = 26;
+    // 目标分布：双月
+    function moon(s) {
+      const t = rng() * Math.PI;
+      return s > 0 ? [Math.cos(t) * 1.1 - 0.35, Math.sin(t) * 0.8 - 0.25]
+                   : [1.1 - Math.cos(t) * 1.1 + 0.35, 0.25 - Math.sin(t) * 0.8];
+    }
+    let paths = null;
+    function gen() {
+      const x0s = [], x1s = [];
+      for (let i = 0; i < N; i++) {
+        x0s.push([gauss(rng) * 1.1, gauss(rng) * 1.1]);       // 噪声源
+        x1s.push(moon(i % 2));                                 // 配对的目标点（整流配对）
+      }
+      // 流匹配（整流）：x_t = (1-t)x0 + t·x1，速度场线性 → 直线路径
+      const fm = x0s.map((x0, i) => Array.from({ length: 9 }, (_, k) => {
+        const t = k / 8;
+        return [x0[0] + t * (x1s[i][0] - x0[0]), x0[1] + t * (x1s[i][1] - x0[1])];
+      }));
+      // 扩散：随机游走小步（每步加噪再部分去噪，等效弯曲路径）
+      const dd = x0s.map((x0, i) => {
+        const pts = [x0.slice()];
+        let cur = x0.slice();
+        for (let k = 1; k <= 40; k++) {
+          const t = k / 40;
+          const target = x1s[i];
+          cur = [cur[0] * 0.82 + target[0] * 0.18 + gauss(rng) * 0.12,
+                 cur[1] * 0.82 + target[1] * 0.18 + gauss(rng) * 0.12];
+          pts.push(cur.slice());
+        }
+        return pts;
+      });
+      paths = { fm: fm, ddpm: dd, x0: x0s, x1: x1s };
+      draw();
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const cx = W / 2, cy = H / 2 - 10, sc = 78;
+      const px = v => cx + v[0] * sc, py = v => cy - v[1] * sc;
+      // 目标双月
+      ctx.fillStyle = 'rgba(0,230,160,0.10)';
+      for (let i = 0; i < N; i++) { ctx.beginPath(); ctx.arc(px(paths.x1[i]), py(paths.x1[i]), 3.4, 0, 7); ctx.fill(); }
+      // 源噪声
+      ctx.fillStyle = 'rgba(120,140,190,0.35)';
+      paths.x0.forEach(x0 => { ctx.beginPath(); ctx.arc(px(x0), py(x0), 2.6, 0, 7); ctx.fill(); });
+      // 扩散轨迹（弯）
+      paths.ddpm.forEach(tr => {
+        ctx.strokeStyle = 'rgba(255,122,198,0.28)'; ctx.lineWidth = 1;
+        ctx.beginPath();
+        tr.forEach((p, k) => { if (k === 0) ctx.moveTo(px(p), py(p)); else ctx.lineTo(px(p), py(p)); });
+        ctx.stroke();
+      });
+      // 流匹配直线
+      paths.fm.forEach(tr => {
+        ctx.strokeStyle = 'rgba(0,212,255,0.75)'; ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.moveTo(px(tr[0]), py(tr[0])); ctx.lineTo(px(tr[8]), py(tr[8])); ctx.stroke();
+      });
+      text(ctx, '灰点=噪声源　绿云=目标分布（双月）', 70, 40, C.text, 'left', 12);
+      text(ctx, '青直线 = 流匹配/整流流的确定性路径（速度场恒定，1~4 步可达）', 70, 62, C.cyan, 'left', 11.5);
+      text(ctx, '粉弯线 = DDPM 的随机游走路径（百步级；每步都要「猜一下再修正」）', 70, 84, 'rgba(255,122,198,0.9)', 'left', 11.5);
+      text(ctx, '关键洞察：把「配对的 (噪声, 数据)」学成线性速度场，采样就从「解 SDE」变成「解 ODE」——步数从百级降到个位数', 70, H - 38, C.text, 'left', 11);
+      text(ctx, 'SD3/FLUX 采用流匹配；整流流（ReFlow）再多跑几轮配对平均，路径更直、更少步数', 70, H - 20, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeButton('重新配对采样', gen, true));
+    gen();
+  }
+
+  // ============================================================
+  // 代码生成：结构化解码（真实状态机掩码）
+  // ============================================================
+  function codegen(container) {
+    const d = demoShell('代码生成 · 受约束解码', '生成 JSON 时每个位置只允许语法合法的 token（其余被掩掉，概率重归一化）——逐点「下一步」看掩码如何随状态收紧：保证 100% 语法合法。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 470);
+    // 目标：{"name": "张三", "age": 25}
+    const TARGET = ['{', '"', 'n', 'a', 'm', 'e', '"', ':', ' ', '"', '张', '三', '"', ',', ' ', '"', 'a', 'g', 'e', '"', ':', ' ', '2', '5', '}'];
+    const VOCAB = ['{', '}', '"', ':', ',', 'n', 'a', 'm', 'e', 'g', '张', '三', '2', '5', ' ', 'EOF'];
+    // 每一步允许的 token 集合（手工状态机：模拟 JSON 语法掩码）
+    function allowedAt(i) {
+      const prefix = TARGET.slice(0, i).join('');
+      if (i === 0) return ['{'];
+      if (i >= 1 && i <= 6) return ['"', 'n', 'a', 'm', 'e'];
+      if (i === 7) return [':'];
+      if (i === 8) return ['"'];
+      if (i >= 9 && i <= 12) return ['"', '张', '三'];
+      if (i === 13) return [',', '}'];
+      if (i === 14) return ['"'];
+      if (i >= 15 && i <= 19) return ['"', 'a', 'g', 'e'];
+      if (i === 20) return [':'];
+      if (i === 21) return ['2', '5'];
+      if (i === 22) return ['5'];
+      if (i === 23) return ['}'];
+      return ['EOF'];
+    }
+    let step = 0;
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      // 已生成 + 当前掩码
+      text(ctx, '生成序列（第 ' + step + ' 步）：', 70, 40, C.yellow, 'left', 13);
+      text(ctx, TARGET.slice(0, step).join('') || '（空）', 70, 66, C.cyan, 'left', 16);
+      if (step < TARGET.length) {
+        const allow = allowedAt(step);
+        text(ctx, '当前状态允许的 token（其余全部被掩掉，概率重归一化）：', 70, 104, C.text, 'left', 12);
+        const bx = 70;
+        allow.forEach((tk, i) => {
+          ctx.fillStyle = 'rgba(0,230,160,0.16)'; ctx.strokeStyle = C.green;
+          ctx.fillRect(bx + i * 56, 118, 50, 34); ctx.strokeRect(bx + i * 56, 118, 50, 34);
+          text(ctx, tk === ' ' ? '␣' : tk, bx + i * 56 + 25, 135, C.green, 'center', 14);
+        });
+        // 被掩掉的 token
+        const masked = VOCAB.filter(v => allow.indexOf(v) < 0 && v !== 'EOF');
+        text(ctx, '被掩掉：', 70, 178, 'rgba(255,107,107,0.8)', 'left', 11);
+        text(ctx, masked.join('  '), 140, 178, 'rgba(255,107,107,0.55)', 'left', 12);
+      } else {
+        text(ctx, '✔ 生成完毕——全程语法合法（受约束解码的保证）', 70, 110, C.green, 'left', 13);
+      }
+      // 状态机示意
+      const states = ['对象开始 {', '键 name', '冒号 :', '值 "张三"', '逗号 ,', '键 age', '值 25', '结束 }'];
+      const si = step <= 0 ? 0 : step <= 6 ? 1 : step === 7 ? 2 : step <= 12 ? 3 : step === 13 ? 4 : step <= 19 ? 5 : step <= 22 ? 6 : 7;
+      text(ctx, '语法状态机：', 70, 220, C.text, 'left', 12);
+      states.forEach((st, i) => {
+        const x = 70 + i * 90, y = 240;
+        ctx.fillStyle = i === si ? 'rgba(255,224,102,0.22)' : 'rgba(18,26,46,0.7)';
+        ctx.strokeStyle = i === si ? C.yellow : C.axis;
+        ctx.fillRect(x, y, 84, 30); ctx.strokeRect(x, y, 84, 30);
+        text(ctx, st, x + 42, y + 15, i === si ? C.yellow : C.muted, 'center', 9.5);
+        if (i < states.length - 1) { ctx.strokeStyle = C.axis; ctx.beginPath(); ctx.moveTo(x + 84, y + 15); ctx.lineTo(x + 90, y + 15); ctx.stroke(); }
+      });
+      text(ctx, '为什么重要：LLM 自由采样会「语法性幻觉」（括号不配对、JSON 断裂）；把语法写成掩码加在 logits 上，格式正确率 = 100%', 70, H - 36, 'rgba(150,165,200,1)', 'left', 11);
+      text(ctx, '这是 function calling / JSON mode / 代码生成的底层机制：grammar 约束解码（Outlines/guidance/llama.cpp GBNF）', 70, H - 18, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeButton('下一步', () => { step = Math.min(TARGET.length, step + 1); draw(); }, true));
+    d.controls.appendChild(makeButton('自动走完', () => { let n = 0; const t = () => { step = Math.min(TARGET.length, step + 1); draw(); if (++n < TARGET.length) setTimeout(t, 260); }; t(); }));
+    d.controls.appendChild(makeButton('重置', () => { step = 0; draw(); }));
+    draw();
+  }
+
+  // ============================================================
+  // 视频理解：帧采样策略（真实模拟）
+  // ============================================================
+  function videounder(container) {
+    const d = demoShell('视频理解 · 帧采样', '任务：识别小球「先上后下」的运动模式。同样 8 帧预算：均匀采样在快运动下漏掉关键转折，关键帧采样保住判别信息——视频理解的第一个问题就是「选哪几帧」。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 470);
+    const rng = makeRng(369);
+    const T = 64;
+    let speed = 1.0, noise = 0.3, sim = null;
+    // 真值轨迹：上-下-上
+    const traj = t => {
+      const ph = (t / T * 3) % 3;
+      return ph < 1 ? 0.15 + ph * 0.7 : ph < 2 ? 0.85 - (ph - 1) * 0.7 : 0.15 + (ph - 2) * 0.7;
+    };
+    function run() {
+      const N = 200;
+      const res = { uni4: 0, uni8: 0, key8: 0 };
+      for (let i = 0; i < N; i++) {
+        // 「观测」：带噪声的采样位置；模式 = 峰谷数（上-下-上 = 2 个转折）
+        const observe = t => traj(t) + gauss(rng) * noise;
+        // 均匀 4 帧
+        const u4 = [0, 1, 2, 3].map(k => observe(Math.floor(k / 4 * (T - 1))));
+        // 均匀 8 帧
+        const u8 = Array.from({ length: 8 }, (_, k) => observe(Math.floor(k / 8 * (T - 1))));
+        // 关键帧 8：运动极值处 + 起点（理想化关键帧检测器）
+        const k8 = [0, 0.18, 0.33, 0.5, 0.67, 0.82, 0.95, 1].map(f => observe(Math.floor(f * (T - 1))));
+        // 判别：能数出「上-下-上」三个相位
+        const countTurns = arr => {
+          let turns = 0;
+          for (let k = 1; k < arr.length - 1; k++) {
+            const a = arr[k] - arr[k - 1], b2 = arr[k + 1] - arr[k];
+            if (a * b2 < 0) turns++;
+          }
+          return turns;
+        };
+        if (countTurns(u4) >= 1) res.uni4++;       // 4 帧几乎抓不到两个转折
+        if (countTurns(u8) >= 2) res.uni8++;
+        if (countTurns(k8) >= 2) res.key8++;
+      }
+      sim = { n: N, uni4: res.uni4 / N, uni8: res.uni8 / N, key8: res.key8 / N };
+      draw();
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const box = { l: 90, r: 460, t: 96, b: 426 };
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      const sy = v => box.b - v * (box.b - box.t);
+      // 真值轨迹
+      ctx.strokeStyle = '#e9eefb'; ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let t = 0; t <= T; t++) { const x = box.l + t / T * (box.r - box.l); if (t === 0) ctx.moveTo(x, sy(traj(t))); else ctx.lineTo(x, sy(traj(t))); }
+      ctx.stroke();
+      // 均匀 4 帧采样点
+      [0, 1, 2, 3].forEach(k => {
+        const t = Math.floor(k / 4 * (T - 1));
+        ctx.fillStyle = C.orange;
+        ctx.beginPath(); ctx.arc(box.l + t / T * (box.r - box.l), sy(traj(t)), 6, 0, 7); ctx.fill();
+      });
+      // 关键帧采样点
+      [0, 0.18, 0.33, 0.5, 0.67, 0.82, 0.95, 1].forEach(f => {
+        const t = Math.floor(f * (T - 1));
+        ctx.fillStyle = C.cyan;
+        ctx.beginPath(); ctx.arc(box.l + t / T * (box.r - box.l), sy(traj(t)), 4.4, 0, 7); ctx.fill();
+      });
+      text(ctx, '位置-时间真值（白线，上-下-上两转折）', box.l, 82, C.text, 'left', 11);
+      text(ctx, '● 均匀 4 帧（漏转折）　● 关键帧 8 帧（保转折）', box.l, box.b + 18, C.text, 'left', 10.5);
+      text(ctx, '运动速度 ' + speed.toFixed(1) + '×　观测噪声 ' + noise.toFixed(2), 500, 110, C.yellow, 'left', 12);
+      const bar = (label, v, color) => {
+        text(ctx, label, 500, 150, C.text, 'left', 11.5);
+        ctx.fillStyle = 'rgba(120,140,190,0.2)';
+        ctx.fillRect(620, 138, 90, 16);
+        ctx.fillStyle = color;
+        ctx.fillRect(620, 138, 90 * v, 16);
+        text(ctx, (v * 100).toFixed(0) + '%', 622 + 90 * v + 4, 150, color, 'left', 10.5);
+      };
+      if (sim) {
+        bar('均匀 4 帧识别率', sim.uni4, C.orange);
+        bar('均匀 8 帧识别率', sim.uni8, C.magenta);
+        bar('关键帧 8 帧识别率', sim.key8, C.cyan);
+        text(ctx, '（各 ' + sim.n + ' 次模拟，同一 8 帧预算下「选哪几帧」决定成败）', 500, 220, C.muted, 'left', 10);
+      }
+      text(ctx, '视频理解的账：1 分钟视频 = 数千帧，全喂进去 token 爆炸——必须采样。均匀采样便宜但漏关键瞬间；关键帧/摘要/流式自适应是三条改进路线', 70, H - 36, C.text, 'left', 11);
+      text(ctx, '现代方案：时间 token 化（InternVideo/Qwen-VL-Video）+ 时间注意力（见视频生成深读的对称问题）', 70, H - 18, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeRange(10, 30, 2, Math.round(noise * 100), v => { noise = v / 100; run(); }, '噪声'));
+    d.controls.appendChild(makeButton('再跑 200 次', run, true));
+    run();
+  }
+
+  // ============================================================
+  // 上下文工程：位置利用率与预算分配（真实模拟）
+  // ============================================================
+  function context(container) {
+    const d = demoShell('上下文工程 · 位置与预算', '「大海捞针」的利用率呈 U 形（首尾高、中间低）：拖动「针」的位置看召回率变化；下半部分是同一预算的不同分配方案——上下文工程就是管理这两件事。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 470);
+    let needlePos = 0.5, ctxLen = 4000, alloc = 0;
+    // U 形利用率曲线（经验形状拟合）
+    const utilAt = f => 0.62 + 0.33 * Math.exp(-Math.pow((f - 0) / 0.14, 2)) + 0.36 * Math.exp(-Math.pow((f - 1) / 0.12, 2)) - 0.05 * Math.sin(f * 9);
+    const ALLOCS = [
+      { n: '平均分配', sys: 0.2, few: 0.2, ret: 0.3, hist: 0.3 },
+      { n: '检索优先', sys: 0.12, few: 0.08, ret: 0.6, hist: 0.2 },
+      { n: '示例优先', sys: 0.12, few: 0.5, ret: 0.2, hist: 0.18 },
+      { n: '历史优先', sys: 0.12, few: 0.08, ret: 0.2, hist: 0.6 }
+    ];
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      // 上：利用率曲线 + 针
+      const box = { l: 80, r: 700, t: 100, b: 230 };
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      const sx = f => box.l + f * (box.r - box.l);
+      const sy = v => box.b - clamp(v, 0, 1.1) * (box.b - box.t);
+      [0, 0.5, 1].forEach(v => {
+        ctx.strokeStyle = 'rgba(120,145,200,0.12)';
+        ctx.beginPath(); ctx.moveTo(box.l, sy(v)); ctx.lineTo(box.r, sy(v)); ctx.stroke();
+        text(ctx, Math.round(v * 100) + '%', box.l - 8, sy(v), C.text, 'right', 9.5);
+      });
+      ctx.strokeStyle = C.cyan; ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      for (let k = 0; k <= 100; k++) { const f = k / 100; if (k === 0) ctx.moveTo(sx(f), sy(utilAt(f))); else ctx.lineTo(sx(f), sy(utilAt(f))); }
+      ctx.stroke();
+      const u = utilAt(needlePos);
+      ctx.fillStyle = C.yellow;
+      ctx.beginPath(); ctx.arc(sx(needlePos), sy(u), 7, 0, 7); ctx.fill();
+      text(ctx, '针在这里：召回 ≈ ' + (u * 100).toFixed(0) + '%', sx(needlePos) + 10, sy(u) - 14, C.yellow, 'left', 11);
+      text(ctx, '上下文位置（0=开头 1=结尾）· 长度 ' + ctxLen + ' tokens', (box.l + box.r) / 2, box.b + 18, C.text, 'center', 10.5);
+      // 下：预算分配
+      const a = ALLOCS[alloc];
+      const bx = 80, by = 300, bw = 620, bh = 46;
+      const parts = [['系统提示', a.sys, C.magenta], ['少样本示例', a.few, C.cyan], ['检索内容', a.ret, C.orange], ['对话历史', a.hist, C.green]];
+      let x = bx;
+      parts.forEach(([n2, frac, col]) => {
+        const w = frac * bw;
+        ctx.fillStyle = col.replace(')', ',0.5)').replace('rgb', 'rgba').replace('#', '#');
+        // 简化：直接用固定色
+        ctx.fillStyle = { '系统提示': 'rgba(255,122,198,0.55)', '少样本示例': 'rgba(0,212,255,0.55)', '检索内容': 'rgba(255,184,92,0.6)', '对话历史': 'rgba(0,230,160,0.55)' }[n2];
+        ctx.fillRect(x, by, w - 2, bh);
+        if (w > 70) {
+          text(ctx, n2, x + w / 2, by + 16, '#0c1224', 'center', 10.5);
+          text(ctx, Math.round(frac * ctxLen) + ' tk', x + w / 2, by + 32, '#0c1224', 'center', 10);
+        }
+        x += w;
+      });
+      ctx.strokeStyle = C.axis; ctx.strokeRect(bx, by, bw, bh);
+      text(ctx, '方案：' + a.n + '　（拖动滑杆切换）　检索内容平均位置 = ' + (0.12 + a.sys + a.few + a.ret / 2).toFixed(2), 80, by - 12, C.yellow, 'left', 12);
+      text(ctx, '检索内容处于 U 形低谷时召回最差——这就是「关键信息放开头/结尾」「压缩历史」「检索内容前置重排」的依据（见 RAG 深读）', 70, H - 36, C.text, 'left', 11);
+      text(ctx, '上下文工程 = 决定「什么进上下文、按什么顺序、占多少预算」——提示工程（内容）之上的空间管理学', 70, H - 18, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeRange(0, 100, 5, Math.round(needlePos * 100), v => { needlePos = v / 100; draw(); }, '针位置%'));
+    d.controls.appendChild(makeRange(500, 32000, 500, ctxLen, v => { ctxLen = v; draw(); }, '上下文长度'));
+    d.controls.appendChild(makeRange(0, ALLOCS.length - 1, 1, alloc, v => { alloc = v; draw(); }, '分配方案'));
+    draw();
+  }
+
+  // ============================================================
+  // 算法公平性：指标与阈值（真实计算）
+  // ============================================================
+  function fairness(container) {
+    const d = demoShell('公平性 · 指标与权衡', '两组人群（橙/青）的信用评分分布：拖动审批阈值，实时看准确率与三种公平指标的联动——不同的「公平」定义彼此冲突，选择是价值判断不是技术问题。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 470);
+    const rng = makeRng(1968);
+    let threshold = 0.5, shift = 0.45;
+    const N = 500;
+    function gen() {
+      const g0 = [], g1 = [];
+      for (let i = 0; i < N; i++) {
+        const label = rng() < 0.5 ? 1 : 0;      // 真实违约与否
+        const base = label ? 0.62 : 0.32;       // 真实还款能力→分数
+        g0.push({ s: clamp(base + gauss(rng) * 0.18, 0, 1), y: label });
+        g1.push({ s: clamp(base + shift + gauss(rng) * 0.18, 0, 1), y: label });
+      }
+      return { g0: g0, g1: g1 };
+    }
+    const data = gen();
+    function metrics(group) {
+      let tp = 0, fp = 0, fn = 0, tn = 0, pos = 0;
+      group.forEach(p => {
+        const pred = p.s >= threshold ? 1 : 0;
+        if (p.y === 1) { pos++; pred ? tp++ : fn++; }
+        else pred ? fp++ : tn++;
+      });
+      return {
+        rate: pos / group.length,
+        tpr: pos ? tp / pos : 0,
+        fpr: (fp + tn) ? fp / (fp + tn) : 0,
+        acc: (tp + tn) / group.length,
+        tp: tp, fp: fp, fn: fn, tn: tn
+      };
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const m0 = metrics(data.g0), m1 = metrics(data.g1);
+      // 分布直方图
+      const box = { l: 80, r: 430, t: 96, b: 330 };
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      const NB = 40, b0 = zeros(NB), b1 = zeros(NB);
+      data.g0.forEach(p => b0[clamp(Math.floor(p.s * NB), 0, NB - 1)]++);
+      data.g1.forEach(p => b1[clamp(Math.floor(p.s * NB), 0, NB - 1)]++);
+      const bmax = Math.max.apply(null, b0.concat(b1));
+      for (let i = 0; i < NB; i++) {
+        const x = box.l + i / NB * (box.r - box.l), w = (box.r - box.l) / NB;
+        const h0 = b0[i] / bmax * (box.b - box.t), h1 = b1[i] / bmax * (box.b - box.t);
+        ctx.fillStyle = 'rgba(255,184,92,0.55)';
+        ctx.fillRect(x, box.b - h0, w - 1, h0);
+        ctx.fillStyle = 'rgba(0,212,255,0.45)';
+        ctx.fillRect(x, box.b - h1, w - 1, Math.min(h1, h0) * 0 + h1);
+      }
+      // 阈值线
+      const tx = box.l + threshold * (box.r - box.l);
+      ctx.strokeStyle = C.yellow; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(tx, box.t); ctx.lineTo(tx, box.b); ctx.stroke();
+      text(ctx, '审批阈值 →', tx + 6, box.t + 14, C.yellow, 'left', 10.5);
+      text(ctx, '橙=组 A 分数分布　青=组 B（系统性偏移 ' + shift.toFixed(2) + '）　竖线=审批线', 80, 82, C.text, 'left', 11);
+      // 指标表
+      const rx = 470;
+      text(ctx, '指标（拖阈值实时变化）：', rx, 110, C.yellow, 'left', 12);
+      const rows = [
+        ['通过率', m0.rate, m1.rate], ['真阳率 TPR', m0.tpr, m1.tpr],
+        ['假阳率 FPR', m0.fpr, m1.fpr], ['准确率', m0.acc, m1.acc]
+      ];
+      text(ctx, '指标', rx, 136, C.muted, 'left', 10.5);
+      text(ctx, '组 A', rx + 150, 136, C.orange, 'left', 10.5);
+      text(ctx, '组 B', rx + 260, 136, C.cyan, 'left', 10.5);
+      rows.forEach((r, i) => {
+        const y = 160 + i * 34;
+        text(ctx, r[0], rx, y, C.text, 'left', 11.5);
+        text(ctx, (r[1] * 100).toFixed(1) + '%', rx + 150, y, C.orange, 'left', 11.5);
+        text(ctx, (r[2] * 100).toFixed(1) + '%', rx + 260, y, C.cyan, 'left', 11.5);
+        if (i < 3) {
+          const diff = Math.abs(r[1] - r[2]) * 100;
+          const flag = diff > 10 ? '⚠ 差 ' + diff.toFixed(0) + 'pp' : '差 ' + diff.toFixed(0) + 'pp';
+          text(ctx, flag, rx + 350, y, diff > 10 ? '#ff8787' : C.muted, 'left', 10.5);
+        }
+      });
+      text(ctx, '三种「公平」互相打架：统计均等（通过率相同）会牺牲 TPR 相等；机会平等（TPR 相同）容忍通过率不同——选哪个是价值判断', rx - 10, 320, C.text, 'left', 10.5);
+      text(ctx, '根源：组间基础率不同 + 分数分布偏移时，「无偏模型」仍产生有偏结果——公平性要在「数据→模型→阈值→监控」全链路治理', 70, H - 36, C.text, 'left', 11);
+      text(ctx, '实操：分群审计（按人群切指标）+ 多指标同看 + 阈值分组校准 + 人工复核通道', 70, H - 18, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeRange(10, 90, 2, Math.round(threshold * 100), v => { threshold = v / 100; draw(); }, '阈值%'));
+    d.controls.appendChild(makeRange(0, 100, 5, Math.round(shift * 100), v => { shift = v / 100; draw(); }, '偏移'));
+    draw();
+  }
+
+  // ============================================================
+  // LLM 评测：裁判偏差（真实模拟）
+  // ============================================================
+  function llmeval(container) {
+    const d = demoShell('LLM 评测 · 裁判偏差', '用 LLM 给两个回答打分（A/B 测试式）时有系统性偏差：偏爱长回答、偏爱先出现的。调偏差强度看「测出的胜率」如何偏离「真实水平」——评测工具本身也要被评测。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 470);
+    const rng = makeRng(20250101);
+    let lenBias = 0.3, posBias = 0.2, truthA = 0.55;   // A 真实胜率 55%
+    function run() {
+      const N = 400, winsA = [0, 0];   // [A在前, A在后]
+      for (let i = 0; i < N; i++) {
+        // 长度：B 平均更长（模型普遍话多）
+        const lenA = 1.0, lenB = 1.35;
+        for (let pos = 0; pos < 2; pos++) {
+          // 真实质量信号 + 偏差扰动
+          let scoreA = truthA + gauss(rng) * 0.25 + (pos === 0 ? posBias * 0.5 : -posBias * 0.5);
+          let scoreB = (1 - truthA) + gauss(rng) * 0.25 + (pos === 1 ? posBias * 0.5 : -posBias * 0.5) + (lenBias * (lenB - lenA));
+          if (scoreA > scoreB) winsA[pos]++;
+        }
+      }
+      const measured = (winsA[0] + winsA[1]) / (2 * N);
+      return { posA: winsA[0] / N, posB: winsA[1] / N, measured: measured, truth: truthA, distortion: measured - truthA };
+    }
+    function draw() {
+      const r = run();
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      // 真实 vs 测出
+      const box = { l: 90, r: 460, t: 110, b: 360 };
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      const sy = v => box.b - v * (box.b - box.t);
+      [0, 0.25, 0.5, 0.75, 1].forEach(v => {
+        ctx.strokeStyle = 'rgba(120,145,200,0.12)';
+        ctx.beginPath(); ctx.moveTo(box.l, sy(v)); ctx.lineTo(box.r, sy(v)); ctx.stroke();
+        text(ctx, Math.round(v * 100) + '%', box.l - 8, sy(v), C.text, 'right', 9.5);
+      });
+      // 真实胜率线
+      ctx.strokeStyle = '#e9eefb'; ctx.lineWidth = 1.6; ctx.setLineDash([5, 4]);
+      ctx.beginPath(); ctx.moveTo(box.l, sy(r.truth)); ctx.lineTo(box.r, sy(r.truth)); ctx.stroke(); ctx.setLineDash([]);
+      text(ctx, '真实水平 ' + (r.truth * 100).toFixed(0) + '%', box.r - 10, sy(r.truth) - 10, C.text, 'right', 10.5);
+      // 测出柱
+      const bw = 46;
+      ctx.fillStyle = 'rgba(0,212,255,0.65)';
+      ctx.fillRect(box.l + 60, sy(r.posA), bw, box.b - sy(r.posA));
+      text(ctx, 'A 在前', box.l + 60 + bw / 2, sy(r.posA) - 10, C.cyan, 'center', 10.5);
+      text(ctx, (r.posA * 100).toFixed(0) + '%', box.l + 60 + bw / 2, box.b + 16, C.cyan, 'center', 10.5);
+      ctx.fillStyle = 'rgba(255,122,198,0.65)';
+      ctx.fillRect(box.l + 240, sy(r.posB), bw, box.b - sy(r.posB));
+      text(ctx, 'A 在后', box.l + 240 + bw / 2, sy(r.posB) - 10, C.magenta, 'center', 10.5);
+      text(ctx, (r.posB * 100).toFixed(0) + '%', box.l + 240 + bw / 2, box.b + 16, C.magenta, 'center', 10.5);
+      // 综合测出
+      ctx.fillStyle = 'rgba(255,224,102,0.8)';
+      ctx.fillRect(box.l + 150, sy(r.measured), bw, box.b - sy(r.measured));
+      text(ctx, '综合', box.l + 150 + bw / 2, sy(r.measured) - 10, C.yellow, 'center', 10.5);
+      // 右侧解读
+      const rx = 500;
+      text(ctx, '偏差设置：', rx, 110, C.yellow, 'left', 12);
+      text(ctx, '长度偏好　' + (lenBias * 100).toFixed(0) + '%', rx, 140, C.text, 'left', 11);
+      text(ctx, '位置偏好　' + (posBias * 100).toFixed(0) + '%', rx, 164, C.text, 'left', 11);
+      text(ctx, '——', rx, 192, C.muted, 'left', 11);
+      text(ctx, '测出综合胜率：' + (r.measured * 100).toFixed(1) + '%', rx, 218, C.yellow, 'left', 12);
+      text(ctx, '失真：' + (r.distortion >= 0 ? '+' : '') + (r.distortion * 100).toFixed(1) + 'pp', rx, 244, Math.abs(r.distortion) > 0.05 ? '#ff8787' : C.green, 'left', 12);
+      text(ctx, 'A 在前胜率 ' + (r.posA * 100).toFixed(0) + '% vs 在后 ' + (r.posB * 100).toFixed(0) + '%——位置偏差的直接证据', rx, 276, C.text, 'left', 10.5);
+      text(ctx, '对策：交换顺序取平均（本模拟的综合）、长度控制/归一、多裁判投票、与人工标注校准', rx, 300, C.text, 'left', 10.5);
+      text(ctx, 'LLM-as-judge 是大规模评测的命脉（Arena/各类榜单）——但它自己也有「口味」：长、详尽、先出现、自信的口吻都会加分', 70, H - 36, C.text, 'left', 11);
+      text(ctx, '铁律：评测工具本身必须被校准（与人类标注对比一致性）——否则你在优化裁判的偏好，不是模型的质量', 70, H - 18, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeRange(0, 80, 5, Math.round(lenBias * 100), v => { lenBias = v / 100; draw(); }, '长度偏好%'));
+    d.controls.appendChild(makeRange(0, 80, 5, Math.round(posBias * 100), v => { posBias = v / 100; draw(); }, '位置偏好%'));
+    d.controls.appendChild(makeRange(30, 70, 5, Math.round(truthA * 100), v => { truthA = v / 100; draw(); }, 'A真实胜率%'));
+    draw();
+  }
+
   window.MLDemos = {
     dist: dist, linear: linear, logistic: logistic, tree: tree, forest: forest,
     xgboost: xgboost, svm: svm, kmeans: kmeans, pca: pca, mlp: mlp, rnn: rnn, lstm: lstm, seq: seq,
@@ -6911,6 +8162,10 @@
     adv: adv, dp: dp,
     ssm: ssm, parallel: parallel, pgm: pgm, mcmc: mcmc,
     history: history, safety: safety, control: control, video: video,
-    nerf: nerf, ocr: ocr, cua: cua, embodied: embodied
+    nerf: nerf, ocr: ocr, cua: cua, embodied: embodied,
+    world: world, voicechat: voicechat, embed: embed, automl: automl,
+    mathllm: mathllm, kg: kg, chip: chip, ir: ir,
+    interp: interp, dataeng: dataeng, flowmatch: flowmatch, codegen: codegen,
+    videounder: videounder, context: context, fairness: fairness, llmeval: llmeval
   };
 })();
