@@ -25,12 +25,12 @@ const ROADMAP = [
   {
     title: '统计与数学地基',
     color: '#5c9bff',
-    items: ['概率与分布', '概率图模型', '采样与 MCMC', '均值·方差·假设检验', '线性代数·微积分', 'Python / NumPy']
+    items: ['概率与分布', '线性代数与微积分', '信息论', '均值·方差·假设检验', '概率图模型', '采样与 MCMC', 'HMM 与卡尔曼滤波', 'Python 与 NumPy']
   },
   {
     title: '优化与泛化',
     color: '#94a3b8',
-    items: ['梯度下降', '损失函数与信息论', '优化器 Adam', '激活函数与初始化', '过拟合·偏差方差', '正则化与归一化']
+    items: ['Python 与 NumPy', '梯度下降', '损失函数与信息论', '优化器 Adam', '激活函数与初始化', '过拟合·偏差方差', '正则化与归一化']
   },
   {
     title: '回归模型',
@@ -75,17 +75,17 @@ const ROADMAP = [
   {
     title: '大语言模型',
     color: '#34d399',
-    items: ['数据工程与合成数据', 'Tokenization 分词', '词嵌入 Word2Vec', 'BERT 编码器', 'GPT 架构与预训练', '位置编码与长上下文', '上下文工程', '微调与 LoRA', 'RLHF 对齐', '分布式训练与并行', '提示工程', '推理优化与部署', '模型量化', '思维链与推理模型', '代码生成与结构化解码', '多模态检索与嵌入', '数学推理', '多模态 VLM', '评测基准与数据污染', 'AI 安全与对齐']
+    items: ['数据工程与合成数据', 'Tokenization 分词', '词嵌入 Word2Vec', 'BERT 编码器', 'GPT 架构与预训练', '位置编码与长上下文', '上下文工程', '微调与 LoRA', 'RLHF 对齐', '分布式训练与并行', '提示工程', '推理优化与部署', '模型量化', '思维链与推理模型', '模型路由与成本', '水印与内容检测', '代码生成与结构化解码', '多模态检索与嵌入', '数学推理', '多模态 VLM', '评测基准与数据污染', 'AI 安全与对齐']
   },
   {
     title: '智能体 Agent',
     color: '#fb7185',
-    items: ['RAG 检索增强生成', '信息检索 BM25', '知识图谱', 'Agent 与工具调用', '计算机使用 CUA', '多智能体协作']
+    items: ['RAG 检索增强生成', '信息检索 BM25', '知识图谱', 'AI 搜索引擎', 'Agent 与工具调用', '计算机使用 CUA', '多智能体协作']
   },
   {
     title: '工程方法论',
     color: '#f59e0b',
-    items: ['AI 历史与流派', '特征工程', '模型评估与调参', 'LLM 评测与裁判', 'AutoML', '机制可解释性', '算法公平性', '共形预测', '因果推断', '序列预测·时间序列', '时间序列 ARIMA', 'MLOps 与监控', 'AI 芯片与算力']
+    items: ['AI 历史与流派', '特征工程', '实验设计与 A/B 测试', '模型评估与调参', 'LLM 评测与裁判', 'AutoML', '机制可解释性', '算法公平性', '共形预测', '因果推断', '序列预测·时间序列', '时间序列 ARIMA', 'MLOps 与监控', 'AI 芯片与算力']
   }
 ];
 
@@ -173,8 +173,137 @@ const TOPICS = [
   },
 
   {
-    id: 'pgm',
+    id: 'prob',
     num: '01',
+    emoji: '🎲',
+    name: '概率与分布',
+    en: 'Probability & Distributions',
+    cat: 'stat',
+    diff: 2,
+    accent: '#5c9bff',
+    tagline: '概率是「不确定性的语言」：条件概率、贝叶斯定理、常见分布族与大数定律——AI 里一半的主题都踩在这几块地基上。',
+    intro: {
+      what: '概率论基础：条件概率与独立性、贝叶斯定理、常见分布族（正态/二项/泊松/指数/Beta）的形状与适用场景、期望方差、大数定律与中心极限定理。',
+      problem: 'AI 的输出本质上都是概率（分类的概率、生成的分布、评测的置信度）；不掌握概率语言，p 值、置信区间、交叉熵、采样温度全都是黑盒。',
+      idea: '用公理化定义建立概率空间；条件概率引出贝叶斯定理（先验×似然÷证据）；分布族是「随机现象的模式库」——每种都对应一类真实过程。'
+    },
+    principle: {
+      text: [
+        '条件概率 P(A|B) = P(AB)/P(B)：在「B 已发生」的世界里重新分配概率——一切推理的前提。',
+        '贝叶斯定理 P(A|B) = P(B|A)P(A)/P(B)：从「原因→结果」翻转到「结果→原因」——先验（基础概率）×似然（观测多像它造成）= 后验。',
+        '中心极限定理：独立同分布样本的均值趋于正态 N(μ, σ²/n)——不管原分布长什么样（演示可实时采样验证）。'
+      ],
+      formula: {
+        html: 'P(A|B) = <span class="frac"><span class="num">P(B|A) · P(A)</span><span class="den">P(B)</span></span>',
+        note: '贝叶斯定理：似然 × 先验 ÷ 证据——「看结果反推原因」的全部数学。'
+      }
+    },
+    example: {
+      analogy: '医生看病：某病发病率 1/1000（先验），检测准确率 99%——检测结果阳性时真患病概率只有约 9%（基础率压倒准确率）。不学贝叶斯，人人都在这道题上翻车。',
+      mini: '演示里切五种分布拖参数看形状；CLT 面板实时采样验证「均值趋向正态」。'
+    },
+    pros: ['一切概率输出的语义基础（分类概率/生成分布/置信度）', '贝叶斯系方法（NB/GMM/贝叶斯网络）的语言', '评测与实验（p 值/CI）的地基'],
+    cons: ['频率派与贝叶斯派两种解读混用', '忽略基础率（base rate fallacy）', '把「独立」与「不相关」混为一谈'],
+    history: [
+      { year: '1654', text: '帕斯卡与费马通信解决赌金分配——概率论起源。' },
+      { year: '1763', text: '贝叶斯遗作发表，拉普拉斯后续系统化「逆概率」。' },
+      { year: '1933', text: 'Kolmogorov 公理化，概率成为严格数学。' },
+      { year: '至今', text: '从贝叶斯网络到扩散模型，概率语言贯穿 AI 全史。' },
+    ],
+    use: ['任何概率输出（分类/生成/评测）的语义理解', '贝叶斯系方法（NB/GMM/贝叶斯网络）的前置', '日常风险与统计新闻的判读'],
+    avoid: ['需要测度论的严格随机过程理论', '高频金融微观结构建模', '把「概率」当物理属性而非信念度量的哲学争论'],
+    learn: ['在演示里调 <strong>CLT 样本数</strong>，看均值分布从「歪」到「正」的全过程。', '手算 <strong>基础率谬误</strong>（1/1000 发病率 + 99% 准确率）。', '分清 <strong>PMF 与 PDF</strong>：离散求和、连续积分。', '进阶：读《Statistical Rethinking》前几章——贝叶斯思维的最好入门。'],
+    demo: { id: 'prob', title: '概率与分布 · 分布动物园', note: '五种分布切换参数看形状；CLT 面板实时采样验证「均值趋向正态」。' }, deep: 'content/prob.md'  },
+
+  {
+    id: 'lincalc',
+    num: '02',
+    emoji: '📐',
+    name: '线性代数与微积分',
+    en: 'Linear Algebra & Calculus',
+    cat: 'stat',
+    diff: 2,
+    accent: '#5c9bff',
+    tagline: '矩阵是空间变换、导数是变化率——深度学习的两种基本动作（线性变换 + 沿梯度走）全靠它们；可视化之后一点都不抽象。',
+    intro: {
+      what: 'AI 用的线性代数（矩阵乘法、行列式、特征值/特征向量、正交）与微积分（导数、偏导、梯度、链式法则）——backprop、PCA、注意力全是这两样的组合。',
+      problem: '公式符号吓人，但几何直观极其简单：矩阵可视化后「行列式=面积缩放」「特征向量=不被旋转的方向」一眼可见；导数就是切线斜率。',
+      idea: '线性代数以「矩阵=变换」为中心：乘法=变换复合、行列式=面积缩放因子、特征向量=变换下不变的方向；微积分以「局部线性化」为中心：导数=切线斜率、梯度=多维最陡方向、链式法则=变化率的传递。'
+    },
+    principle: {
+      text: [
+        '矩阵乘法 Av：矩阵 A 把向量 v 变换到新位置——列向量就是「基向量 î、ĵ 变换后的像」。',
+        '特征向量 Av = λv：变换后只被伸缩不被旋转的方向——PCA（最大方差方向）、谱聚类、PageRank 全是它。',
+        '梯度 ∇f：各维偏导组成的向量——指向上升最快的方向，负梯度即最速下降（梯度下降的「梯度」就是它）。'
+      ],
+      formula: {
+        html: 'Av = λv,　df = <span class="frac"><span class="num">∂f</span><span class="den">∂x</span></span>dx + <span class="frac"><span class="num">∂f</span><span class="den">∂y</span></span>dy',
+        note: '特征方程与全微分：线性代数与微积分各自最常用的两个式子。'
+      }
+    },
+    example: {
+      analogy: '推箱子：矩阵是「推的规则」，行列式是「箱子被压扁的程度」，特征向量是「推不动只滑动」的方向；导数是「坡的陡度」，梯度下降就是「沿最陡下坡走」。',
+      mini: '演示里拖 a/b/c/d 四个数：网格被拉伸旋转、黄块面积=|行列式|、紫虚线是特征方向——矩阵不再是数字表格而是「空间的变形」。'
+    },
+    pros: ['一切深度学习张量运算的几何直觉', 'PCA/SVD/注意力（QK^T）的数学地基', '梯度下降与反向传播的求导基础'],
+    cons: ['抽象空间（>3 维）无法可视化（靠代数规则补）', '数值稳定性（病态矩阵）需专门处理', '张量与「多维数组」的区别常被误解'],
+    history: [
+      { year: '1800s', text: 'Gauss（最小二乘）与 Cauchy（导数/行列式）奠定两大分支。' },
+      { year: '1930s', text: '线性代数随计算机成为数值计算核心。' },
+      { year: '1986', text: '反向传播=链式法则的系统化应用，微积分统治模型训练。' },
+      { year: '2017+', text: '注意力=矩阵乘法+softmax；GPU=线性代数机器——两大分支在 AI 完成会师。' },
+    ],
+    use: ['理解一切模型内部运算（矩阵乘+导数）', '读论文公式不再发怵', 'PCA/SVD/注意力等衍生主题的地基'],
+    avoid: ['纯证明导向的学习（以直观+应用为主即可）', '手工算大矩阵（交给 NumPy）', '把「会算」当「会懂」（几何意义更重要）'],
+    learn: ['在演示里试 <strong>压扁（行列式=0）</strong>，看「信息丢失」的几何含义。', '拖出 <strong>特征向量</strong>：让紫虚线两侧图案「只缩不转」。', '用 <strong>链式法则</strong> 手推一层神经元的梯度。', '进阶：3Blue1Brown 线性代数/微积分系列——本主题可视化的鼻祖。'],
+    demo: { id: 'lincalc', title: '线性代数 · 2D 变换实验室', note: '拖矩阵看网格变形：黄块面积=|行列式|，紫虚线=特征方向，行列式=0 即压扁。' }, deep: 'content/lincalc.md'  },
+
+  {
+    id: 'infotheory',
+    num: '03',
+    emoji: '📉',
+    name: '信息论',
+    en: 'Information Theory',
+    cat: 'stat',
+    diff: 3,
+    accent: '#5c9bff',
+    tagline: '用「比特」度量不确定性：熵、交叉熵、KL 散度——损失函数、决策树、VAE、蒸馏的共同数学语言。',
+    intro: {
+      what: '信息论（Shannon）：熵（分布的不确定度）、交叉熵与 KL 散度（两个分布的差异）、互信息（变量间共享的信息）——「信息」的可操作定义。',
+      problem: '「这个分布多不确定」「两个分布差多远」需要可计算的度量——信息论给出带「编码解释」的度量：最优编码需要多少比特。',
+      idea: '熵 H(p) = −Σp log p：均匀分布熵最大；交叉熵 H(p,q)：用 q 的编码方案编码 p 的代价；KL(p‖q) = H(p,q) − H(p) ≥ 0：次优编码的额外代价。最小化交叉熵 ≡ 最小化 KL ≡ 最大似然（见损失函数深读）。'
+    },
+    principle: {
+      text: [
+        '熵与最优编码：每个符号理想编码长 −log₂p 比特——概率越小（越意外）信息量越大。',
+        'KL 的不对称与非负：KL(p‖q)≥0 且 =0 当且仅当 p=q；两方向不等——「正向 KL 均值覆盖、反向 KL 零回避」（变分推断的 mode-seeking）。',
+        '互信息 I(X;Y)：知道 X 后 Y 的不确定度下降多少——特征选择、InfoNCE 表示学习、信息瓶颈的度量。'
+      ],
+      formula: {
+        html: 'H(p,q) = H(p) + KL(p‖q) ≥ H(p)',
+        note: '交叉熵分解：编码代价 = 理想代价 + 次优罚金——「分类用交叉熵损失」的全部正当性。'
+      }
+    },
+    example: {
+      analogy: '天气预报编码器：晴 90% 雨天少时每天只需 0.47 比特；若编码器假设晴雨各半（q=0.5）平均要 1 bit——多出的就是 KL。',
+      mini: '演示里拖 p 与 q：青条（熵）与橙条（交叉熵）逐符号对比，差值即 KL——模型 q 越贴近真实 p，罚金越小。'
+    },
+    pros: ['分类/生成损失（交叉熵）的数学语义', '决策树信息增益、特征选择（互信息）', '变分推断/蒸馏/RLHF 的 KL 正则语言'],
+    cons: ['KL 不对称——方向选错优化行为完全不同', '高维连续变量的熵估计困难', '把「互信息大」当「因果」（相关性的信息论版）'],
+    history: [
+      { year: '1948', text: 'Shannon《通信的数学理论》：「比特」问世。' },
+      { year: '1951', text: 'Kullback-Leibler 散度进入统计学。' },
+      { year: '1990s', text: '决策树信息增益与最大熵模型落地 ML。' },
+      { year: '至今', text: '交叉熵是深度学习默认损失；变分推断与 InfoNCE 把信息论推向核心。' },
+    ],
+    use: ['理解分类交叉熵损失的「为什么」', '决策树/特征选择的度量依据', '变分推断与信息瓶颈类方法的语言'],
+    avoid: ['连续变量微分熵随意解释（可为负）', '把 KL 当距离（不对称、不满足三角不等式）', '小样本直接估高维互信息（偏差巨大）'],
+    learn: ['在演示里把 <strong>q 拖向 p</strong>，看 KL 归零、交叉熵=熵。', '理解 <strong>意外程度=信息量</strong>：概率越小 −log₂p 越大。', '两行代数推导 <strong>H(p,q)=H(p)+KL</strong>。', '进阶：MacKay《Information Theory, Inference, and Learning Algorithms》——免费且最好。'],
+    demo: { id: 'infotheory', title: '信息论 · 熵与 KL 散度', note: '拖 p/q 两套分布：熵、交叉熵、KL 实时联动，逐符号可视化对比。' }, deep: 'content/infotheory.md'  },
+
+  {
+    id: 'pgm',
+    num: '04',
     emoji: '🕸️',
     name: '概率图模型',
     en: 'Probabilistic Graphical Models',
@@ -222,7 +351,7 @@ const TOPICS = [
 
   {
     id: 'mcmc',
-    num: '02',
+    num: '05',
     emoji: '🎲',
     name: '采样与 MCMC',
     en: 'Monte Carlo & MCMC',
@@ -270,7 +399,7 @@ const TOPICS = [
 
   {
     id: 'arima',
-    num: '03',
+    num: '06',
     emoji: '📉',
     name: '时间序列分析：ARIMA',
     en: 'Time Series: ARIMA & Decomposition',
@@ -317,8 +446,99 @@ const TOPICS = [
     demo: { id: 'arima', title: '时序 · 差分平稳化演示', note: '拖动差分阶数，看上图带趋势与季节的原始序列如何在下图被「压平」成平稳序列。' }, deep: 'content/arima.md'  },
 
   {
+    id: 'hmmkalman',
+    num: '07',
+    emoji: '🎯',
+    name: 'HMM 与卡尔曼滤波',
+    en: 'HMM & Kalman Filter',
+    cat: 'stat',
+    diff: 4,
+    accent: '#5c9bff',
+    tagline: '「看不见真实状态，只能看噪声观测」的经典双雄：HMM 管离散状态序列，卡尔曼管连续线性高斯——导航、语音、追踪的隐变量推断地基。',
+    intro: {
+      what: '隐马尔可夫模型（HMM）：离散隐状态序列的图模型，三大问题（评估/解码/学习）与算法（前向-后向/Viterbi/Baum-Welch）；卡尔曼滤波：连续线性高斯世界的最优递归估计（预测+更新）。',
+      problem: 'GPS 隧道里没信号、传感器永远带噪、语音的音素不可直接观测——「从带噪观测推断隐状态序列」是工程常态，需要 principled 的推断框架。',
+      idea: '共同的贝叶斯滤波骨架：预测（用运动/转移模型推隐状态分布）→ 更新（用新观测校正）——卡尔曼是「线性高斯」的闭式解，HMM 是「离散」的穷举，粒子滤波是任意分布的采样近似。'
+    },
+    principle: {
+      text: [
+        '卡尔曼两步：预测（x←Fx，P 增大）与更新（K=P/(P+R)，按增益融合测量）——增益自动在天平两端分配信任。',
+        'HMM 三算法：前向（评估观测概率）、Viterbi（解码最可能状态序列）、Baum-Welch（EM 学习参数）——语音识别的传统骨架（见语音识别深读）。',
+        '现代位置：非线性场景用 EKF/UKF/粒子滤波扩展；深度时代与状态空间模型（见 Mamba 深读）融合——「结构化状态模型」的思想从未过时。'
+      ],
+      formula: {
+        html: 'K = <span class="frac"><span class="num">P</span><span class="den">P + R</span></span>，　x ← x + K(z − x)',
+        note: '卡尔曼增益 = 模型方差 ÷（模型方差 + 测量方差）——「谁更可信就多听谁的」，两个旋钮（P/R）对应两种噪声源。'
+      }
+    },
+    example: {
+      analogy: '雾天开车：看不清路（测量噪声大）但知道「刚才在匀速直行」（运动模型）——卡尔曼就是「模型预测 + 看到什么修正多少」的形式化，修正多少由两边噪声自动决定。',
+      mini: '演示里调大测量噪声：青色估计线更贴灰色运动模型；调大过程噪声：估计更贴红色散点——增益曲线实时显示信任天平。'
+    },
+    pros: ['导航/追踪/机器人定位的估计层', '时序去噪与多传感器融合', 'HMM：语音/基因序列/金融状态的经典建模'],
+    cons: ['强非线性（需 EKF/UKF/粒子滤波）', '离散状态空间巨大（表格爆炸）', '观测-状态关系复杂（端到端深度模型更合适）'],
+    history: [
+      { year: '1960', text: 'Kalman 滤波发表，阿波罗登月导航的核心。' },
+      { year: '1960s~70s', text: 'Baum-Welch 与 Viterbi 让 HMM 可用，成为语音识别第一个主流范式。' },
+      { year: '1980s~2000s', text: '粒子滤波扩展非线性；HMM 统治语音三十年。' },
+      { year: '至今', text: '卡尔曼活在每次手机定位融合里；「预测-更新」骨架活在所有贝叶斯滤波中。' },
+    ],
+    use: ['传感器融合（IMU+GPS+视觉）', '时序状态估计（姿态/仓位/浓度）', '离散序列的解码与学习（HMM）'],
+    avoid: ['强非线性+大噪声（粒子滤波/学习式更稳）', '状态模型未知且难手工设计（深度方法）', '把滤波当因果推断（它不懂干预）'],
+    learn: ['在演示里调 <strong>两种噪声</strong>，看增益曲线与估计线的联动。', '手推 <strong>一维卡尔曼的一步更新</strong>（三行算术）。', '对比 <strong>卡尔曼与 HMM</strong>：连续高斯 vs 离散表格的贝叶斯滤波。', '进阶：读 Probabilistic Robotics 滤波章节——机器人视角的统一讲法。'],
+    demo: { id: 'hmmkalman', title: '卡尔曼滤波 · 目标跟踪', note: '真实卡尔曼实现：红点测量、灰线真值、青线估计，增益曲线显示信任天平。' }, deep: 'content/hmmkalman.md'  },
+
+  {
+    id: 'numpy',
+    num: '08',
+    emoji: '🐍',
+    name: 'Python 与 NumPy',
+    en: 'Python & NumPy',
+    cat: 'found',
+    diff: 1,
+    accent: '#94a3b8',
+    tagline: 'AI 工程师的母语：向量化、广播与切片——「把循环交给库」是数据科学的第一条性能定律。',
+    intro: {
+      what: 'NumPy 是 Python 的数值计算地基：ndarray 多维数组 + 向量化运算 + 广播机制。上层的一切（Pandas/PyTorch/TensorFlow）都沿用它的心智模型。',
+      problem: 'Python 解释器逐元素循环极慢；而数据科学的核心操作（矩阵乘、逐元素变换、聚合）天然可以批处理——需要一种「一次调用处理一整块数据」的表达方式。',
+      idea: '数据连续存储在 C 内存 + 运算下沉到编译层：Python 只负责「描述要做什么」，真正的循环在 C/向量化指令里跑——快 50~100× 且代码更短。'
+    },
+    principle: {
+      text: [
+        '向量化：表达式作用于整个数组（a * b + 1），解释器只调度一次，循环在 C 层完成——同样计算比纯 Python 循环快 1~2 个数量级。',
+        '广播（broadcasting）：形状不同的数组运算时自动对齐——从末尾维度比较，尺寸相等或为 1 即可扩展（(4,3)+(3,)→(4,3)；(4,1)+(1,3)→(4,3)）。',
+        '切片与视图：a[1:5] 不复制数据（视图），改视图会改原数组——省内存但也是意外改数据的高发地；需要独立副本时用 .copy()。'
+      ],
+      formula: {
+        html: '<span class="sym">c</span> = <span class="sym">a</span> * <span class="sym">b</span> + 1　（对全部元素一次调用）',
+        note: '「逐元素的数学式」直接写成一个表达式——这就是向量化：数学怎么写，代码就怎么写。'
+      }
+    },
+    example: {
+      analogy: '手工作坊 vs 工厂流水线：循环是工人一件件加工（每件都有交接成本）；向量化是整批送进流水线（一次启动批量产出）——产量大时差距是数量级的。',
+      mini: '计算 100 万个点的均方误差：循环版 ~400ms；向量化 np.mean((pred - y) ** 2) ~2ms——同一行数学，200 倍速度。'
+    },
+    pros: ['性能：C 层连续内存 + SIMD，快 1~2 个数量级', '代码即数学：表达式与公式一一对应，可读性高', '生态基石：Pandas/PyTorch/SciPy 全部沿用 ndarray 心智模型'],
+    cons: ['广播规则有学习曲线（形状对不齐就报错）', '视图/副本语义是意外改数据的重灾区', '循环逻辑复杂时向量化反而降低可读性（可读性优先原则）'],
+    history: [
+      { year: '1995', text: 'Numeric（NumPy 前身）发布；2005 Travis Oliphant 合并 Numeric/Numarray 为 NumPy。' },
+      { year: '2010s', text: 'SciPy/Pandas/scikit-learn 生态全部构建在 ndarray 之上。' },
+      { year: '2020+', text: 'PyTorch/TensorFlow 的 tensor API 与 NumPy 几乎一致——「学会 NumPy = 会写深度学习的数据层」。' },
+      { year: '至今', text: 'Array API 标准推进中：NumPy/CuPy/JAX/torch 共用一套接口。' }
+    ],
+    use: ['一切数值计算的默认工具（数据清洗/特征工程/矩阵运算）', '深度学习的数据预处理层', '算法原型（先向量化跑通再优化）'],
+    avoid: ['纯 Python 对象的逐元素循环（用向量化）', '增长式构建数组（先分配再填充）', '在不知视图/副本语义时修改切片（意外污染原数据）'],
+    learn: [
+      '在演示里跑 <strong>基准</strong>，亲眼看循环与向量化的数量级差距。',
+      '背下 <strong>广播规则</strong>：从末尾对齐，缺则补 1，1 则拉伸。',
+      '练习三件套：掩码（a[a > 0]）、聚合（axis 参数）、重塑（reshape/transpose）。',
+      '进阶：读 NumPy 官方的「absolute basics」教程 + 100 个 NumPy 练习题。'
+    ],
+    demo: { id: 'numpy', title: 'NumPy · 向量化 vs 循环', note: '同一任务真实计时：显式循环 vs 块处理向量化，附广播规则速记。' }, deep: 'content/numpy.md'  },
+
+  {
     id: 'gd',
-    num: '04',
+    num: '09',
     emoji: '⛰️',
     name: '梯度下降与优化',
     en: 'Gradient Descent & Optimization',
@@ -366,7 +586,7 @@ const TOPICS = [
 
   {
     id: 'loss',
-    num: '05',
+    num: '10',
     emoji: '🎯',
     name: '损失函数与信息论',
     en: 'Loss Functions & Information Theory',
@@ -414,7 +634,7 @@ const TOPICS = [
 
   {
     id: 'opt',
-    num: '06',
+    num: '11',
     emoji: '🏃',
     name: '优化器：动量与 Adam',
     en: 'Optimizers: Momentum & Adam',
@@ -463,7 +683,7 @@ const TOPICS = [
 
   {
     id: 'act',
-    num: '07',
+    num: '12',
     emoji: '⚡',
     name: '激活函数与初始化',
     en: 'Activation Functions & Initialization',
@@ -512,7 +732,7 @@ const TOPICS = [
 
   {
     id: 'reg',
-    num: '08',
+    num: '13',
     emoji: '🧯',
     name: '正则化与归一化',
     en: 'Regularization & Normalization',
@@ -560,7 +780,7 @@ const TOPICS = [
 
   {
     id: 'overfit',
-    num: '09',
+    num: '14',
     emoji: '⚖️',
     name: '过拟合与欠拟合',
     en: 'Bias–Variance Tradeoff',
@@ -608,7 +828,7 @@ const TOPICS = [
 
   {
     id: 'linear',
-    num: '10',
+    num: '15',
     emoji: '📈',
     name: '线性回归',
     en: 'Linear Regression',
@@ -657,7 +877,7 @@ const TOPICS = [
 
   {
     id: 'ridge',
-    num: '11',
+    num: '16',
     emoji: '🛡️',
     name: '岭回归与 Lasso',
     en: 'Ridge & Lasso Regression',
@@ -705,7 +925,7 @@ const TOPICS = [
 
   {
     id: 'logistic',
-    num: '12',
+    num: '17',
     emoji: '🎯',
     name: '逻辑回归',
     en: 'Logistic Regression',
@@ -754,7 +974,7 @@ const TOPICS = [
 
   {
     id: 'glm',
-    num: '13',
+    num: '18',
     emoji: '🔗',
     name: '广义线性模型 GLM',
     en: 'Generalized Linear Models',
@@ -802,7 +1022,7 @@ const TOPICS = [
 
   {
     id: 'knn',
-    num: '14',
+    num: '19',
     emoji: '👥',
     name: 'K 近邻',
     en: 'K-Nearest Neighbors',
@@ -850,7 +1070,7 @@ const TOPICS = [
 
   {
     id: 'naivebayes',
-    num: '15',
+    num: '20',
     emoji: '📨',
     name: '朴素贝叶斯',
     en: 'Naive Bayes',
@@ -898,7 +1118,7 @@ const TOPICS = [
 
   {
     id: 'tree',
-    num: '16',
+    num: '21',
     emoji: '🌳',
     name: '决策树',
     en: 'Decision Tree',
@@ -948,7 +1168,7 @@ const TOPICS = [
 
   {
     id: 'svm',
-    num: '17',
+    num: '22',
     emoji: '🧭',
     name: '支持向量机',
     en: 'Support Vector Machine',
@@ -998,7 +1218,7 @@ const TOPICS = [
 
   {
     id: 'semi',
-    num: '18',
+    num: '23',
     emoji: '🌗',
     name: '半监督与主动学习',
     en: 'Semi-Supervised & Active Learning',
@@ -1046,7 +1266,7 @@ const TOPICS = [
 
   {
     id: 'forest',
-    num: '19',
+    num: '24',
     emoji: '🌲',
     name: '随机森林',
     en: 'Random Forest',
@@ -1096,7 +1316,7 @@ const TOPICS = [
 
   {
     id: 'adaboost',
-    num: '20',
+    num: '25',
     emoji: '💪',
     name: 'AdaBoost',
     en: 'AdaBoost',
@@ -1144,7 +1364,7 @@ const TOPICS = [
 
   {
     id: 'gbdt',
-    num: '21',
+    num: '26',
     emoji: '🌿',
     name: 'LightGBM 与 CatBoost',
     en: 'LightGBM & CatBoost',
@@ -1192,7 +1412,7 @@ const TOPICS = [
 
   {
     id: 'xgboost',
-    num: '22',
+    num: '27',
     emoji: '⚡',
     name: 'XGBoost',
     en: 'XGBoost',
@@ -1241,7 +1461,7 @@ const TOPICS = [
 
   {
     id: 'kmeans',
-    num: '23',
+    num: '28',
     emoji: '🧩',
     name: 'K-Means 聚类',
     en: 'K-Means Clustering',
@@ -1291,7 +1511,7 @@ const TOPICS = [
 
   {
     id: 'em',
-    num: '24',
+    num: '29',
     emoji: '🍰',
     name: 'EM 算法与高斯混合',
     en: 'EM Algorithm & Gaussian Mixture',
@@ -1339,7 +1559,7 @@ const TOPICS = [
 
   {
     id: 'dbscan',
-    num: '25',
+    num: '30',
     emoji: '🫧',
     name: 'DBSCAN 密度聚类',
     en: 'DBSCAN',
@@ -1386,7 +1606,7 @@ const TOPICS = [
 
   {
     id: 'pca',
-    num: '26',
+    num: '31',
     emoji: '🪞',
     name: 'PCA 主成分分析',
     en: 'Principal Component Analysis',
@@ -1435,7 +1655,7 @@ const TOPICS = [
 
   {
     id: 'tsne',
-    num: '27',
+    num: '32',
     emoji: '🗺️',
     name: 't-SNE 降维可视化',
     en: 't-SNE',
@@ -1484,7 +1704,7 @@ const TOPICS = [
 
   {
     id: 'umap',
-    num: '28',
+    num: '33',
     emoji: '🗺️',
     name: 'UMAP 流形学习',
     en: 'Uniform Manifold Approximation & Projection',
@@ -1532,7 +1752,7 @@ const TOPICS = [
 
   {
     id: 'lda',
-    num: '29',
+    num: '34',
     emoji: '🗂️',
     name: '主题模型 LDA',
     en: 'Latent Dirichlet Allocation',
@@ -1580,7 +1800,7 @@ const TOPICS = [
 
   {
     id: 'mlp',
-    num: '30',
+    num: '35',
     emoji: '🧠',
     name: '神经网络',
     en: 'Neural Network (MLP)',
@@ -1631,7 +1851,7 @@ const TOPICS = [
 
   {
     id: 'cnn',
-    num: '31',
+    num: '36',
     emoji: '🖼️',
     name: '卷积神经网络',
     en: 'Convolutional Neural Network',
@@ -1680,7 +1900,7 @@ const TOPICS = [
 
   {
     id: 'rnn',
-    num: '32',
+    num: '37',
     emoji: '🔁',
     name: 'RNN 循环神经网络',
     en: 'Recurrent Neural Network',
@@ -1729,7 +1949,7 @@ const TOPICS = [
 
   {
     id: 'lstm',
-    num: '33',
+    num: '38',
     emoji: '🗃️',
     name: 'LSTM 长短期记忆',
     en: 'Long Short-Term Memory',
@@ -1778,7 +1998,7 @@ const TOPICS = [
 
   {
     id: 'gru',
-    num: '34',
+    num: '39',
     emoji: '🚪',
     name: 'GRU 门控循环单元',
     en: 'Gated Recurrent Unit',
@@ -1825,7 +2045,7 @@ const TOPICS = [
 
   {
     id: 'ssm',
-    num: '35',
+    num: '40',
     emoji: '🌊',
     name: '状态空间模型 Mamba',
     en: 'State Space Models (SSM/Mamba)',
@@ -1872,7 +2092,7 @@ const TOPICS = [
 
   {
     id: 'transformer',
-    num: '36',
+    num: '41',
     emoji: '🎯',
     name: 'Transformer 与注意力',
     en: 'Transformer & Attention',
@@ -1921,7 +2141,7 @@ const TOPICS = [
 
   {
     id: 'autoencoder',
-    num: '37',
+    num: '42',
     emoji: '🗜️',
     name: '自编码器',
     en: 'Autoencoder',
@@ -1969,7 +2189,7 @@ const TOPICS = [
 
   {
     id: 'ssl',
-    num: '38',
+    num: '43',
     emoji: '🧲',
     name: '自监督与对比学习',
     en: 'Self-Supervised & Contrastive Learning',
@@ -2017,7 +2237,7 @@ const TOPICS = [
 
   {
     id: 'transfer',
-    num: '39',
+    num: '44',
     emoji: '🚀',
     name: '迁移学习',
     en: 'Transfer Learning',
@@ -2065,7 +2285,7 @@ const TOPICS = [
 
   {
     id: 'distill',
-    num: '40',
+    num: '45',
     emoji: '🎓',
     name: '知识蒸馏与模型压缩',
     en: 'Knowledge Distillation & Model Compression',
@@ -2113,7 +2333,7 @@ const TOPICS = [
 
   {
     id: 'moe',
-    num: '41',
+    num: '46',
     emoji: '🎛️',
     name: '混合专家 MoE',
     en: 'Mixture of Experts',
@@ -2161,7 +2381,7 @@ const TOPICS = [
 
   {
     id: 'gnn',
-    num: '42',
+    num: '47',
     emoji: '🕸️',
     name: '图神经网络 GNN',
     en: 'Graph Neural Network',
@@ -2209,7 +2429,7 @@ const TOPICS = [
 
   {
     id: 'seq',
-    num: '43',
+    num: '48',
     emoji: '⏳',
     name: '序列预测 / 时间序列',
     en: 'Sequence & Time-Series Forecasting',
@@ -2258,7 +2478,7 @@ const TOPICS = [
 
   {
     id: 'resnet',
-    num: '44',
+    num: '49',
     emoji: '🛣️',
     name: 'ResNet 残差网络',
     en: 'Residual Network (ResNet)',
@@ -2306,7 +2526,7 @@ const TOPICS = [
 
   {
     id: 'yolo',
-    num: '45',
+    num: '50',
     emoji: '🎯',
     name: '目标检测 · YOLO',
     en: 'Object Detection (YOLO)',
@@ -2354,7 +2574,7 @@ const TOPICS = [
 
   {
     id: 'segment',
-    num: '46',
+    num: '51',
     emoji: '🧩',
     name: '图像分割 · 语义分割',
     en: 'Image Segmentation (U-Net)',
@@ -2402,7 +2622,7 @@ const TOPICS = [
 
   {
     id: 'vit',
-    num: '47',
+    num: '52',
     emoji: '👁️',
     name: '视觉 Transformer',
     en: 'Vision Transformer (ViT)',
@@ -2450,7 +2670,7 @@ const TOPICS = [
 
   {
     id: 'augment',
-    num: '48',
+    num: '53',
     emoji: '🪞',
     name: '数据增强',
     en: 'Data Augmentation',
@@ -2498,7 +2718,7 @@ const TOPICS = [
 
   {
     id: 'adv',
-    num: '49',
+    num: '54',
     emoji: '🛡️',
     name: '对抗鲁棒性',
     en: 'Adversarial Robustness',
@@ -2546,7 +2766,7 @@ const TOPICS = [
 
   {
     id: 'ocr',
-    num: '50',
+    num: '55',
     emoji: '📄',
     name: 'OCR 与文档智能',
     en: 'OCR & Document AI',
@@ -2594,7 +2814,7 @@ const TOPICS = [
 
   {
     id: 'nerf',
-    num: '51',
+    num: '56',
     emoji: '🧊',
     name: '3D 视觉 NeRF',
     en: 'NeRF & 3D Vision',
@@ -2642,7 +2862,7 @@ const TOPICS = [
 
   {
     id: 'videounder',
-    num: '52',
+    num: '57',
     emoji: '🎥',
     name: '视频理解',
     en: 'Video Understanding',
@@ -2685,7 +2905,7 @@ const TOPICS = [
 
   {
     id: 'vae',
-    num: '53',
+    num: '58',
     emoji: '🎲',
     name: '变分自编码器 VAE',
     en: 'Variational Autoencoder',
@@ -2734,7 +2954,7 @@ const TOPICS = [
 
   {
     id: 'gan',
-    num: '54',
+    num: '59',
     emoji: '🎭',
     name: '生成对抗网络',
     en: 'Generative Adversarial Network',
@@ -2783,7 +3003,7 @@ const TOPICS = [
 
   {
     id: 'diffusion',
-    num: '55',
+    num: '60',
     emoji: '🌫️',
     name: '扩散模型 · DDPM',
     en: 'Diffusion Model (DDPM)',
@@ -2833,7 +3053,7 @@ const TOPICS = [
 
   {
     id: 'ddim',
-    num: '56',
+    num: '61',
     emoji: '⚡',
     name: '扩散加速采样',
     en: 'DDIM & Fast Sampling',
@@ -2881,7 +3101,7 @@ const TOPICS = [
 
   {
     id: 'flowmatch',
-    num: '57',
+    num: '62',
     emoji: '➡️',
     name: '流匹配',
     en: 'Flow Matching & Rectified Flow',
@@ -2924,7 +3144,7 @@ const TOPICS = [
 
   {
     id: 'sd',
-    num: '58',
+    num: '63',
     emoji: '🖼️',
     name: '文生图 · Stable Diffusion',
     en: 'Text-to-Image (Stable Diffusion)',
@@ -2973,7 +3193,7 @@ const TOPICS = [
 
   {
     id: 'control',
-    num: '59',
+    num: '64',
     emoji: '🎛️',
     name: '图像控制编辑',
     en: 'ControlNet & Image Editing',
@@ -3020,7 +3240,7 @@ const TOPICS = [
 
   {
     id: 'video',
-    num: '60',
+    num: '65',
     emoji: '🎬',
     name: '视频生成',
     en: 'Video Generation',
@@ -3067,7 +3287,7 @@ const TOPICS = [
 
   {
     id: 'clip',
-    num: '61',
+    num: '66',
     emoji: '🔗',
     name: 'CLIP 多模态对齐',
     en: 'Contrastive Language–Image Pretraining',
@@ -3115,7 +3335,7 @@ const TOPICS = [
 
   {
     id: 'rl',
-    num: '62',
+    num: '67',
     emoji: '🎮',
     name: '强化学习',
     en: 'Reinforcement Learning',
@@ -3163,7 +3383,7 @@ const TOPICS = [
 
   {
     id: 'pg',
-    num: '63',
+    num: '68',
     emoji: '🎯',
     name: '策略梯度与 Actor-Critic',
     en: 'Policy Gradient & Actor-Critic',
@@ -3211,7 +3431,7 @@ const TOPICS = [
 
   {
     id: 'dqn',
-    num: '64',
+    num: '69',
     emoji: '🧠',
     name: '深度强化学习 DQN',
     en: 'Deep Q-Network (DQN)',
@@ -3259,7 +3479,7 @@ const TOPICS = [
 
   {
     id: 'token',
-    num: '65',
+    num: '70',
     emoji: '✂️',
     name: 'Tokenization 分词',
     en: 'Tokenization (BPE / WordPiece)',
@@ -3308,7 +3528,7 @@ const TOPICS = [
 
   {
     id: 'word2vec',
-    num: '66',
+    num: '71',
     emoji: '🧭',
     name: '词嵌入 Word2Vec',
     en: 'Word Embeddings (Word2Vec)',
@@ -3356,7 +3576,7 @@ const TOPICS = [
 
   {
     id: 'bert',
-    num: '67',
+    num: '72',
     emoji: '🧩',
     name: 'BERT 与编码器模型',
     en: 'BERT & Encoder-only Models',
@@ -3405,7 +3625,7 @@ const TOPICS = [
 
   {
     id: 'gpt',
-    num: '68',
+    num: '73',
     emoji: '🔮',
     name: 'GPT 架构与预训练',
     en: 'GPT & Pretraining',
@@ -3454,7 +3674,7 @@ const TOPICS = [
 
   {
     id: 'posenc',
-    num: '69',
+    num: '74',
     emoji: '📐',
     name: '位置编码与长上下文',
     en: 'Positional Encoding & Long Context',
@@ -3504,7 +3724,7 @@ const TOPICS = [
 
   {
     id: 'lora',
-    num: '70',
+    num: '75',
     emoji: '🔩',
     name: '微调与 LoRA',
     en: 'Fine-tuning & LoRA',
@@ -3552,8 +3772,51 @@ const TOPICS = [
   },
 
   {
+    id: 'watermark',
+    num: '76',
+    emoji: '💧',
+    name: '水印与内容检测',
+    en: 'Watermarking & Detection',
+    cat: 'llm',
+    diff: 4,
+    accent: '#34d399',
+    tagline: '给 AI 生成文本埋「统计指纹」：绿名单水印让检测器数 token 占比就能识别——但改写可洗、强水印伤质量，攻防是持久战。',
+    intro: {
+      what: '生成内容水印技术：软水印（生成时按哈希偏置 token 选择，Kirchenbauer 方案）、检测器（z 分数统计）、以及图像领域的 C2PA 内容凭证；配套的检测方法（分类器/困惑度）与绕过手段。',
+      problem: 'AI 生成内容泛滥（虚假信息/学术抄袭/钓鱼），法规开始要求标识（我国生成内容标识办法、EU AI Act）——需要「可验证的机器标识」而非「看起来像 AI 写的」。',
+      idea: '软水印：每步生成前用前一 token 哈希把词表分成绿/红两半，绿名单 logits 加权 δ → 生成文本「绿 token 占比」统计显著偏高；检测只需数绿占比算 z 分数——不需要模型、不需要密钥以外的信息。'
+    },
+    principle: {
+      text: [
+        '攻防不对称：改写（同义替换）、翻译、低温度采样都会稀释水印；强水印（δ 大）伤文本质量与数学/代码能力（词选择被干扰）——δ 的取舍是核心研究问题。',
+        '替代路线：C2PA 内容凭证（媒体元数据签名，可被剥离但链路可信）、分类器检测（训练「AI 味」判别器，误判人类作者）、检索式检测（与已知生成文本匹配）。',
+        'z = <span class="frac"><span class="num">|绿| − N/2</span><span class="den">√(N·0.25)</span></span>'
+      ],
+      formula: {
+        html: '检测统计量：绿 token 占比偏离 50% 的标准化距离——z>4 时假阳率约 10⁻⁴，z>6 几乎断定。',
+        note: '钞票水印：真钞在特定角度有隐藏图案（生成时嵌入），验钞灯一照（统计检验）即现——不需要怀疑每一张，仪器说话。'
+      }
+    },
+    example: {
+      analogy: '绿名单水印的文本流（演示）：绿色 token 占比 70%+ 时检测仪表直冲 z=6；把「改写攻击」拉满，绿占比掉回 50%，z 掉回 1.5——可检测性被洗掉。',
+      mini: '演示里调水印强度与「改写攻击」：δ 大时文本流的绿 token 明显偏多、z 冲到 6+；攻击拉满后 z 掉回 2 以下——可检测性被洗掉的全过程可见。'
+    },
+    pros: ['合规：AI 生成内容的机器可读标识（法规趋势）', '学术/平台的内容来源争议仲裁', '钓鱼/虚假信息的溯源取证'],
+    cons: ['高质量改写攻击（水印可被洗掉）', '短文本（N 小则 z 检验功效不足）', '把「检测不出」当「人写的」（分类器同样有漏检）'],
+    history: [
+      { year: '2023', text: 'Kirchenbauer 软水印论文与检测协议发布，引发学界/平台关注。' },
+      { year: '2023', text: 'OpenAI 下线 AI 文本分类器（准确率太低）——检测难度公开化。' },
+      { year: '2024', text: 'C2PA 被 OpenAI/Google 采纳；我国生成内容标识办法发布。' },
+      { year: '至今', text: '水印-改写攻防与「检测作为 probabilistic 判断」的定位讨论持续。' },
+    ],
+    use: ['平台的内容来源标识与合规', '学术诚信工具的信号源之一（不可单独定罪）', '合成媒体（图像/视频）的溯源基础设施'],
+    avoid: ['单独作为处罚依据（假阳/可绕过）', '对短文本做强判断', '忽略对非母语者的误伤风险'],
+    learn: ['在演示里调 <strong>δ 与攻击</strong>，看 z 分数与文本染色的变化。', '手算 <strong>z 分数</strong>（绿 42/60 → z≈2.7）。', '理解 <strong>δ 的质量代价</strong>为什么伤数学/代码（合法 token 被排挤）。', '进阶：读 Kirchenbauer 2023 与后续的攻击论文（Sadasivan 2023）。'],
+    demo: { id: 'watermark', title: '水印 · 绿名单机制', note: '真实绿名单水印：生成 60 token 染色展示，检测 z 分数仪表；δ 与改写攻击可调。' }, deep: 'content/watermark.md'  },
+
+  {
     id: 'rlhf',
-    num: '71',
+    num: '77',
     emoji: '⚖️',
     name: 'RLHF 与对齐',
     en: 'Reinforcement Learning from Human Feedback',
@@ -3601,8 +3864,51 @@ const TOPICS = [
   },
 
   {
+    id: 'router',
+    num: '78',
+    emoji: '🔀',
+    name: '模型路由与成本',
+    en: 'Model Routing & Cost',
+    cat: 'llm',
+    diff: 3,
+    accent: '#34d399',
+    tagline: '不是每个请求都需要最强的模型：级联路由（小模型先答、低置信升级）用 1/5 的成本拿到接近旗舰的质量——生产 LLM 服务的省钱第一课。',
+    intro: {
+      what: '模型路由（LLM routing）：按请求特征（难度/类型/语言）把流量分配给不同规格的模型；主要策略有全量旗舰、全量小模型、级联（cascade）、分类器路由与混合 A/B。',
+      problem: '旗舰模型 API 价格是小模型的 10~50 倍，而多数生产请求（改写/抽取/简单问答）小模型就能做好——全量旗舰是最大的成本浪费，全量小模型又伤质量。',
+      idea: '级联（frugalGPT 思路）：小模型先答 → 用置信度/自评估判断可靠性 → 不可靠升级到旗舰——多数请求停在便宜层，只有难的才花钱；路由器本身可以是一个小分类器。'
+    },
+    principle: {
+      text: [
+        '置信度信号：小模型的 logprob、自评估（「你对这个答案有多确定」）、一致性（多次采样是否一致）——都是「该不该升级」的代理。',
+        '成本账要算全：API 单价 × token 量只是显性成本；重试率、延迟、失败率、维护多模型的复杂度都是隐性成本。',
+        '批处理与缓存：离线任务走 batch API（半价）、语义缓存（相似问题直接回缓存答案，见推理优化深读）——「不调用」比「调用便宜模型」更省。'
+      ],
+      formula: {
+        html: '期望成本 = P(小模型够用)·c_小 + P(升级)·(c_小 + c_大)，质量目标：acc ≥ 阈值',
+        note: '级联的期望成本：只有升级的请求付双份钱——升级率由难度分布与置信阈值共同决定，阈值就是「成本-质量」滑块。'
+      }
+    },
+    example: {
+      analogy: '医院分诊台：护士（小模型）先看，判断不了的转专家（旗舰）——大多数病人护士就能处理，专家时间留给真疑难。分诊台的判断质量决定整个系统的效率。',
+      mini: '演示里 1000 个难度混合请求跑四种策略：全大（¥10、92%）、全小（¥1、58%）、级联（¥3、88%）、理想路由（¥5、91%）——级联落在「接近理想、远便宜于全大」的甜点位。'
+    },
+    pros: ['生产 LLM 服务的成本控制（第一杠杆）', '高并发场景（客服/抽取/审核）的模型选型', 'Agent 系统的多模型编排'],
+    cons: ['置信度信号不可靠的任务（升级判断失灵）', '极低流量（级联的复杂度不划算）', '质量红线场景（全旗舰 + 人工审核）'],
+    history: [
+      { year: '2023', text: 'FrugalGPT 论文提出级联框架，引发成本优化关注。' },
+      { year: '2023~24', text: '语义缓存、batch API、Prompt 缓存相继成为 API 标配。' },
+      { year: '2024+', text: '开源路由器（RouteLLM 等）与「模型动物园」编排框架成熟。' },
+      { year: '至今', text: '「每个 token 都值得最贵的模型」被彻底证伪，路由成为工程默认。' },
+    ],
+    use: ['高并发 LLM 服务的成本优化', 'SLA 分级（免费/付费用户不同模型）', 'Agent 的多步骤异构模型编排'],
+    avoid: ['把路由器当质量提升手段（它只分配不提升）', '级联阈值拍脑袋（要用验证集校准）', '忽略缓存的先置作用（能缓存先缓存）'],
+    learn: ['在演示里对比 <strong>四种策略</strong> 的成本-质量位置。', '理解 <strong>级联的升级判据</strong>（置信度从哪来）。', '算一算自己业务的 <strong>级联节省比例</strong>（升级率×价差）。', '进阶：读 FrugalGPT 与 RouteLLM 论文。'],
+    demo: { id: 'router', title: '模型路由 · 成本与质量', note: '四种路由策略在 1000 个混合难度请求上的成本-质量散点——级联是甜点。' }, deep: 'content/router.md'  },
+
+  {
     id: 'dataeng',
-    num: '72',
+    num: '79',
     emoji: '🧹',
     name: '数据工程与合成数据',
     en: 'Data Engineering & Synthetic Data',
@@ -3645,7 +3951,7 @@ const TOPICS = [
 
   {
     id: 'parallel',
-    num: '73',
+    num: '80',
     emoji: '🧩',
     name: '分布式训练与并行',
     en: 'Distributed Training & Parallelism',
@@ -3694,7 +4000,7 @@ const TOPICS = [
 
   {
     id: 'inference',
-    num: '74',
+    num: '81',
     emoji: '🚀',
     name: '推理优化与部署',
     en: 'LLM Inference Optimization',
@@ -3743,7 +4049,7 @@ const TOPICS = [
 
   {
     id: 'quant',
-    num: '75',
+    num: '82',
     emoji: '📦',
     name: '模型量化',
     en: 'Model Quantization',
@@ -3791,7 +4097,7 @@ const TOPICS = [
 
   {
     id: 'prompt',
-    num: '76',
+    num: '83',
     emoji: '💬',
     name: '提示工程',
     en: 'Prompt Engineering',
@@ -3840,7 +4146,7 @@ const TOPICS = [
 
   {
     id: 'context',
-    num: '77',
+    num: '84',
     emoji: '📋',
     name: '上下文工程',
     en: 'Context Engineering',
@@ -3882,7 +4188,7 @@ const TOPICS = [
 
   {
     id: 'cot',
-    num: '78',
+    num: '85',
     emoji: '💭',
     name: '思维链与推理模型',
     en: 'Chain-of-Thought & Reasoning Models',
@@ -3930,7 +4236,7 @@ const TOPICS = [
 
   {
     id: 'codegen',
-    num: '79',
+    num: '86',
     emoji: '👨‍💻',
     name: '代码生成与结构化解码',
     en: 'Code Generation & Structured Decoding',
@@ -3973,7 +4279,7 @@ const TOPICS = [
 
   {
     id: 'mathllm',
-    num: '80',
+    num: '87',
     emoji: '🧮',
     name: '数学推理',
     en: 'Mathematical Reasoning',
@@ -4016,7 +4322,7 @@ const TOPICS = [
 
   {
     id: 'embed',
-    num: '81',
+    num: '88',
     emoji: '🧲',
     name: '多模态检索与嵌入',
     en: 'Embeddings & Multimodal Retrieval',
@@ -4059,7 +4365,7 @@ const TOPICS = [
 
   {
     id: 'vlm',
-    num: '82',
+    num: '89',
     emoji: '🖼️',
     name: '多模态大模型 VLM',
     en: 'Vision-Language Models',
@@ -4107,7 +4413,7 @@ const TOPICS = [
 
   {
     id: 'bench',
-    num: '83',
+    num: '90',
     emoji: '📏',
     name: '评测基准与数据污染',
     en: 'Benchmarks & Data Contamination',
@@ -4155,7 +4461,7 @@ const TOPICS = [
 
   {
     id: 'safety',
-    num: '84',
+    num: '91',
     emoji: '🚨',
     name: 'AI 安全与对齐',
     en: 'AI Safety & Alignment',
@@ -4201,8 +4507,50 @@ const TOPICS = [
     demo: { id: 'safety', title: 'AI 安全 · 越狱攻防', note: '四种攻击策略 × 三道防御的真实规则判定矩阵——单一防御必有盲区。' }, deep: 'content/safety.md'  },
 
   {
+    id: 'aisearch',
+    num: '92',
+    emoji: '🔭',
+    name: 'AI 搜索引擎',
+    en: 'AI-Powered Search',
+    cat: 'agent',
+    diff: 4,
+    accent: '#fb7185',
+    tagline: 'Perplexity 式的「检索→重排→引用生成」完整管线：把 rag/ir/embed 三个主题的零件组装成用户每天用的产品。',
+    intro: {
+      what: 'AI 搜索引擎的架构：查询理解与改写（意图识别/同义扩展/拆解）→ 混合检索（网页索引+语义向量）→ 重排与去重 → 带引用的生成（每句话可溯源）→ 迭代搜索（不够就再查）。',
+      problem: '传统搜索给「十个蓝链接」，用户自己点开读；LLM 让「直接给答案」成为可能——但幻觉让答案不可信。引用生成（每个论点可溯源）是可信答案的关键。',
+      idea: '管线 = RAG（见其深读）+ 搜索特化：查询改写更激进（口语→检索语言、单问拆多问）、网页级语料（新鲜度与 SEO 垃圾过滤是生命线）、引用对齐（答案句子↔来源段落）。'
+    },
+    principle: {
+      text: [
+        '查询改写：口语「维C一天吃多少合适」→ 检索友好「维生素 C 每日推荐摄入量 剂量」——改写质量直接决定召回（与 RAG 深读的查询改写同源）。',
+        '引用对齐：生成时要求逐句标注来源编号，后处理校验引用存在性与支持性（引用的段落真的支持这句话吗）——防「引用幻觉」。',
+        '迭代搜索（agentic search）：模型自查「信息够不够回答」，不够就生成新查询再检索——Perplexity/Deep Research 的核心循环。'
+      ],
+      formula: {
+        html: 'Answer = Generate( 改写查询, ⊕ Top-k 来源 )，每个句子 ↔ 来源[编号]',
+        note: '引用生成的形式约束：答案的每个主张绑定来源编号，后处理验证存在性与支持度——「可溯源」是 AI 搜索与普通 RAG 的产品分界。'
+      }
+    },
+    example: {
+      analogy: '图书馆员 vs 问答机：传统搜索给你书架（自己翻）；AI 搜索是那位「读完给你讲、还告诉你哪页哪行」的馆员——可信度全部押在「引用对得上」上。',
+      mini: '演示里 8 篇小语料跑完整管线：查询改写补全同义词 → BM25+语义混合打分 → top-3 重排 → 组装带 [1][2][3] 的回答——每步的分数真实可见。'
+    },
+    pros: ['企业知识库的问答入口（含引用增强信任）', '垂直领域搜索（法律/医疗/电商商品问答）', 'Deep Research 类深度调研产品的基础循环'],
+    cons: ['新鲜度要求极高的实时信息（索引延迟）', '完全无文本化的领域（纯图表/视频）', '对引用幻觉零容忍且无法校验的场景'],
+    history: [
+      { year: '2022~23', text: 'Perplexity 用「检索+引用生成」定义品类；New Bing 跟进。' },
+      { year: '2024', text: '搜索 QA 评测（用引用正确性评答案）成型；SEO 垃圾与 AI 内容农场攻防。' },
+      { year: '2025+', text: 'Deep Research 式多轮迭代搜索；AI 搜索与传统搜索的流量之争。' },
+    ],
+    use: ['知识库/帮助中心的智能问答', '面向消费者的答案型搜索产品', '企业内部检索 + 生成的一体化入口'],
+    avoid: ['把「生成流畅」当「答案正确」（必须验引用）', '忽视新鲜度与 SEO 垃圾过滤（索引层是生命线）', '对长尾查询无兜底（改写失败=检索失败）'],
+    learn: ['在演示里切查询、走 <strong>四步管线</strong>，看每步分数。', '理解 <strong>引用对齐</strong> 为什么是信任的关键。', '对比 <strong>AI 搜索与 RAG</strong> 的工程差异（开放网络 vs 企业库）。', '进阶：读 Perplexity 的管线公开分享与 TREC RAG 赛题。'],
+    demo: { id: 'aisearch', title: 'AI 搜索 · 完整管线', note: '8 篇小语料真实跑：查询改写→混合检索→重排→带引用回答，每步分数可见。' }, deep: 'content/aisearch.md'  },
+
+  {
     id: 'ir',
-    num: '85',
+    num: '93',
     emoji: '🔎',
     name: '信息检索',
     en: 'Information Retrieval',
@@ -4245,7 +4593,7 @@ const TOPICS = [
 
   {
     id: 'rag',
-    num: '86',
+    num: '94',
     emoji: '📚',
     name: 'RAG 检索增强生成',
     en: 'Retrieval-Augmented Generation',
@@ -4294,7 +4642,7 @@ const TOPICS = [
 
   {
     id: 'kg',
-    num: '87',
+    num: '95',
     emoji: '💠',
     name: '知识图谱',
     en: 'Knowledge Graphs',
@@ -4337,7 +4685,7 @@ const TOPICS = [
 
   {
     id: 'agent',
-    num: '88',
+    num: '96',
     emoji: '🕵️',
     name: 'Agent 与工具调用',
     en: 'AI Agent & Tool Use (ReAct)',
@@ -4385,7 +4733,7 @@ const TOPICS = [
 
   {
     id: 'cua',
-    num: '89',
+    num: '97',
     emoji: '🖱️',
     name: '计算机使用智能体',
     en: 'Computer-Use Agents',
@@ -4432,7 +4780,7 @@ const TOPICS = [
 
   {
     id: 'multiagent',
-    num: '90',
+    num: '98',
     emoji: '🤝',
     name: '多智能体协作',
     en: 'Multi-Agent Collaboration',
@@ -4480,7 +4828,7 @@ const TOPICS = [
 
   {
     id: 'recsys',
-    num: '91',
+    num: '99',
     emoji: '🛍️',
     name: '推荐系统',
     en: 'Recommender Systems',
@@ -4528,7 +4876,7 @@ const TOPICS = [
 
   {
     id: 'anomaly',
-    num: '92',
+    num: '100',
     emoji: '🚨',
     name: '异常检测',
     en: 'Anomaly Detection',
@@ -4576,7 +4924,7 @@ const TOPICS = [
 
   {
     id: 'speech',
-    num: '93',
+    num: '101',
     emoji: '🎙️',
     name: '语音识别与合成',
     en: 'Speech Recognition & Synthesis (ASR/TTS)',
@@ -4624,7 +4972,7 @@ const TOPICS = [
 
   {
     id: 'tts',
-    num: '94',
+    num: '102',
     emoji: '🔊',
     name: '语音合成 TTS',
     en: 'Text-to-Speech',
@@ -4672,7 +5020,7 @@ const TOPICS = [
 
   {
     id: 'voicechat',
-    num: '95',
+    num: '103',
     emoji: '🎙️',
     name: '语音对话系统',
     en: 'Spoken Dialogue Systems',
@@ -4715,7 +5063,7 @@ const TOPICS = [
 
   {
     id: 'world',
-    num: '96',
+    num: '104',
     emoji: '🌍',
     name: '世界模型与自动驾驶',
     en: 'World Models & Autonomous Driving',
@@ -4758,7 +5106,7 @@ const TOPICS = [
 
   {
     id: 'embodied',
-    num: '97',
+    num: '105',
     emoji: '🤖',
     name: '具身智能',
     en: 'Embodied AI & Robotics',
@@ -4806,7 +5154,7 @@ const TOPICS = [
 
   {
     id: 'fl',
-    num: '98',
+    num: '106',
     emoji: '🌍',
     name: '联邦学习',
     en: 'Federated Learning',
@@ -4854,7 +5202,7 @@ const TOPICS = [
 
   {
     id: 'dp',
-    num: '99',
+    num: '107',
     emoji: '🔒',
     name: '差分隐私',
     en: 'Differential Privacy',
@@ -4903,7 +5251,7 @@ const TOPICS = [
 
   {
     id: 'history',
-    num: '100',
+    num: '108',
     emoji: '🏛️',
     name: 'AI 历史与流派',
     en: 'History & Schools of AI',
@@ -4950,8 +5298,51 @@ const TOPICS = [
     demo: { id: 'history', title: 'AI 编年史 · 流派兴衰', note: '点击时间轴事件：三次浪潮、两次寒冬、符号与连接主义六十年缠斗。' }, deep: 'content/history.md'  },
 
   {
+    id: 'experiment',
+    num: '109',
+    emoji: '🧪',
+    name: '实验设计与 A/B 测试',
+    en: 'Experiment Design & A/B Testing',
+    cat: 'method',
+    diff: 3,
+    accent: '#f59e0b',
+    tagline: 'A/B 测试是线上因果推断的金标准——但「边跑边看边停」的假阳性陷阱、样本量计算、多重检验让多数实验在统计上站不住脚。',
+    intro: {
+      what: '随机对照实验的完整方法论：假设检验框架、样本量与功效计算、p 值与置信区间的正确解读、多重检验校正、序贯实验、以及偷看/辛普森/网络效应等经典陷阱。',
+      problem: '业务决策（改版/定价/算法）需要因果证据而非相关性；A/B 是唯一能「切断混淆路径」的常规手段（见因果推断深读的 RCT 一节）——但统计做错等于白做。',
+      idea: '流程：定义指标与 MDE → 算样本量（α/功效/效应量）→ 随机分流 → 预注册分析方案 → 固定时点检验（或序贯方法）→ 分群稳健性检查。'
+    },
+    principle: {
+      text: [
+        '样本量公式：n ≈ 16·p̄(1−p̄)/δ²（80% 功效、α=0.05 的经验式）——效应越小、基线越极端，需要的样本越多。',
+        '偷看问题：每看一次都在掷骰子——「每天看、显著就停」的实际假阳率可达 20%+；对策：固定样本量、序贯检验（alpha spending）、贝叶斯决策规则。',
+        '进阶陷阱：辛普森悖论（分流不均）、网络效应（用户互相影响，需 cluster 随机化）、多重指标（20 个指标必有假显著，见统计学基础深读）。'
+      ],
+      formula: {
+        html: 'n/组 ≈ 16 · <span class="frac"><span class="num">p̄(1−p̄)</span><span class="den">δ²</span></span>　（功效 80%，α=0.05，双侧）',
+        note: '样本量经验式：δ 是想检测的最小差异——「检测越小的差异，样本量按平方增长」。'
+      }
+    },
+    example: {
+      analogy: '诊所试药：症状轻重不一（混杂）、病人偷偷换药（不依从）、医生见效果好提前宣布（偷看）——每一条都能让「有效」的结论作废。A/B 的全部纪律就是对抗这三件事。',
+      mini: '演示：10% vs 12% 的真实差异，每组 1000 人 p 值常 >0.05（功效不足）；开「偷看模式」跑 200 次模拟，假阳性率从 5% 膨胀到 15~25%——两个坑一次看全。'
+    },
+    pros: ['任何产品/算法/运营改动的上线决策', '实验平台的设计与评审', '读懂任何「实验表明有效」的声明'],
+    cons: ['效应极小且流量不足（先攒流量或改指标）', '用户间强网络效应（需 cluster 设计）', '一次性决策且无法随机化（用准实验方法）'],
+    history: [
+      { year: '1920s', text: 'Fisher 在农业实验中确立随机化与显著性检验。' },
+      { year: '2000s', text: '互联网 A/B 工业化（Google/Bing 实验平台论文）。' },
+      { year: '2015+', text: 'Kohavi《Trustworthy Online Controlled Experiments》体系化；序贯与贝叶斯实验普及。' },
+      { year: '至今', text: '实验平台是大厂数据基建核心；LLM 评测也在向实验设计靠拢。' },
+    ],
+    use: ['产品/算法/运营的上线决策', '实验平台设计与评审', '读懂任何「实验表明有效」的声明'],
+    avoid: ['无预注册的探索性分析当确证结论', '样本量拍脑袋（功效不足=白跑）', '忽略分流比例校验（SRM 告警）'],
+    learn: ['在演示里把 <strong>n 从 1000 拖到 5000</strong>，看不显著变显著（功效的力量）。', '开 <strong>偷看模式</strong>，亲眼看假阳性膨胀。', '用样本量公式反推：检测 0.5pp 差异需要多少人。', '进阶：读 Kohavi 的 TICE 书——工业实验的全部坑。'],
+    demo: { id: 'experiment', title: 'A/B 测试 · 检验与偷看', note: 'z 检验+置信区间实时计算；偷看模式模拟假阳性膨胀到 20%+。' }, deep: 'content/experiment.md'  },
+
+  {
     id: 'feature',
-    num: '101',
+    num: '110',
     emoji: '🛠️',
     name: '特征工程',
     en: 'Feature Engineering',
@@ -4999,7 +5390,7 @@ const TOPICS = [
 
   {
     id: 'evaluation',
-    num: '102',
+    num: '111',
     emoji: '🎛️',
     name: '模型评估与调参',
     en: 'Evaluation & Hyperparameter Tuning',
@@ -5048,7 +5439,7 @@ const TOPICS = [
 
   {
     id: 'llmeval',
-    num: '103',
+    num: '112',
     emoji: '🧑‍⚖️',
     name: 'LLM 评测与裁判',
     en: 'LLM-as-a-Judge',
@@ -5091,7 +5482,7 @@ const TOPICS = [
 
   {
     id: 'hpo',
-    num: '104',
+    num: '113',
     emoji: '🎛️',
     name: '超参数优化与贝叶斯搜索',
     en: 'Hyperparameter Optimization',
@@ -5139,7 +5530,7 @@ const TOPICS = [
 
   {
     id: 'automl',
-    num: '105',
+    num: '114',
     emoji: '🏭',
     name: 'AutoML',
     en: 'Automated Machine Learning',
@@ -5182,7 +5573,7 @@ const TOPICS = [
 
   {
     id: 'interp',
-    num: '106',
+    num: '115',
     emoji: '🔬',
     name: '机制可解释性',
     en: 'Mechanistic Interpretability',
@@ -5225,7 +5616,7 @@ const TOPICS = [
 
   {
     id: 'fairness',
-    num: '107',
+    num: '116',
     emoji: '⚖️',
     name: '算法公平性',
     en: 'Algorithmic Fairness',
@@ -5268,7 +5659,7 @@ const TOPICS = [
 
   {
     id: 'conformal',
-    num: '108',
+    num: '117',
     emoji: '🎯',
     name: '共形预测',
     en: 'Conformal Prediction',
@@ -5316,7 +5707,7 @@ const TOPICS = [
 
   {
     id: 'causal',
-    num: '109',
+    num: '118',
     emoji: '🧭',
     name: '因果推断',
     en: 'Causal Inference',
@@ -5364,7 +5755,7 @@ const TOPICS = [
 
   {
     id: 'mlops',
-    num: '110',
+    num: '119',
     emoji: '🛠️',
     name: 'MLOps 与模型监控',
     en: 'MLOps & Model Monitoring',
@@ -5412,7 +5803,7 @@ const TOPICS = [
 
   {
     id: 'chip',
-    num: '111',
+    num: '120',
     emoji: '🔌',
     name: 'AI 芯片与算力',
     en: 'AI Chips & Compute',

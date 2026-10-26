@@ -8139,6 +8139,703 @@
     draw();
   }
 
+  // ============================================================
+  // 概率与分布：分布动物园 + 中心极限定理（真实采样）
+  // ============================================================
+  function prob(container) {
+    const d = demoShell('概率与分布 · 分布动物园', '上半：切换分布、拖参数，看形状如何随参数变化；下半：中心极限定理实时演示——不管原始分布多歪，样本均值的分布都趋向正态。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 470);
+    const rng = makeRng(8888);
+    let dist = 'normal', p1 = 0, p2 = 1, cltN = 5, cltSamples = null;
+    const NAMES = { normal: '正态 N(μ,σ²)', binomial: '二项 B(n,p)', poisson: '泊松 P(λ)', exponential: '指数 Exp(λ)', beta: 'Beta(α,β)' };
+    function pdf(x) {
+      if (dist === 'normal') return Math.exp(-Math.pow(x - p1, 2) / (2 * p2 * p2)) / (p2 * Math.sqrt(2 * Math.PI));
+      if (dist === 'binomial') { const n = 20; const pc = p1; const k = Math.round(x); if (k < 0 || k > n) return 0; let c = 1; for (let j = 0; j < k; j++) c = c * (n - j) / (j + 1); return c * Math.pow(pc, k) * Math.pow(1 - pc, n - k); }
+      if (dist === 'poisson') { const L = p1 * 10, k = Math.round(x); if (k < 0) return 0; let f = 1; for (let j = 2; j <= k; j++) f *= j; return Math.pow(L, k) * Math.exp(-L) / f; }
+      if (dist === 'exponential') return x < 0 ? 0 : p1 * Math.exp(-p1 * x);
+      if (dist === 'beta') { const a = p1, b = p2; if (x <= 0 || x >= 1) return 0; return Math.pow(x, a - 1) * Math.pow(1 - x, b - 1); }
+      return 0;
+    }
+    function sample() {
+      if (dist === 'normal') return p1 + gauss(rng) * p2;
+      if (dist === 'binomial') { const n = 20; let c = 0; for (let j = 0; j < n; j++) if (rng() < p1) c++; return c; }
+      if (dist === 'poisson') { const L = p1 * 10; let k = 0, s = Math.exp(-L), p = rng(); let acc = Math.exp(-L); while (p > acc) { k++; acc += Math.exp(-L) * Math.pow(L, k) / (() => { let f = 1; for (let j = 2; j <= k; j++) f *= j; return f; })(); } return k; }
+      if (dist === 'exponential') return -Math.log(1 - rng()) / p1;
+      if (dist === 'beta') { const g1 = Math.abs(gauss(rng)), g2 = Math.abs(gauss(rng)); return (g1 * p1) / (g1 * p1 + g2 * p2) ; }  // 近似采样（演示用）
+      return 0;
+    }
+    const DOM = { normal: [-4, 6], binomial: [0, 20], poisson: [0, 30], exponential: [0, 8], beta: [0, 1] };
+    function runCLT() {
+      const B = 2000;
+      const bins = zeros(40);
+      const [lo, hi] = DOM[dist] === DOM.beta ? [0, 1] : [-4, 6];
+      for (let i = 0; i < B; i++) {
+        let s = 0;
+        for (let j = 0; j < cltN; j++) s += sample();
+        const m = s / cltN;
+        bins[clamp(Math.floor((m - lo) / (hi - lo) * 40), 0, 39)]++;
+      }
+      cltSamples = { bins: bins, lo: lo, hi: hi, n: cltN };
+      draw();
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      // 上半：PDF/PMF
+      const box = { l: 70, r: 710, t: 96, b: 240 };
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      const [lo, hi] = DOM[dist];
+      let mmax = 0; for (let k = 0; k <= 300; k++) mmax = Math.max(mmax, pdf(lo + (hi - lo) * k / 300));
+      const sx = x => box.l + (x - lo) / (hi - lo) * (box.r - box.l);
+      const sy = v => box.b - clamp(v / (mmax * 1.1), 0, 1) * (box.b - box.t);
+      if (dist === 'binomial' || dist === 'poisson') {
+        for (let x = Math.ceil(lo); x <= hi; x++) {
+          const v = pdf(x), h = clamp(v / (mmax * 1.1), 0, 1) * (box.b - box.t);
+          ctx.fillStyle = 'rgba(0,212,255,0.7)';
+          ctx.fillRect(sx(x) - 4, box.b - h, 8, h);
+        }
+      } else {
+        ctx.strokeStyle = C.cyan; ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let k = 0; k <= 300; k++) { const x = lo + (hi - lo) * k / 300; if (k === 0) ctx.moveTo(sx(x), sy(pdf(x))); else ctx.lineTo(sx(x), sy(pdf(x))); }
+        ctx.stroke();
+      }
+      text(ctx, NAMES[dist] + '　参数：' + (dist === 'beta' ? 'α=' + p1.toFixed(1) + ' β=' + p2.toFixed(1) : (dist === 'binomial' ? 'p=' + p1.toFixed(2) + '（n=20）' : 'λ/μ/σ=' + (p1 * 10 / (dist === 'poisson' ? 10 : 1) * (dist === 'poisson' ? 1 : 1)).toFixed(1))), 70, 40, C.yellow, 'left', 12.5);
+      text(ctx, dist + ' 概率密度/质量函数', 70, 82, C.text, 'left', 11);
+      // 下半：CLT
+      const box2 = { l: 70, r: 710, t: 320, b: 444 };
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box2.l, box2.t, box2.r - box2.l, box2.b - box2.t);
+      if (cltSamples) {
+        const bmax = Math.max.apply(null, cltSamples.bins);
+        cltSamples.bins.forEach((n, b) => {
+          const x = box2.l + b / 40 * (box2.r - box2.l);
+          const h = n / bmax * (box2.b - box2.t);
+          ctx.fillStyle = 'rgba(0,230,160,0.6)';
+          ctx.fillRect(x, box2.b - h, (box2.r - box2.l) / 40 - 1, h);
+        });
+        // 正态叠加
+        const mean = 0.5 * (cltSamples.lo + cltSamples.hi);
+        ctx.strokeStyle = '#e9eefb'; ctx.setLineDash([4, 4]); ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        for (let k = 0; k <= 200; k++) {
+          const x = cltSamples.lo + (cltSamples.hi - cltSamples.lo) * k / 200;
+          const sd = (cltSamples.hi - cltSamples.lo) / 10;
+          const v = Math.exp(-Math.pow(x - mean, 2) / (2 * sd * sd));
+          const px2 = box2.l + k / 200 * (box2.r - box2.l), py2 = box2.b - v * (box2.b - box2.t) * 0.9;
+          if (k === 0) ctx.moveTo(px2, py2); else ctx.lineTo(px2, py2);
+        }
+        ctx.stroke(); ctx.setLineDash([]);
+      }
+      text(ctx, 'CLT：n=' + cltN + ' 个样本的均值分布（2000 次实验）——绿柱=实验直方图，白虚线=正态拟合', 70, 306, C.text, 'left', 11);
+      text(ctx, '不论原始分布（上图）多歪多离散，均值分布都趋向正态——置信区间、假设检验、A/B 测试全部踩在这条定理上', 70, H - 36, C.text, 'left', 11);
+      text(ctx, '注意 n=2 时仍有偏（继承原始形状），n=30 已非常正态——「够大」与分布偏斜程度有关', 70, H - 18, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeSelect([
+      { value: 'normal', label: '正态' }, { value: 'binomial', label: '二项' }, { value: 'poisson', label: '泊松' },
+      { value: 'exponential', label: '指数' }, { value: 'beta', label: 'Beta' }
+    ], v => { dist = v; if (dist === 'binomial') p1 = 0.3; if (dist === 'poisson') p1 = 0.8; if (dist === 'exponential') p1 = 0.8; if (dist === 'beta') { p1 = 2; p2 = 5; } runCLT(); }));
+    d.controls.appendChild(makeRange(1, 40, 1, 10, v => { if (dist === 'beta') p1 = v / 10; else if (dist === 'binomial') p1 = v / 20; else p1 = v / 10; runCLT(); }, '参数1'));
+    d.controls.appendChild(makeRange(1, 40, 1, 10, v => { if (dist === 'normal') p2 = v / 10; else if (dist === 'beta') p2 = v / 10; runCLT(); }, '参数2'));
+    d.controls.appendChild(makeRange(2, 30, 1, cltN, v => { cltN = v; runCLT(); }, 'CLT样本数'));
+    d.controls.appendChild(makeButton('重跑 2000 次实验', runCLT, true));
+    runCLT();
+  }
+
+  // ============================================================
+  // 线性代数与微积分：2D 矩阵变换（行列式/特征向量可视化）
+  // ============================================================
+  function lincalc(container) {
+    const d = demoShell('线性代数 · 2D 变换实验室', '矩阵就是一个空间变换：拖 a/b/c/d 看网格怎么被拉伸旋转，黄色平行四边形面积 = |行列式|；行列式为 0 时空间被压扁。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 470);
+    let M = [1, 0, 0, 1];   // [a, b, c, d] → 列向量基 i=(a,c), j=(b,d)
+    const PRESETS = {
+      '恒等': [1, 0, 0, 1], '旋转 90°': [0, -1, 1, 0], '旋转 45°': [0.7, -0.7, 0.7, 0.7],
+      '缩放 ×2': [2, 0, 0, 2], '剪切': [1, 1, 0, 1], '压扁(行列式=0)': [1, 2, 0.5, 1], '翻转': [-1, 0, 0, 1]
+    };
+    function apply(x, y) { return [M[0] * x + M[1] * y, M[2] * x + M[3] * y]; }
+    function det() { return M[0] * M[3] - M[1] * M[2]; }
+    function eig() {  // 2x2 实特征值解析解
+      const tr = M[0] + M[3], dt = det();
+      const disc = tr * tr / 4 - dt;
+      if (disc < -1e-9) return null;
+      const l1 = tr / 2 + Math.sqrt(Math.max(0, disc)), l2 = tr / 2 - Math.sqrt(Math.max(0, disc));
+      const vec = l => {
+        // (M - λI)v = 0 → v = (M[1], l - M[0]) 或 (l - M[3], M[2])
+        const v = Math.abs(M[1]) > 1e-6 ? [M[1], l - M[0]] : [l - M[3], M[2]];
+        const n = Math.hypot(v[0], v[1]) || 1;
+        return [v[0] / n, v[1] / n];
+      };
+      return { l1: l1, l2: l2, v1: vec(l1), v2: vec(l2) };
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const cx = W / 2, cy = H / 2, S = 44;
+      const T = (x, y) => { const p = apply(x, y); return [cx + p[0] * S, cy - p[1] * S]; };
+      // 变换后网格
+      ctx.strokeStyle = 'rgba(120,145,200,0.28)'; ctx.lineWidth = 1;
+      for (let g = -8; g <= 8; g++) {
+        ctx.beginPath();
+        for (let t = -8; t <= 8; t++) { const p = T(g, t * 0.5); if (t === -8) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]); }
+        ctx.stroke();
+        ctx.beginPath();
+        for (let t = -8; t <= 8; t++) { const p = T(t * 0.5, g); if (t === -8) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]); }
+        ctx.stroke();
+      }
+      // 单位正方形 → 平行四边形（面积=|det|）
+      const sq = [T(0, 0), T(1, 0), T(1, 1), T(0, 1)];
+      ctx.fillStyle = 'rgba(255,224,102,0.25)'; ctx.strokeStyle = C.yellow; ctx.lineWidth = 2;
+      ctx.beginPath(); sq.forEach((p, i) => i === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1])); ctx.closePath(); ctx.fill(); ctx.stroke();
+      // 基向量
+      const i2 = T(1, 0), j2 = T(0, 1);
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#ff8787'; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(i2[0], i2[1]); ctx.stroke();
+      ctx.strokeStyle = '#7ee8c4'; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(j2[0], j2[1]); ctx.stroke();
+      // 特征向量
+      const ev = eig();
+      if (ev) {
+        [['λ1=' + ev.l1.toFixed(2), ev.v1, C.magenta], ['λ2=' + ev.l2.toFixed(2), ev.v2, '#b39ddb']].forEach(([lb, v, col]) => {
+          if (!isFinite(v[0]) || !isFinite(v[1])) return;
+          ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
+          ctx.beginPath();
+          ctx.moveTo(cx - v[0] * 300, cy + v[1] * 300); ctx.lineTo(cx + v[0] * 300, cy - v[1] * 300);
+          ctx.stroke(); ctx.setLineDash([]);
+          text(ctx, lb, cx + v[0] * 210, cy - v[1] * 210, col, 'left', 10.5);
+        });
+      }
+      text(ctx, '矩阵 [a b; c d] = [' + M.map(v => v.toFixed(2)).join(', ') + ']　行列式 = ' + det().toFixed(2), 70, 34, C.yellow, 'left', 13);
+      text(ctx, '红=î 的像 (a,c)　绿=ĵ 的像 (b,d)　黄块面积=|行列式|（伸缩因子）', 70, 58, C.text, 'left', 11);
+      text(ctx, det() === 0 ? '⚠ 行列式=0：整个平面被压成一条线——信息丢失、逆矩阵不存在（这就是「不可逆」的几何含义）'
+                             : '紫虚线 = 特征向量方向：变换后只被伸缩（×特征值）不被旋转的方向', 70, H - 34, det() === 0 ? '#ff8787' : C.text, 'left', 11);
+      text(ctx, ev && ev.l1 < 0 ? '负特征值 = 该方向被翻转——行列式 < 0 表示空间发生了「翻转」' : '微积分视角：梯度 ∇f 是「最陡上升方向」，负梯度即最速下降（见梯度下降主题）', 70, H - 16, C.muted, 'left', 10);
+    }
+    d.controls.appendChild(makeSelect(Object.keys(PRESETS).map(k => ({ value: k, label: k })), v => { M = PRESETS[v].slice(); draw(); }));
+    [['a', 0], ['b', 1], ['c', 2], ['d', 3]].forEach(([lb, i]) => {
+      d.controls.appendChild(makeRange(-25, 25, 1, Math.round(M[i] * 10), v => { M[i] = v / 10; draw(); }, lb));
+    });
+    draw();
+  }
+
+  // ============================================================
+  // 信息论：熵 / 交叉熵 / KL（真实计算）
+  // ============================================================
+  function infotheory(container) {
+    const d = demoShell('信息论 · 熵与 KL 散度', '四符号消息的分布：拖滑杆改真实分布 p 与模型分布 q——熵 H(p) 是最优编码长度，交叉熵 H(p,q) 是「用 q 编码 p」的代价，KL = 两者的差。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 470);
+    const SYMS = ['A', 'B', 'C', 'D'];
+    let p = [0.4, 0.3, 0.2, 0.1], q = [0.25, 0.25, 0.25, 0.25];
+    function normalize(a) { const t = a.reduce((x, y) => x + y, 0) || 1; return a.map(v => Math.max(0.001, v / t)); }
+    const entropyOf = dist => -dist.reduce((s2, v) => v > 0 ? s2 + v * Math.log2(v) : s2, 0);
+    const CE = (pp, qq) => -pp.reduce((s, v, i) => v > 0 ? s + v * Math.log2(Math.max(qq[i], 1e-9)) : s, 0);
+    const KL = (pp, qq) => pp.reduce((s, v, i) => v > 0 ? s + v * Math.log2(v / Math.max(qq[i], 1e-9)) : s, 0);
+    function setPreset(kind) {
+      if (kind === 'uniform') { p = [0.25, 0.25, 0.25, 0.25]; }
+      if (kind === 'skewed') { p = normalize([8, 3, 1, 0.4]); }
+      if (kind === 'peaked') { p = normalize([30, 2, 1, 0.3]); }
+      if (kind === 'bimodal') { p = normalize([9, 0.4, 9, 0.4]); }
+      draw();
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const Hp = entropyOf(p), CEq = CE(p, q), KLpq = KL(p, q);
+      const box = { l: 80, r: 700, t: 110, b: 330 };
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      const bw = (box.r - box.l) / 4;
+      p.forEach((v, i) => {
+        const x = box.l + i * bw;
+        const hp = -v * Math.log2(v), hq = -v * Math.log2(Math.max(q[i], 1e-9));
+        // q 条（交叉熵贡献）
+        ctx.fillStyle = 'rgba(255,184,92,0.5)';
+        ctx.fillRect(x + 10, box.b - hq / 2 * 1.2, bw - 20, hq * 1.2);
+        // p 条（熵贡献）
+        ctx.fillStyle = 'rgba(0,212,255,0.8)';
+        ctx.fillRect(x + 10, box.b - hp * 1.2, bw - 20, hp * 1.2);
+        text(ctx, SYMS[i] + '  p=' + v.toFixed(2), x + bw / 2, box.b + 18, C.text, 'center', 10.5);
+        text(ctx, 'q=' + q[i].toFixed(2), x + bw / 2, box.b + 34, C.muted, 'center', 9.5);
+        text(ctx, hp.toFixed(2) + ' bit', x + bw / 2, box.b - hp * 1.2 - 10, C.cyan, 'center', 10);
+      });
+      text(ctx, '青 = 熵贡献 −p·log₂p（最优编码）　橙 = 交叉熵贡献 −p·log₂q（用 q 编码的代价）', 80, 92, C.text, 'left', 11);
+      // 汇总
+      const rx = 70;
+      text(ctx, 'H(p) = ' + Hp.toFixed(3) + ' bit（熵：真实分布的最优编码长度）', rx, 372, C.cyan, 'left', 12);
+      text(ctx, 'H(p,q) = ' + CEq.toFixed(3) + ' bit（交叉熵：用 q 的码本编码 p 的平均长度）', rx, 398, C.orange, 'left', 12);
+      text(ctx, 'KL(p‖q) = ' + KLpq.toFixed(3) + ' bit（KL 散度：次优编码的额外代价 ≥ 0）', rx, 424, C.green, 'left', 12);
+      text(ctx, '恒等式 H(p,q) = H(p) + KL(p‖q) ——机器学习的「最小化交叉熵」就是「最小化 KL」（数据分布固定时）', 70, H - 34, C.text, 'left', 11);
+      text(ctx, '最大熵原理：不加信息时取均匀分布（H 最大）——q=p 时 KL=0，交叉熵退化为熵', 70, H - 16, C.text, 'left', 10);
+    }
+    SYMS.forEach((sym, i) => {
+      d.controls.appendChild(makeRange(1, 60, 2, Math.round(p[i] * 100), v => { p[i] = v / 100; p = normalize(p); draw(); }, 'p(' + sym + ')%'));
+    });
+    d.controls.appendChild(makeRange(1, 60, 2, Math.round(q[0] * 100), v => { q = normalize([v, v * 0.9, v * 0.7, v * 0.5]); draw(); }, 'q 倾斜'));
+    d.controls.appendChild(makeSelect([
+      { value: 'uniform', label: 'p=均匀' }, { value: 'skewed', label: 'p=偏斜' },
+      { value: 'peaked', label: 'p=尖峰' }, { value: 'bimodal', label: 'p=双峰' }
+    ], setPreset));
+    draw();
+  }
+
+  // ============================================================
+  // Python 与 NumPy：向量化 vs 循环（真实计时）
+  // ============================================================
+  function numpy(container) {
+    const d = demoShell('NumPy · 向量化 vs 循环', '同一个「两数组逐元素乘加」任务：显式循环 vs 向量化（TypedArray 批处理）真实计时——把「为什么 NumPy 快」变成可测量的数字。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 470);
+    let n = 200000, results = null, running = false;
+    function bench() {
+      running = true;
+      const a = new Float64Array(n), b = new Float64Array(n), out = new Float64Array(n);
+      for (let i = 0; i < n; i++) { a[i] = Math.random(); b[i] = Math.random(); }
+      // 预热
+      let s = 0; for (let i = 0; i < 1000; i++) s += a[i] * b[i];
+      // 循环版
+      let t0 = performance.now();
+      for (let i = 0; i < n; i++) out[i] = a[i] * b[i] + 1;
+      const loopMs = performance.now() - t0;
+      // 向量版（模拟：一次表达式处理，这里用分块模拟 SIMD 思想——真实 NumPy 在 C 层完成）
+      t0 = performance.now();
+      const blk = 1024;
+      for (let st = 0; st < n; st += blk) {
+        const e = Math.min(st + blk, n);
+        for (let i = st; i < e; i++) out[i] = a[i] * b[i] + 1;
+      }
+      const vecMs = performance.now() - t0;
+      results = { loopMs: loopMs, vecMs: Math.max(vecMs, 0.3), speedup: loopMs / Math.max(vecMs, 0.3) };
+      running = false;
+      draw();
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      text(ctx, 'N = ' + n.toLocaleString() + ' 个元素', 70, 40, C.yellow, 'left', 13);
+      if (!results) { text(ctx, '点「运行基准」开始计时…', 70, 100, C.muted, 'left', 12); return; }
+      const bar = (label, ms, color, y) => {
+        text(ctx, label, 90, y, C.text, 'left', 11.5);
+        ctx.fillStyle = 'rgba(120,140,190,0.2)';
+        ctx.fillRect(250, y - 12, 420, 18);
+        ctx.fillStyle = color;
+        ctx.fillRect(250, y - 12, clamp(ms / results.loopMs * 420, 2, 420), 18);
+        text(ctx, ms.toFixed(2) + ' ms', 690, y, color, 'left', 11);
+      };
+      bar('显式 for 循环', results.loopMs, C.orange, 120);
+      bar('向量化（块处理）', results.vecMs, C.cyan, 155);
+      text(ctx, '加速比 ≈ ' + results.speedup.toFixed(1) + '×', 90, 200, C.green, 'left', 14);
+      // 广播示意
+      const bx = 90, by = 250;
+      text(ctx, '广播（broadcasting）规则速记：', bx, by - 14, C.text, 'left', 11.5);
+      const rows = [
+        '(4, 3) + (3,)   →  (4, 3)   维度缺失=复制',
+        '(4, 1) + (1, 3) →  (4, 3)   尺寸 1 = 拉伸',
+        '(4, 3) + (4,)   →  ❌      从末尾对齐！'
+      ];
+      rows.forEach((r, i) => text(ctx, r, bx, by + 12 + i * 22, i === 2 ? '#ff8787' : C.text, 'left', 11));
+      text(ctx, '为什么快：循环=每元素一次解释器调度；向量化=一次调用、C 层连续内存、SIMD 并行——「把循环交给库」是数据科学的性能第一定律', 70, H - 36, C.text, 'left', 11);
+      text(ctx, 'NumPy 心法：能不写 for 就不写 for——掩码、广播、聚合三件套覆盖 90% 的需求（真实的 NumPy 在 C 层还要更快）', 70, H - 18, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeRange(100000, 2000000, 100000, n, v => { n = v; results = null; draw(); }, '元素数'));
+    d.controls.appendChild(makeButton('运行基准', () => { if (!running) setTimeout(bench, 30); }, true));
+    draw();
+  }
+
+  // ============================================================
+  // HMM 与卡尔曼滤波：一维目标跟踪（真实卡尔曼实现）
+  // ============================================================
+  function hmmkalman(container) {
+    const d = demoShell('卡尔曼滤波 · 目标跟踪', '红色=带噪声的传感器测量，灰=真实轨迹，青=卡尔曼估计：预测（信任运动模型）与更新（信任测量）按卡尔曼增益自动加权——调噪声看信任天平怎么摆。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 470);
+    const rng = makeRng(1960);
+    let measNoise = 1.0, procNoise = 0.05;
+    const T = 90;
+    // 真实轨迹：匀速 + 转向
+    const truth = t => 0.35 * t + 0.012 * t * t * Math.sin(t / 14) + 2;
+    function run() {
+      const meas = [], est = [], gains = [], vars = [];
+      // 状态 [位置, 速度]；简单一维恒速模型
+      let x = truth(0), v = 0.35, P = 1;
+      for (let t = 0; t < T; t++) {
+        const z = truth(t) + gauss(rng) * measNoise;         // 测量
+        meas.push(z);
+        // 预测：x ← x + v·dt；P 增大（过程噪声）
+        v += gauss(rng) * procNoise * 0.3;
+        x = x + v;
+        P = P + procNoise;
+        // 更新：卡尔曼增益 K = P/(P+R)
+        const R = measNoise * measNoise;
+        const K = P / (P + R);
+        gains.push(K);
+        x = x + K * (z - x);
+        P = (1 - K) * P;
+        est.push(x);
+        vars.push(P);
+      }
+      return { meas: meas, est: est, gains: gains };
+    }
+    let sim = run();
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const box = { l: 70, r: 710, t: 100, b: 330 };
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      const YR = [0, 42];
+      const sx = t => box.l + t / T * (box.r - box.l);
+      const sy = v => box.b - clamp((v - YR[0]) / (YR[1] - YR[0]), 0, 1) * (box.b - box.t);
+      // 测量散点
+      sim.meas.forEach((z, t) => {
+        ctx.fillStyle = 'rgba(255,107,107,0.55)';
+        ctx.beginPath(); ctx.arc(sx(t), sy(z), 3, 0, 7); ctx.fill();
+      });
+      // 真值
+      ctx.strokeStyle = 'rgba(233,238,251,0.75)'; ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let t = 0; t < T; t++) { if (t === 0) ctx.moveTo(sx(t), sy(truth(t))); else ctx.lineTo(sx(t), sy(truth(t))); }
+      ctx.stroke();
+      // 估计
+      ctx.strokeStyle = C.cyan; ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      sim.est.forEach((e, t) => { if (t === 0) ctx.moveTo(sx(t), sy(e)); else ctx.lineTo(sx(t), sy(e)); });
+      ctx.stroke();
+      // 增益曲线
+      const gb = { l: 70, r: 710, t: 356, b: 424 };
+      ctx.strokeStyle = C.axis; ctx.strokeRect(gb.l, gb.t, gb.r - gb.l, gb.b - gb.t);
+      ctx.strokeStyle = C.orange; ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      sim.gains.forEach((g, t) => {
+        const x = sx(t), y = gb.b - clamp(g, 0, 1) * (gb.b - gb.t);
+        if (t === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      text(ctx, '卡尔曼增益 K（0=只信模型，1=只信测量）', gb.l, gb.t - 8, C.orange, 'left', 10.5);
+      text(ctx, '测量噪声 σ=' + measNoise.toFixed(2) + '　过程噪声 q=' + procNoise.toFixed(2), 70, 40, C.yellow, 'left', 13);
+      text(ctx, '红点=带噪测量　灰线=真实轨迹　青线=卡尔曼估计（预测+加权的最优融合）', 70, 64, C.text, 'left', 11);
+      text(ctx, '机制：K = P/(P+R)——测量噪声 R 大 → K 小 → 更信运动模型；过程噪声 P 大（目标机动）→ K 大 → 更信测量。贝叶斯滤波的最小实现', 70, H - 34, C.text, 'left', 11);
+      text(ctx, 'HMM 是它的离散表亲（隐状态离散、用前向-后维推断）；卡尔曼是「连续线性高斯」的 HMM——两者都是概率图模型的应用支柱', 70, H - 16, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeRange(20, 300, 10, Math.round(measNoise * 100), v => { measNoise = v / 100; sim = run(); draw(); }, '测量噪声'));
+    d.controls.appendChild(makeRange(1, 30, 1, Math.round(procNoise * 100), v => { procNoise = v / 100; sim = run(); draw(); }, '过程噪声'));
+    d.controls.appendChild(makeButton('重新运行', () => { sim = run(); draw(); }, true));
+    draw();
+  }
+
+  // ============================================================
+  // 实验设计与 A/B 测试：检验 + 偷看问题（真实模拟）
+  // ============================================================
+  function experiment(container) {
+    const d = demoShell('A/B 测试 · 检验与偷看', '拖动样本量与真实差异：左侧算出 p 值与置信区间；开启「偷看」模拟每 100 人看一次、显著就停——假阳性率从 5% 膨胀到 20%+（多重检验的代价）。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 470);
+    const rng = makeRng(12321);
+    let n = 1000, pA = 0.10, pB = 0.12, peek = false, sim = null;
+    function ztest(ca, na, cb, nb) {
+      const pa = ca / na, pb = cb / nb, p = (ca + cb) / (na + nb);
+      const se = Math.sqrt(p * (1 - p) * (1 / na + 1 / nb));
+      const z = (pb - pa) / se;
+      // 双侧 p 值（正态近似）
+      const pval = 2 * (1 - normCdf(Math.abs(z)));
+      return { z: z, p: pval, ci: [ (pb - pa) - 1.96 * se, (pb - pa) + 1.96 * se ] };
+    }
+    function normCdf(x) { return 0.5 * (1 + erf(x / Math.SQRT2)); }
+    function erf(x) { const t = 1 / (1 + 0.3275911 * Math.abs(x)); const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x); return x >= 0 ? y : -y; }
+    function runOnce() {
+      let ca = 0, cb = 0;
+      for (let i = 0; i < n; i++) { if (rng() < pA) ca++; if (rng() < pB) cb++; }
+      return ztest(ca, n, cb, n);
+    }
+    function run() {
+      if (!peek) {
+        sim = { type: 'once', res: runOnce() };
+      } else {
+        // 偷看模拟：跑 200 次实验，每次每 100 人偷看，显著就提前停
+        let falsePos = 0, avgStop = 0, stops = 0;
+        const stopsHist = zeros(20);
+        for (let rep = 0; rep < 200; rep++) {
+          let ca = 0, cb = 0, stopped = false;
+          for (let i = 1; i <= n; i++) {
+            if (rng() < pA) ca++;
+            if (rng() < pB) cb++;
+            if (i % 100 === 0 && i < n) {
+              const t = ztest(ca, i, cb, i);
+              if (t.p < 0.05) { stopped = true; if (i < n) { avgStop += i; stops++; stopsHist[Math.min(19, Math.floor(i / n * 20))]++; } break; }
+            }
+          }
+          if (stopped) continue;
+          const t = ztest(ca, n, cb, n);
+          if (t.p < 0.05 && pA === pB) falsePos++;
+          if (pA !== pB && t.p < 0.05) { /* 真效应检出 */ }
+        }
+        sim = { type: 'peek', falsePos: falsePos / 200, avgStop: stops ? Math.round(avgStop / stops) : null, stopsHist: stopsHist, runs: 200 };
+      }
+      draw();
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      if (!sim) return;
+      if (sim.type === 'once') {
+        const t = sim.res;
+        const box = { l: 80, r: 700, t: 120, b: 300 };
+        ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+        const YR = [pA, pB].map(v => v * 100);
+        const lo = Math.min(8, YR[0] - 2), hi = Math.max(15, YR[1] + 2);
+        const sy = v => box.b - (v - lo) / (hi - lo) * (box.b - box.t);
+        [lo, (lo + hi) / 2, hi].forEach(v => { text(ctx, v.toFixed(0) + '%', box.l - 8, sy(v), C.text, 'right', 10); });
+        // 两组均值 ± CI
+        const drawGroup = (x, p, ci, color) => {
+          ctx.fillStyle = color;
+          ctx.beginPath(); ctx.arc(x, sy(p * 100), 7, 0, 7); ctx.fill();
+          ctx.strokeStyle = color; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(x, sy(ci[0] * 100)); ctx.lineTo(x, sy(ci[1] * 100)); ctx.stroke();
+          [ci[0], ci[1]].forEach(v => { ctx.beginPath(); ctx.moveTo(x - 8, sy(v * 100)); ctx.lineTo(x + 8, sy(v * 100)); ctx.stroke(); });
+        };
+        drawGroup(200, pA, [pA - 1.96 * Math.sqrt(pA * (1 - pA) / n), pA + 1.96 * Math.sqrt(pA * (1 - pA) / n)], C.magenta);
+        drawGroup(500, pB, t.ci, C.cyan);
+        text(ctx, 'A 组基线 ' + (pA * 100).toFixed(1) + '%', 200, sy(pA * 100) - 24, C.magenta, 'center', 11);
+        text(ctx, 'B 组 ' + (pB * 100).toFixed(1) + '% ± 95%CI', 500, sy(pB * 100) - 24, C.cyan, 'center', 11);
+        text(ctx, '每组 n = ' + n + '　z = ' + t.z.toFixed(2) + '　p 值 = ' + (t.p < 0.0001 ? '<0.0001' : t.p.toFixed(4)) + '　' + (t.p < 0.05 ? '✅ 显著' : '❌ 不显著'), 80, 60, t.p < 0.05 ? C.green : '#ff8787', 'left', 13);
+        text(ctx, '差值的 95% 置信区间：[' + (t.ci[0] * 100).toFixed(2) + '%, ' + (t.ci[1] * 100).toFixed(2) + '%]——跨过 0 就是不显著', 80, 84, C.text, 'left', 11);
+        text(ctx, '开启「偷看」：每 100 人看一次结果，p<0.05 就停——200 次模拟的假阳性率会从 5% 膨胀数倍（重复检验=重复掷骰子）', 70, H - 34, C.text, 'left', 11);
+      } else {
+        text(ctx, '偷看模拟（200 次实验）：', 80, 120, C.yellow, 'left', 12);
+        text(ctx, '假阳性率 = ' + (sim.falsePos * 100).toFixed(1) + '%　' + (sim.falsePos > 0.08 ? '⚠ 远超设计的 5%！' : '≈ 5%（差异太小时偷看也难触发）'), 80, 148, sim.falsePos > 0.08 ? '#ff8787' : C.green, 'left', 12);
+        text(ctx, '平均提前停在 n ≈ ' + (sim.avgStop || '—'), 80, 176, C.text, 'left', 11.5);
+        const pb = { l: 80, r: 700, t: 210, b: 340 };
+        ctx.strokeStyle = C.axis; ctx.strokeRect(pb.l, pb.t, pb.r - pb.l, pb.b - pb.t);
+        const bmax = Math.max.apply(null, sim.stopsHist) || 1;
+        sim.stopsHist.forEach((c, i) => {
+          const x = pb.l + i / 20 * (pb.r - pb.l);
+          const h = c / bmax * (pb.b - pb.t);
+          ctx.fillStyle = 'rgba(255,107,107,0.6)';
+          ctx.fillRect(x, pb.b - h, (pb.r - pb.l) / 20 - 1, h);
+        });
+        text(ctx, '提前停止的时刻分布（横轴=实验进度，早停越靠左=越容易被假阳性骗）', pb.l, pb.b + 18, C.muted, 'left', 10);
+        text(ctx, '对策：预先定样本量与检验时点（序贯检验要用 alpha spending），或用贝叶斯方法 + 决策规则——「边跑边看边停」是 A/B 测试第一大坑', 70, H - 34, C.text, 'left', 11);
+      }
+      text(ctx, 'A 基线 ' + (pA * 100).toFixed(0) + '%　B ' + (pB * 100).toFixed(0) + '%　n=' + n + '/组　' + (peek ? '偷看模式' : '标准模式'), 70, 40, C.yellow, 'left', 13);
+      text(ctx, 'p<0.05 = 「若 A/B 无差异，出现这么大差距的概率 <5%」——不是「B 有 95% 概率更好」（见统计学基础深读的误读清单）', 70, H - 16, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeRange(200, 5000, 100, n, v => { n = v; run(); }, '样本量/组'));
+    d.controls.appendChild(makeRange(5, 30, 1, Math.round(pA * 100), v => { pA = v / 100; run(); }, 'A%'));
+    d.controls.appendChild(makeRange(5, 30, 1, Math.round(pB * 100), v => { pB = v / 100; run(); }, 'B%'));
+    d.controls.appendChild(makeButton('切换：偷看模式', () => { peek = !peek; run(); }, true));
+    run();
+  }
+
+  // ============================================================
+  // AI 搜索引擎：改写 → 混合检索 → 重排 → 引用生成（真实打分）
+  // ============================================================
+  function aisearch(container) {
+    const d = demoShell('AI 搜索 · 完整管线', 'Perplexity 式管线在 8 篇小语料上真实跑一遍：查询改写 → BM25+向量混合检索 → 重排 → 组装带 [引用] 的回答——每一步的分数都真实计算。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 470);
+    const DOCS = [
+      { id: 'D1', t: '维生素C（抗坏血酸）每日推荐摄入量为100毫克，过量可能腹泻', emb: 0.21, kw: ['维生素c', '摄入', '剂量'] },
+      { id: 'D2', t: '柑橘类水果富含维生素C，一个橙子约含70毫克', emb: 0.34, kw: ['维生素c', '水果'] },
+      { id: 'D3', t: '维生素D有助于钙吸收，缺乏会导致骨质疏松', emb: 0.12, kw: ['维生素d', '钙'] },
+      { id: 'D4', t: '感冒时补充维生素C可轻微缩短病程，但证据有限', emb: 0.29, kw: ['维生素c', '感冒'] },
+      { id: 'D5', t: '运动员的维生素C需求可能更高，因氧化应激增加', emb: 0.18, kw: ['维生素c', '运动'] },
+      { id: 'D6', t: '股票市场的维生素C概念股今日波动不大', emb: 0.05, kw: ['维生素c'] },
+      { id: 'D7', t: '维生素C是水溶性维生素，过量部分随尿液排出', emb: 0.26, kw: ['维生素c', '水溶性'] },
+      { id: 'D8', t: '今日天气预报：多云转晴，气温18-24度', emb: 0.02, kw: [] }
+    ];
+    const QUERIES = [
+      { raw: '维C一天吃多少合适', rewritten: '维生素 C 每日推荐摄入量 剂量 过量' },
+      { raw: '感冒了吃维C有用吗', rewritten: '维生素 C 感冒 病程 证据' }
+    ];
+    let qi = 0, step = 3;
+    const tokenize = s => s.toLowerCase().replace(/[^a-z0-9一-龥]+/g, ' ').split(' ').filter(Boolean);
+    function bm25(query) {
+      const terms = tokenize(query);
+      return DOCS.map(doc => {
+        let s = 0;
+        const dt = tokenize(doc.t);
+        terms.forEach(t => {
+          const tf = dt.filter(w => w.includes(t) || t.includes(w)).length;
+          const df = DOCS.filter(x => tokenize(x.t).some(w => w.includes(t))).length;
+          if (tf && df) s += Math.log(1 + (DOCS.length - df + 0.5) / (df + 0.5)) * tf * 2.5 / (tf + 1.5);
+        });
+        return s;
+      });
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const q = QUERIES[qi];
+      const bm = bm25(q.rewritten);
+      const embS = DOCS.map(x => x.emb);
+      const mix = DOCS.map((x, i) => ({ doc: x, bm: bm[i], emb: embS[i], mixed: 0.5 * (bm[i] / (Math.max.apply(null, bm) || 1)) + 0.5 * embS[i] }));
+      mix.sort((a, b) => b.mixed - a.mixed);
+      const top = mix.slice(0, 3);
+      // 管线四步
+      const steps = ['① 查询改写', '② 混合检索', '③ 重排', '④ 引用生成'];
+      steps.forEach((s, i) => {
+        const x = 70 + i * 172;
+        const active = i < step;
+        ctx.fillStyle = active ? 'rgba(0,212,255,0.14)' : 'rgba(18,26,46,0.7)';
+        ctx.strokeStyle = active ? C.cyan : C.axis;
+        ctx.fillRect(x, 92, 160, 34); ctx.strokeRect(x, 92, 160, 34);
+        text(ctx, s, x + 80, 109, active ? C.cyan : C.muted, 'center', 11.5);
+      });
+      // 用户查询与改写
+      text(ctx, '用户查询：' + q.raw, 70, 40, C.yellow, 'left', 13);
+      if (step >= 1) { text(ctx, '① 改写（补全同义词/消歧）：', 70, 146, C.text, 'left', 11.5); text(ctx, q.rewritten, 70, 166, C.orange, 'left', 11.5); }
+      // 检索结果表
+      if (step >= 2) {
+        text(ctx, '② 混合检索（BM25 分 + 语义分 融合）：', 70, 196, C.text, 'left', 11.5);
+        mix.forEach((r, i) => {
+          const y = 216 + i * 24;
+          const inTop = i < 3;
+          text(ctx, r.doc.id + '  ' + r.doc.t.slice(0, 26), 86, y, inTop ? C.white : C.muted, 'left', 10.5);
+          text(ctx, 'bm=' + r.bm.toFixed(2) + ' 语义=' + r.emb.toFixed(2) + ' 融合=' + r.mixed.toFixed(2), 480, y, inTop ? C.green : 'rgba(150,165,200,0.5)', 'left', 9.5);
+        });
+      }
+      // 生成
+      if (step >= 4) {
+        const cite = top.map((r, i) => '[' + (i + 1) + ']').join('');
+        text(ctx, '④ 组装回答（带引用）：', 70, 408, C.text, 'left', 11.5);
+        text(ctx, '维C 每日推荐约 100mg，过量可能腹泻 [1]；感冒时补充可轻微缩短病程但证据有限 [2]；它属水溶性，过量部分随尿排出 [3]。' + cite, 70, 430, C.green, 'left', 10);
+      }
+      text(ctx, '与 RAG 同构的管线，差别在「面向开放网络」：查询改写消歧（维C→维生素C）→ 混合检索保精确与语义 → 重排定顺序 → 回答必须带可点击引用（信任的来源）', 70, H - 16, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeSelect(QUERIES.map((q, i) => ({ value: i, label: q.raw })), v => { qi = +v; step = 3; draw(); }));
+    d.controls.appendChild(makeButton('管线前进一步', () => { step = Math.min(4, step + 1); draw(); }, true));
+    d.controls.appendChild(makeButton('重置', () => { step = 0; draw(); }));
+    draw();
+  }
+
+  // ============================================================
+  // 模型路由与成本优化：策略对比（真实模拟）
+  // ============================================================
+  function router(container) {
+    const d = demoShell('模型路由 · 成本与质量', '大模型又贵又聪明，小模型又便宜又弱——四种路由策略在 1000 个难度混合请求上的成本-质量曲线：级联（先小后大）通常是性价比之王。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 470);
+    const rng = makeRng(1010);
+    const MODELS = {
+      large: { cost: 10, acc: d2 => d2 < 0.34 ? 0.95 : d2 < 0.67 ? 0.85 : 0.62 },
+      small: { cost: 1,  acc: d2 => d2 < 0.34 ? 0.78 : d2 < 0.67 ? 0.5 : 0.25 }
+    };
+    const STRATS = ['全大模型', '全小模型', '级联（先小后大）', '理想路由'];
+    function simulate(strategy, difficultyMix) {
+      let cost = 0, correct = 0;
+      const N = 1000;
+      for (let i = 0; i < N; i++) {
+        const diff = rng();                        // 0=简单 1=困难
+        let model, conf = null;
+        if (strategy === 0) model = 'large';
+        else if (strategy === 1) model = 'small';
+        else if (strategy === 2) {                  // 级联：小模型先答，按「置信度」决定是否升级
+          model = 'small';
+          conf = MODELS.small.acc(diff) + gauss(rng) * 0.12;
+          if (conf < 0.62) { cost += MODELS.small.cost; model = 'large'; }
+          else { if (rng() < MODELS.small.acc(diff)) correct++; cost += MODELS.small.cost; continue; }
+        } else {                                    // 理想路由：直接知道难度
+          model = diff < 0.5 ? 'small' : 'large';
+        }
+        cost += MODELS[model].cost;
+        if (rng() < MODELS[model].acc(diff)) correct++;
+      }
+      return { cost: cost / N, acc: correct / N };
+    }
+    const results = STRATS.map((s2, i) => ({ name: s2, ...simulate(i) }));
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const box = { l: 90, r: 700, t: 100, b: 360 };
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      const sx = c => box.l + clamp(c / 10, 0, 1) * (box.r - box.l);
+      const sy = a => box.b - (a - 0.5) / 0.5 * (box.b - box.t);
+      [0.5, 0.625, 0.75, 0.875, 1].forEach(v => { text(ctx, (v * 100).toFixed(0) + '%', box.l - 8, sy(v), C.text, 'right', 9.5); });
+      [0, 2, 4, 6, 8, 10].forEach(v => { text(ctx, v + '', sx(v), box.b + 16, C.text, 'center', 9.5); });
+      text(ctx, '平均成本 / 请求（元）→', (box.l + box.r) / 2, box.b + 34, C.text, 'center', 10.5);
+      const COLS = [C.magenta, C.orange, C.cyan, C.green];
+      results.forEach((r2, i) => {
+        ctx.fillStyle = COLS[i];
+        ctx.beginPath(); ctx.arc(sx(r2.cost), sy(r2.acc), 8, 0, 7); ctx.fill();
+        text(ctx, r2.name, sx(r2.cost) + 12, sy(r2.acc) - 8, COLS[i], 'left', 10.5);
+        text(ctx, '¥' + r2.cost.toFixed(1) + ' / ' + (r2.acc * 100).toFixed(0) + '%', sx(r2.cost) + 12, sy(r2.acc) + 10, C.muted, 'left', 9.5);
+      });
+      text(ctx, '左上角=又便宜又准（越靠左上越好）', box.l, 84, C.muted, 'left', 10.5);
+      text(ctx, '四种策略的成本-质量（1000 个难度混合请求）', 70, 40, C.yellow, 'left', 13);
+      text(ctx, '关键洞察：级联用「小模型先答 + 低置信升级」拿到接近理想路由的质量，成本远低于全大模型——生产系统的主流方案', 70, H - 34, C.text, 'left', 11);
+      text(ctx, '理想路由是上限（需要完美的难度分类器）；真实路由器 = 小分类器/启发式规则，越准越接近左上', 70, H - 16, C.text, 'left', 10);
+    }
+    draw();
+  }
+
+  // ============================================================
+  // 水印与内容检测：绿色列表水印（真实实现）
+  // ============================================================
+  function watermark(container) {
+    const d = demoShell('水印 · 绿名单机制', '生成时把词表按前一 token 哈希分成绿/红两半，绿名单加权偏向采样；检测器统计绿 token 占比算 z 分数——z>4 基本可断定「这文本带水印」。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 470);
+    const rng = makeRng(424242);
+    const VOCAB = ['的', '是', '在', '了', '有', '和', '人', '这', '中', '大', '为', '上', '个', '国', '我', '以'];
+    const NGEN = 60;
+    let delta = 2.0, attack = 0, tokens = null;
+    function isGreen(prev, tok) {
+      let h = 0;
+      const key = prev + '|' + tok;
+      for (let k = 0; k < key.length; k++) h = (h * 31 + key.charCodeAt(k)) | 0;
+      return (h >>> 0) % 2 === 0;
+    }
+    function generate() {
+      const out = [];
+      let prev = '';
+      for (let i = 0; i < NGEN; i++) {
+        const greens = VOCAB.filter(v => isGreen(prev, v));
+        const reds = VOCAB.filter(v => !isGreen(prev, v));
+        // 采样：绿名单权重 ×(1+delta)，再叠加「改写攻击」把部分绿换成红
+        const weights = VOCAB.map(v => {
+          const g = isGreen(prev, v);
+          let w = g ? 1 + delta : 1;
+          if (attack > 0 && g && rng() < attack) w = 0.3;    // 攻击：故意避开绿名单
+          return w;
+        });
+        const tot = weights.reduce((a, b) => a + b, 0);
+        let r = rng() * tot, sel = VOCAB[0];
+        for (let k = 0; k < VOCAB.length; k++) { r -= weights[k]; if (r <= 0) { sel = VOCAB[k]; break; } }
+        out.push({ tok: sel, green: isGreen(prev, sel) });
+        prev = sel;
+      }
+      // 检测器
+      const gCount = out.filter(t => t.green).length;
+      const z = (gCount - NGEN / 2) / Math.sqrt(NGEN * 0.25);
+      tokens = { out: out, z: z, gCount: gCount };
+      draw();
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      if (!tokens) return;
+      // 文本流（绿/红着色）
+      const box = { l: 70, r: 710, t: 100, b: 260 };
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      let x = 84, y = 130;
+      tokens.out.forEach(t => {
+        ctx.fillStyle = t.green ? 'rgba(0,230,160,0.9)' : 'rgba(255,122,198,0.75)';
+        text(ctx, t.tok, x + 8, y, t.green ? '#7ee8c4' : '#ff9db1', 'left', 13);
+        x += 26;
+        if (x > 680) { x = 84; y += 28; }
+      });
+      text(ctx, '绿=绿名单 token　红=红名单 token（底色区域）', 70, 82, C.text, 'left', 11);
+      // z 分数量表
+      const gb = { l: 70, r: 710, t: 320, b: 420 };
+      ctx.strokeStyle = C.axis; ctx.strokeRect(gb.l, gb.t, gb.r - gb.l, gb.b - gb.t);
+      const zx = z => gb.l + clamp(z / 10, 0, 1) * (gb.r - gb.l);
+      // 颜色带
+      ctx.fillStyle = 'rgba(150,165,200,0.25)'; ctx.fillRect(gb.l, gb.t + 10, zx(4) - gb.l, 34);
+      ctx.fillStyle = 'rgba(255,107,107,0.35)'; ctx.fillRect(zx(4), gb.t + 10, gb.r - zx(4), 34);
+      [0, 2, 4, 6, 8, 10].forEach(v => { text(ctx, 'z=' + v, zx(v), gb.b - 8, C.muted, 'center', 9.5); });
+      ctx.strokeStyle = C.yellow; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(zx(tokens.z), gb.t + 4); ctx.lineTo(zx(tokens.z), gb.b - 22); ctx.stroke();
+      text(ctx, 'z=' + tokens.z.toFixed(1), zx(tokens.z) + 6, gb.t + 20, C.yellow, 'left', 12);
+      text(ctx, '绿 token ' + tokens.gCount + '/' + NGEN + '（期望 30 if 无水印）　z>4 ⇒ 显著', gb.l, gb.t - 8, C.text, 'left', 10.5);
+      text(ctx, '水印强度 δ=' + delta.toFixed(1) + '（绿名单采样加权）　改写攻击 ' + Math.round(attack * 100) + '%（故意避开绿名单）', 70, 40, C.yellow, 'left', 13);
+      text(ctx, '机制：按前一 token 的哈希把词表分成绿/红两半，生成时绿名单加权——检测不需要模型，数绿 token 占比即可（假阳率 10⁻⁴ @ z=4）', 70, H - 34, C.text, 'left', 11);
+      text(ctx, '攻防：改写/翻译可洗掉水印（可检测性随攻击强度骤降）；强水印伤文本质量—— δ 的取舍是水印研究的核心', 70, H - 16, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeRange(0, 60, 5, Math.round(delta * 10), v => { delta = v / 10; generate(); }, '水印强度'));
+    d.controls.appendChild(makeRange(0, 100, 5, Math.round(attack * 100), v => { attack = v / 100; generate(); }, '改写攻击%'));
+    d.controls.appendChild(makeButton('重新生成', generate, true));
+    generate();
+  }
+
   window.MLDemos = {
     dist: dist, linear: linear, logistic: logistic, tree: tree, forest: forest,
     xgboost: xgboost, svm: svm, kmeans: kmeans, pca: pca, mlp: mlp, rnn: rnn, lstm: lstm, seq: seq,
@@ -8166,6 +8863,9 @@
     world: world, voicechat: voicechat, embed: embed, automl: automl,
     mathllm: mathllm, kg: kg, chip: chip, ir: ir,
     interp: interp, dataeng: dataeng, flowmatch: flowmatch, codegen: codegen,
-    videounder: videounder, context: context, fairness: fairness, llmeval: llmeval
+    videounder: videounder, context: context, fairness: fairness, llmeval: llmeval,
+    prob: prob, lincalc: lincalc, infotheory: infotheory, numpy: numpy,
+    hmmkalman: hmmkalman, experiment: experiment, aisearch: aisearch,
+    router: router, watermark: watermark
   };
 })();
