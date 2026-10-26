@@ -147,6 +147,11 @@ deepRefs.forEach((ids, rel) => {
   if (!md.trim()) { err(`${rel} 是空文件`); return; }
   if (!/^#\s+\S/m.test(md)) warn(`${rel} 没有一级标题（建议以 "# 标题" 开头）`);
 
+  // 长度门禁：防止新增主题时写出偷工减料的长文（既有短文清单见 README 计划）
+  const lines = md.split('\n').length;
+  if (lines < 55) err(`${rel} 仅 ${lines} 行——低于长文下限 55 行（补充：直觉/推导/代码/误区/面试要点/延伸阅读）`);
+  else if (lines < 70) warn(`${rel} 仅 ${lines} 行——建议充实到 70 行以上（当前批次充实中）`);
+
   // 渲染一遍，确保渲染器能吃下这篇长文
   if (mdRenderer) {
     try {

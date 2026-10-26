@@ -66,7 +66,9 @@
     nav.innerHTML = html;
     nav.querySelectorAll('.nav-link').forEach(a => {
       a.addEventListener('click', () => {
+        beginNavJump();
         document.getElementById(a.dataset.target).scrollIntoView({ behavior: 'smooth', block: 'start' });
+        watchJumpSettle();
         history.replaceState(null, '', '#' + a.dataset.target);
         document.body.classList.remove('menu-open');
       });
@@ -299,8 +301,21 @@
   }
 
   // ---------- 演示懒加载 ----------
-  // demos.js 是异步加载的（约 230KB），所以这里必须处理「脚本还没到」的情况：
+  // demos.js 是异步加载的（约 1MB），所以这里必须处理「脚本还没到」的情况：
   // 先轮询等待 window.MLDemos 出现，到了再初始化；只有真正初始化成功才断开 observer。
+  //
+  // 导航跳转挂起（navJump）：平滑滚动跨越长页时，途经的每个懒加载演示都会被
+  // IntersectionObserver 触发初始化（各 ~450px），页面在滚动过程中不断「长高」，
+  // 落点停在过期位置——侧栏点击与实际内容对不上。因此跳转期间挂起初始化
+  // （observer 保持待命），滚动停止后只初始化当前视口附近的演示，其余保持懒加载。
+  let navJumping = false;
+  function kickVisibleDemos() {
+    document.querySelectorAll('.demo-mount').forEach(m => {
+      const r = m.getBoundingClientRect();
+      if (r.top < window.innerHeight + 300 && r.bottom > -300 && m._kick) m._kick();
+    });
+  }
+
   function initDemos(scope) {
     const mounts = scope.querySelectorAll('.demo-mount');
     mounts.forEach(mount => {
@@ -310,6 +325,7 @@
 
       const start = () => {
         if (started) return;
+        if (navJumping) return;                 // 跳转中挂起：observer 保持待命，滚动停止后再初始化
         if (!window.MLDemos) {                  // 脚本尚未加载完成 → 稍后重试
           timer = setTimeout(start, 300);
           return;
@@ -326,6 +342,7 @@
         try { window.MLDemos[id](mount, t && t.demo); }
         catch (e) { console.error('demo init failed', id, e); mount.innerHTML = '<p style="color:var(--muted);padding:16px">演示加载失败</p>'; }
       };
+      mount._kick = start;
 
       if ('IntersectionObserver' in window) {
         const obs = new IntersectionObserver((entries) => {
@@ -358,7 +375,9 @@
       activeCat = chip.dataset.cat;
       bar.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c === chip));
       applyFilters();
+      beginNavJump();
       document.getElementById('topics').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      watchJumpSettle();
     });
     $('#diffSelect').addEventListener('change', e => {
       activeDiff = parseInt(e.target.value, 10) || 0;
@@ -404,10 +423,30 @@
     if (!m) return;
     const card = document.getElementById('topic-' + m[1]);
     if (!card) return;
+    beginNavJump();
     card.scrollIntoView({ block: 'start' });
+    watchJumpSettle();
     if (!m[2]) return;
     const btn = card.querySelector(`.tab-btn[data-tab="${m[2]}"]`);
     if (btn) btn.click();
+  }
+
+  // —— 导航跳转的演示挂起控制 ——
+  function beginNavJump() {
+    navJumping = true;
+  }
+  // 滚动静止 250ms 视为到位：解除挂起并初始化视口附近的演示
+  function watchJumpSettle() {
+    let lastY = window.scrollY;
+    const check = () => {
+      if (Math.abs(window.scrollY - lastY) < 1) {
+        if (navJumping) { navJumping = false; kickVisibleDemos(); }
+        return;
+      }
+      lastY = window.scrollY;
+      setTimeout(check, 120);
+    };
+    setTimeout(check, 150);
   }
 
   // ---------- 滚动：进度条 + 回顶 + 高亮 + 动画 ----------

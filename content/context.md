@@ -48,6 +48,23 @@ Lost in the Middle（2023）的实验：把关键事实放在 20 个文档的不
 
 ---
 
+---
+
+## 三·五、KV Cache 与上下文工程的交汇
+
+上下文工程的「预算」在推理时有精确的物理对应——**KV cache 显存**（见推理优化深读的公式）。每一条进上下文的 token 都要占 cache：
+
+$$\text{cache} = 2 \times L \times n_{kv} \times d_h \times \text{len} \times \text{bytes}$$
+
+这给了「上下文纪律」一个硬约束：128K 窗口 × fp16 × Llama-7B ≈ 60GB——**塞满窗口在物理上不可行**。工程对策按层：
+
+- 压缩历史 = 减少 cache 长度（省显存与注意力计算双重收益）；
+- 结构化状态替代流水账 = 同样信息量更少 token；
+- MQA/GQA = 同样长度下 cache 缩数倍（架构层）；
+- 滑动窗口/淘汰 = cache 有上限（StreamingLLM 思路：保留 attention sink 的开头几个 token + 最近窗口，长对话不崩）。
+
+「上下文工程」因此有了两层含义：提示层的信息管理（本主题）与 KV 层的物理管理（推理优化主题）——Agent 系统的长期记忆设计必须同时考虑两者。
+
 ## 四、面试要点速答
 
 1. **Lost in the Middle 说明什么？** 位置利用率 U 形（首尾高中间低）；重排检索内容是零成本优化。
