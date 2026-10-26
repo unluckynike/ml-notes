@@ -89,6 +89,84 @@ const ROADMAP = [
   }
 ];
 
+// 知识图谱关系网：[A, B, 类型]——pre=前置依赖（学习顺序），rel=相关关联
+// 供「知识图谱」大图可视化；check.mjs 会校验 id 的有效性
+const GRAPH_EDGES = [
+  // 统计地基内部与地基→基础
+  ['prob', 'pgm', 'pre'], ['prob', 'mcmc', 'pre'], ['pgm', 'mcmc', 'rel'],
+  ['prob', 'stats', 'rel'], ['stats', 'experiment', 'pre'], ['lincalc', 'prob', 'rel'],
+  ['infotheory', 'loss', 'pre'], ['lincalc', 'infotheory', 'rel'], ['hmmkalman', 'pgm', 'rel'],
+  ['mcmc', 'hmmkalman', 'rel'], ['numpy', 'stats', 'rel'],
+  // 基础与优化
+  ['gd', 'opt', 'pre'], ['gd', 'overfit', 'rel'], ['loss', 'overfit', 'pre'],
+  ['reg', 'overfit', 'rel'], ['overfit', 'evaluation', 'pre'], ['loss', 'logistic', 'pre'],
+  ['linear', 'ridge', 'pre'], ['linear', 'logistic', 'pre'], ['linear', 'glm', 'pre'],
+  ['logistic', 'glm', 'rel'], ['knn', 'overfit', 'rel'], ['numpy', 'gd', 'pre'],
+  ['numpy', 'feature', 'pre'], ['gd', 'lincalc', 'rel'], ['act', 'mlp', 'pre'],
+  // 监督与集成
+  ['tree', 'forest', 'pre'], ['tree', 'adaboost', 'pre'], ['adaboost', 'gbdt', 'pre'],
+  ['gbdt', 'xgboost', 'pre'], ['xgboost', 'hpo', 'rel'], ['naivebayes', 'logistic', 'rel'],
+  ['forest', 'gbdt', 'rel'], ['semi', 'tree', 'rel'], ['svm', 'linear', 'rel'],
+  // 无监督
+  ['kmeans', 'em', 'pre'], ['kmeans', 'dbscan', 'rel'], ['pca', 'tsne', 'pre'],
+  ['pca', 'umap', 'pre'], ['tsne', 'umap', 'rel'], ['em', 'lda', 'pre'],
+  ['lda', 'pgm', 'rel'], ['pca', 'lincalc', 'rel'], ['em', 'autoencoder', 'rel'],
+  ['dbscan', 'anomaly', 'rel'],
+  // 深度学习
+  ['mlp', 'cnn', 'pre'], ['mlp', 'rnn', 'pre'], ['mlp', 'autoencoder', 'pre'],
+  ['rnn', 'lstm', 'pre'], ['lstm', 'gru', 'pre'], ['rnn', 'ssm', 'rel'],
+  ['ssm', 'transformer', 'rel'], ['transformer', 'vit', 'pre'], ['transformer', 'gpt', 'pre'],
+  ['cnn', 'resnet', 'pre'], ['resnet', 'yolo', 'pre'], ['resnet', 'segment', 'pre'],
+  ['cnn', 'augment', 'rel'], ['cnn', 'adv', 'rel'], ['autoencoder', 'vae', 'pre'],
+  ['autoencoder', 'anomaly', 'pre'], ['ssl', 'vit', 'rel'], ['transfer', 'lora', 'pre'],
+  ['transfer', 'distill', 'rel'], ['distill', 'ddim', 'rel'], ['moe', 'parallel', 'rel'],
+  ['gnn', 'pgm', 'rel'], ['gnn', 'recsys', 'rel'], ['seq', 'arima', 'pre'],
+  ['seq', 'rnn', 'rel'], ['lincalc', 'mlp', 'pre'],
+  // CV
+  ['vit', 'videounder', 'pre'], ['vit', 'vlm', 'rel'], ['yolo', 'segment', 'rel'],
+  ['ocr', 'vlm', 'rel'], ['ocr', 'rag', 'rel'], ['augment', 'ssl', 'rel'],
+  ['adv', 'safety', 'pre'], ['nerf', 'lincalc', 'rel'], ['nerf', 'embodied', 'rel'],
+  ['videounder', 'video', 'rel'],
+  // 生成
+  ['vae', 'diffusion', 'pre'], ['diffusion', 'ddim', 'pre'], ['diffusion', 'flowmatch', 'rel'],
+  ['flowmatch', 'sd', 'pre'], ['sd', 'control', 'pre'], ['sd', 'video', 'pre'],
+  ['clip', 'sd', 'pre'], ['clip', 'vlm', 'pre'], ['gan', 'distill', 'rel'],
+  ['gan', 'diffusion', 'rel'], ['vae', 'flowmatch', 'rel'], ['watermark', 'sd', 'rel'],
+  // RL
+  ['rl', 'pg', 'pre'], ['rl', 'dqn', 'pre'], ['pg', 'rlhf', 'pre'],
+  ['dqn', 'world', 'rel'], ['rl', 'world', 'pre'], ['pg', 'cot', 'rel'],
+  // LLM
+  ['token', 'gpt', 'pre'], ['token', 'bert', 'pre'], ['word2vec', 'bert', 'rel'],
+  ['bert', 'gpt', 'pre'], ['gpt', 'prompt', 'pre'], ['gpt', 'cot', 'pre'],
+  ['cot', 'mathllm', 'pre'], ['cot', 'rlhf', 'rel'], ['rlhf', 'safety', 'pre'],
+  ['safety', 'watermark', 'rel'], ['dataeng', 'bench', 'pre'], ['bench', 'evaluation', 'rel'],
+  ['bench', 'experiment', 'rel'], ['llmeval', 'bench', 'rel'], ['gpt', 'parallel', 'rel'],
+  ['parallel', 'inference', 'pre'], ['inference', 'quant', 'pre'], ['quant', 'router', 'rel'],
+  ['inference', 'router', 'rel'], ['prompt', 'context', 'rel'], ['context', 'rag', 'rel'],
+  ['context', 'agent', 'pre'], ['codegen', 'cua', 'pre'], ['codegen', 'mathllm', 'rel'],
+  ['embed', 'recsys', 'pre'], ['embed', 'clip', 'rel'], ['embed', 'aisearch', 'pre'],
+  ['vlm', 'embodied', 'pre'], ['vlm', 'aisearch', 'rel'], ['posenc', 'transformer', 'rel'],
+  ['posenc', 'gpt', 'rel'], ['fairness', 'safety', 'rel'], ['safety', 'agent', 'rel'],
+  ['safety', 'cua', 'rel'],
+  // 智能体
+  ['ir', 'rag', 'pre'], ['ir', 'embed', 'rel'], ['rag', 'kg', 'rel'],
+  ['kg', 'aisearch', 'rel'], ['rag', 'agent', 'pre'], ['agent', 'multiagent', 'pre'],
+  // 应用
+  ['recsys', 'kg', 'rel'], ['anomaly', 'conformal', 'rel'], ['fl', 'dp', 'pre'],
+  ['fl', 'parallel', 'rel'], ['speech', 'hmmkalman', 'pre'], ['tts', 'speech', 'rel'],
+  ['voicechat', 'tts', 'pre'], ['voicechat', 'speech', 'rel'], ['embodied', 'world', 'rel'],
+  ['embodied', 'cua', 'rel'], ['world', 'video', 'rel'],
+  // 方法论
+  ['feature', 'evaluation', 'pre'], ['evaluation', 'llmeval', 'pre'],
+  ['llmeval', 'experiment', 'rel'], ['hpo', 'automl', 'pre'], ['hpo', 'opt', 'rel'],
+  ['interp', 'mlp', 'rel'], ['interp', 'safety', 'rel'], ['fairness', 'evaluation', 'rel'],
+  ['conformal', 'evaluation', 'rel'], ['conformal', 'experiment', 'rel'],
+  ['causal', 'experiment', 'pre'], ['causal', 'pgm', 'rel'], ['mlops', 'experiment', 'rel'],
+  ['mlops', 'anomaly', 'rel'], ['chip', 'parallel', 'rel'], ['chip', 'inference', 'rel'],
+  ['chip', 'quant', 'rel'], ['history', 'gpt', 'rel'], ['history', 'transformer', 'rel'],
+  ['mlops', 'feature', 'rel'], ['transfer', 'fl', 'rel']
+];
+
 // 六步方法论
 const METHODS = [
   { no: '01', title: '先问「它解决什么问题」', desc: '别急着抄公式。先记下这个模型诞生的动机：它要回答什么问题？之前的模型哪里不够？' },

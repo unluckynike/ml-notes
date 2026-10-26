@@ -56,10 +56,10 @@ function installStubs() {
 }
 
 // ---------- 1. content.js ----------
-let CATEGORIES, ROADMAP, METHODS, RESOURCES, TOPICS;
+let CATEGORIES, ROADMAP, METHODS, RESOURCES, TOPICS, GRAPH_EDGES;
 try {
   const code = read('js/content.js') + '\n;return { CATEGORIES, ROADMAP, METHODS, RESOURCES, TOPICS };';
-  ({ CATEGORIES, ROADMAP, METHODS, RESOURCES, TOPICS } = new Function(code)());
+  ({ CATEGORIES, ROADMAP, METHODS, RESOURCES, TOPICS, GRAPH_EDGES } = new Function(code)());
 } catch (e) {
   err('js/content.js 解析失败：' + e.message);
 }
@@ -183,6 +183,23 @@ if (fs.existsSync(cdir)) {
     const rel = CONTENT_DIR + '/' + f;
     if (!deepRefs.has(rel)) warn(`${rel} 没有被任何主题的 deep 字段引用（孤儿文件）`);
   });
+}
+
+// ---------- 4.5 知识图谱关系边校验 ----------
+if (GRAPH_EDGES !== undefined) {
+  const dup = new Set();
+  let gBad = 0;
+  GRAPH_EDGES.forEach(e => {
+    if (!Array.isArray(e) || e.length < 2 || !seenIds.has(e[0]) || !seenIds.has(e[1])) {
+      err(`知识图谱边无效：${JSON.stringify(e)}（两端必须是存在的主题 id）`);
+      gBad++;
+      return;
+    }
+    const key = [e[0], e[1]].sort().join('|');
+    if (dup.has(key)) { warn(`知识图谱重复边：${key}`); gBad++; }
+    dup.add(key);
+  });
+  console.log(`  知识图谱边          ${GRAPH_EDGES.length}`);
 }
 
 // ---------- 5. 反向检查：注册但未被引用 ----------

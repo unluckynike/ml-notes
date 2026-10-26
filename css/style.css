@@ -256,6 +256,22 @@ body.menu-open .overlay { opacity: 1; pointer-events: auto; }
   animation: scrollDot 1.6s ease infinite;
 }
 
+/* ============ 知识图谱大图 ============ */
+.graph-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 18px; }
+.graph-toolbar .chip.active { color: #0c1224; }
+.graph-reset {
+  background: var(--surface); border: 1px solid var(--border); color: var(--muted);
+  padding: 5px 13px; border-radius: 999px; font-size: 12px; cursor: pointer;
+  font-family: inherit; transition: all .18s ease;
+}
+.graph-reset:hover { color: var(--accent-2); border-color: var(--accent-2); }
+.graph-wrap {
+  position: relative; border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden; background: var(--bg-soft);
+}
+.graph-wrap canvas { display: block; width: 100%; touch-action: none; cursor: grab; }
+.graph-wrap canvas:active { cursor: grabbing; }
+
 /* ============ 通用 Section ============ */
 .section { padding: 70px 40px; max-width: 1200px; margin: 0 auto; }
 .section__head { margin-bottom: 42px; max-width: 780px; }

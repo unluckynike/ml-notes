@@ -10,10 +10,10 @@
   <link rel="stylesheet" href="css/style.css" />
   <!-- defer：下载立即与 HTML/CSS 并行开始，执行延迟到 DOM 解析完（顺序保持）——
        近 1MB 的 JS 不再阻塞在 body 末尾的串行发现，首屏可交互时间显著提前 -->
-  <script defer src="js/markdown.js?v=20251026a"></script>
-  <script defer src="js/content.js?v=20251026a"></script>
-  <script defer src="js/demos.js?v=20251026a"></script>
-  <script defer src="js/app.js?v=20251026a"></script>
+  <script defer src="js/markdown.js?v=20251027a"></script>
+  <script defer src="js/content.js?v=20251027a"></script>
+  <script defer src="js/demos.js?v=20251027a"></script>
+  <script defer src="js/app.js?v=20251027a"></script>
 </head>
 <body>
   <!-- 顶部阅读进度条 -->
@@ -92,6 +92,17 @@
         <p class="section__desc">机器学习不是一堆孤立算法，而是一条有依赖关系的知识链。下面是这张地图的 13 个板块。</p>
       </div>
       <div class="roadmap" id="roadmapGraph"><div class="loading-hint">正在加载知识地图…</div></div>
+    </section>
+
+    <!-- 知识图谱 -->
+    <section class="section" id="graph">
+      <div class="section__head">
+        <p class="eyebrow">GRAPH · 知识图谱</p>
+        <h2>121 个主题的关系网</h2>
+        <p class="section__desc">节点按分类着色、大小代表关联数；实线是学习前置、虚线是相关关联。拖拽节点整理布局，滚轮缩放，点节点直达主题卡。</p>
+      </div>
+      <div class="graph-toolbar" id="graphToolbar"></div>
+      <div class="graph-wrap"><canvas id="graphCanvas"></canvas></div>
     </section>
 
     <!-- 方法论 -->

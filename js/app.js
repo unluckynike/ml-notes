@@ -40,6 +40,7 @@
     const nav = $('#navList');
     const secs = [
       { id: 'roadmap', label: '路线图', icon: '🧭' },
+      { id: 'graph', label: '知识图谱', icon: '🕸️' },
       { id: 'howto', label: '方法论', icon: '📖' },
       { id: 'topics', label: '全部主题', icon: '🧠' },
       { id: 'resources', label: '延伸阅读', icon: '📚' }
@@ -407,6 +408,254 @@
     initDemos(list);
   }
 
+  // ---------- 知识图谱（力导向大图） ----------
+  function buildGraph() {
+    const canvas = document.getElementById('graphCanvas');
+    if (!canvas || typeof GRAPH_EDGES === 'undefined') return;
+    const wrap = canvas.parentElement;
+    const ctx = canvas.getContext('2d');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let W = wrap.clientWidth, H = Math.max(480, Math.min(700, Math.round(W * 0.58)));
+
+    // 节点与边
+    const nodes = TOPICS.map(function (t) {
+      return { id: t.id, name: t.name, cat: t.cat, deg: 0, x: 0, y: 0, vx: 0, vy: 0, r: 6 };
+    });
+    const byId = new Map(nodes.map(function (n) { return [n.id, n]; }));
+    const edges = GRAPH_EDGES.map(function (e) {
+      return { a: byId.get(e[0]), b: byId.get(e[1]), pre: e[2] === 'pre' };
+    }).filter(function (e) { return e.a && e.b; });
+    edges.forEach(function (e) { e.a.deg++; e.b.deg++; });
+    nodes.forEach(function (n) { n.r = 5 + Math.min(n.deg * 0.9, 10); });
+
+    // 分类锚点（初始聚类中心）
+    const catList = Object.keys(CATEGORIES);
+    const catAnchor = {};
+    catList.forEach(function (c, i) {
+      const ang = (i / catList.length) * Math.PI * 2 - Math.PI / 2;
+      catAnchor[c] = [Math.cos(ang), Math.sin(ang) * 0.75];
+    });
+
+    // 相机（平移/缩放）
+    let cam = { x: 0, y: 0, k: 1 };
+    const hidden = new Set();
+
+    // 初始位置：分类锚点 + 抖动
+    function scatter() {
+      nodes.forEach(function (n) {
+        const a = catAnchor[n.cat];
+        n.x = W / 2 + a[0] * W * 0.32 + (Math.random() - 0.5) * 90;
+        n.y = H / 2 + a[1] * H * 0.34 + (Math.random() - 0.5) * 90;
+        n.vx = n.vy = 0;
+      });
+      cam = { x: 0, y: 0, k: 1 };
+    }
+    scatter();
+
+    // 物理一步
+    function tick() {
+      const vis = nodes.filter(function (n) { return !hidden.has(n.cat); });
+      // 斥力
+      for (let i = 0; i < vis.length; i++) for (let j = i + 1; j < vis.length; j++) {
+        const a = vis[i], b = vis[j];
+        let dx = a.x - b.x, dy = a.y - b.y;
+        let d2 = dx * dx + dy * dy;
+        if (d2 < 1) { dx = Math.random() - 0.5; dy = Math.random() - 0.5; d2 = 1; }
+        const f = 2400 / d2, d = Math.sqrt(d2);
+        const fx = dx / d * f, fy = dy / d * f;
+        a.vx += fx; a.vy += fy; b.vx -= fx; b.vy -= fy;
+      }
+      // 弹簧
+      edges.forEach(function (e) {
+        if (hidden.has(e.a.cat) || hidden.has(e.b.cat)) return;
+        const dx = e.b.x - e.a.x, dy = e.b.y - e.a.y;
+        const d = Math.hypot(dx, dy) || 1;
+        const f = (d - (e.pre ? 80 : 110)) * (e.pre ? 0.02 : 0.008);
+        const fx = dx / d * f, fy = dy / d * f;
+        e.a.vx += fx; e.a.vy += fy; e.b.vx -= fx; e.b.vy -= fy;
+      });
+      // 类别聚拢 + 中心引力 + 阻尼
+      vis.forEach(function (n) {
+        const a = catAnchor[n.cat];
+        n.vx += (W / 2 + a[0] * W * 0.3 - n.x) * 0.012;
+        n.vy += (H / 2 + a[1] * H * 0.3 - n.y) * 0.012;
+        n.vx *= 0.82; n.vy *= 0.82;
+        n.x += Math.max(-14, Math.min(14, n.vx));
+        n.y += Math.max(-14, Math.min(14, n.vy));
+      });
+    }
+
+    // 渲染
+    const catColor = function (c) { return CATEGORIES[c] ? CATEGORIES[c].color : '#8b93b8'; };
+    let hovered = null;
+    function draw() {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg') || '#0a0e1a';
+      ctx.fillRect(0, 0, W, H);
+      ctx.save();
+      ctx.translate(W / 2 + cam.x, H / 2 + cam.y);
+      ctx.scale(cam.k, cam.k);
+      ctx.translate(-W / 2, -H / 2);
+      const dim = function (n) { return hovered && n !== hovered && !n._adj; };
+      // 边
+      edges.forEach(function (e) {
+        if (hidden.has(e.a.cat) || hidden.has(e.b.cat)) return;
+        const hot = hovered && (e.a === hovered || e.b === hovered);
+        ctx.strokeStyle = hot ? 'rgba(0,212,255,0.85)' : (e.pre ? 'rgba(140,160,210,0.28)' : 'rgba(140,160,210,0.12)');
+        ctx.lineWidth = hot ? 2 : e.pre ? 1.2 : 0.8;
+        if (!e.pre) ctx.setLineDash([3, 4]);
+        ctx.beginPath(); ctx.moveTo(e.a.x, e.a.y); ctx.lineTo(e.b.x, e.b.y); ctx.stroke();
+        ctx.setLineDash([]);
+      });
+      // 点
+      nodes.forEach(function (n) {
+        if (hidden.has(n.cat)) return;
+        const c = catColor(n.cat);
+        const isHot = hovered === n, isAdj = hovered && n._adj;
+        ctx.globalAlpha = dim(n) ? 0.18 : 1;
+        ctx.fillStyle = c;
+        ctx.beginPath(); ctx.arc(n.x, n.y, isHot ? n.r + 2 : n.r, 0, 7); ctx.fill();
+        if (isHot) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(n.x, n.y, n.r + 4, 0, 7); ctx.stroke(); }
+        // 标签：悬浮/邻接/大节点/高缩放时显示
+        if (isHot || isAdj || n.deg >= 5 || cam.k > 1.35) {
+          ctx.fillStyle = isHot ? '#fff' : 'rgba(210,220,245,0.9)';
+          ctx.font = (isHot ? 'bold ' : '') + '10px "PingFang SC", sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(n.name, n.x, n.y + n.r + 11);
+        }
+        ctx.globalAlpha = 1;
+      });
+      ctx.restore();
+    }
+
+    // 主循环：交互后跑 120 帧（省电），静止即停
+    let running = false, runFrames = 0;
+    function loop() {
+      if (!running) return;
+      tick();
+      if (runFrames-- > 0 || dragged) draw();
+      if (runFrames > 0) requestAnimationFrame(loop);
+      else running = false;
+    }
+    function wake(frames) {
+      runFrames = frames;
+      if (!running) { running = true; requestAnimationFrame(loop); }
+      draw();
+    }
+
+    // 交互：命中测试
+    function hitTest(px, py) {
+      const wx = (px - W / 2 - cam.x) / cam.k + W / 2;
+      const wy = (py - H / 2 - cam.y) / cam.k + H / 2;
+      let best = null, bd = 1e9;
+      nodes.forEach(function (n) {
+        if (hidden.has(n.cat)) return;
+        const d2 = (n.x - wx) * (n.x - wx) + (n.y - wy) * (n.y - wy);
+        if (d2 < (n.r + 6) * (n.r + 6) && d2 < bd) { bd = d2; best = n; }
+      });
+      return best;
+    }
+    function markAdj(n) {
+      nodes.forEach(function (x) { x._adj = false; });
+      if (!n) return;
+      edges.forEach(function (e) {
+        if (e.a === n) e.b._adj = true;
+        if (e.b === n) e.a._adj = true;
+      });
+    }
+
+    let dragged = null, dragMoved = 0, panning = false, panStart = null;
+    canvas.addEventListener('pointerdown', function (e) {
+      const rect = canvas.getBoundingClientRect();
+      const px = e.clientX - rect.left, py = e.clientY - rect.top;
+      dragMoved = 0;
+      const n = hitTest(px, py);
+      if (n) { dragged = n; wake(600); }
+      else { panning = true; panStart = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y }; }
+      canvas.setPointerCapture(e.pointerId);
+    });
+    canvas.addEventListener('pointermove', function (e) {
+      const rect = canvas.getBoundingClientRect();
+      const px = e.clientX - rect.left, py = e.clientY - rect.top;
+      if (dragged) {
+        dragMoved += Math.abs(e.movementX) + Math.abs(e.movementY);
+        dragged.x = (px - W / 2 - cam.x) / cam.k + W / 2;
+        dragged.y = (py - H / 2 - cam.y) / cam.k + H / 2;
+        dragged.vx = dragged.vy = 0;
+        wake(10);
+      } else if (panning) {
+        cam.x = panStart.cx + (e.clientX - panStart.x);
+        cam.y = panStart.cy + (e.clientY - panStart.y);
+        wake(5);
+      } else {
+        const h = hitTest(px, py);
+        if (h !== hovered) {
+          hovered = h;
+          if (h) markAdj(h);
+          wake(20);
+        }
+      }
+    });
+    canvas.addEventListener('pointerup', function (e) {
+      if (dragged && dragMoved < 4) {
+        // 视为点击 → 跳到主题卡
+        const el = document.getElementById('topic-' + dragged.id);
+        if (el) {
+          const targetEl = el;
+          beginNavJump(targetEl);
+          targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          watchJumpSettle();
+          history.replaceState(null, '', '#topic-' + dragged.id);
+        }
+      }
+      dragged = null; panning = false;
+    });
+    canvas.addEventListener('wheel', function (e) {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const px = e.clientX - rect.left, py = e.clientY - rect.top;
+      const k0 = cam.k;
+      cam.k = clamp(cam.k * (e.deltaY < 0 ? 1.12 : 0.89), 0.45, 3.2);
+      // 指针锚定：缩放后指针下的世界坐标保持不变
+      const wx = (px - W / 2 - cam.x) / k0 + W / 2;
+      const wy = (py - H / 2 - cam.y) / k0 + H / 2;
+      cam.x = px - W / 2 - (wx - W / 2) * cam.k;
+      cam.y = py - H / 2 - (wy - H / 2) * cam.k;
+      wake(20);
+    }, { passive: false });
+
+    // 工具条：分类筛选 + 重置
+    const bar = document.getElementById('graphToolbar');
+    if (bar) {
+      bar.innerHTML = catList.map(function (c) {
+        return '<button class="chip active" data-gcat="' + c + '" style="--chip-color:' + CATEGORIES[c].color + '">' + CATEGORIES[c].label + '</button>';
+      }).join('') + '<button class="graph-reset">重置布局</button>';
+      bar.addEventListener('click', function (e) {
+        const chip = e.target.closest('.chip');
+        if (chip) {
+          const c = chip.dataset.gcat;
+          if (hidden.has(c)) { hidden.delete(c); chip.classList.add('active'); }
+          else if (!chip.classList.contains('active')) { hidden.add(c); chip.classList.remove('active'); }
+          else { hidden.add(c); chip.classList.remove('active'); }
+          wake(60);
+          return;
+        }
+        if (e.target.classList.contains('graph-reset')) { scatter(); wake(200); }
+      });
+    }
+    window.addEventListener('resize', function () {
+      W = wrap.clientWidth;
+      canvas.width = W * dpr; canvas.height = H * dpr;
+      canvas.style.height = H + 'px';
+      wake(30);
+    });
+
+    // 预热 240 帧 + 启动渲染
+    for (let i = 0; i < 240; i++) tick();
+    wake(600);
+  }
+
   // ---------- 资源 ----------
   function buildResources() {
     const g = $('#resourceGrid');
@@ -615,7 +864,7 @@
         }
       });
     }, { rootMargin: '-30% 0px -60% 0px' });
-    $$('#roadmap, #howto, #topics, #resources').forEach(s => obs.observe(s));
+    $$('#roadmap, #graph, #howto, #topics, #resources').forEach(s => obs.observe(s));
     $$('.topic').forEach(t => obs.observe(t));
 
     // 进入视口动画
@@ -686,6 +935,7 @@
   // ---------- 启动 ----------
   buildNav();
   buildRoadmap();
+  buildGraph();
   buildMethods();
   buildTopics();
   buildFilter();
