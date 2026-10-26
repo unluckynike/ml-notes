@@ -68,8 +68,9 @@
     nav.innerHTML = html;
     nav.querySelectorAll('.nav-link').forEach(a => {
       a.addEventListener('click', () => {
-        beginNavJump();
-        document.getElementById(a.dataset.target).scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const el = document.getElementById(a.dataset.target);
+        beginNavJump(el);
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         watchJumpSettle();
         history.replaceState(null, '', '#' + a.dataset.target);
         document.body.classList.remove('menu-open');
@@ -194,7 +195,7 @@
     }
     if (key === 'deep') {
       if (!t.deep) return '';
-      return `<div class="tab-panel" data-panel="deep" ${attrs}><div class="deep-mount" data-src="${esc(t.deep)}">` +
+      return `<div class="tab-panel" data-panel="deep" ${attrs}><div class="deep-mount" data-src="${esc(t.deep)}" data-topic="${t.id}">` +
         `<div class="deep-loading">正在加载长文…</div></div></div>`;
     }
     return '';
@@ -202,6 +203,94 @@
 
   // ---------- 深度阅读（按需加载 markdown） ----------
   const deepCache = Object.create(null);
+
+  // ---------- 长文交叉引用自动链接 ----------
+  // 长文里大量「见 XX 深读」的交叉引用：加载后自动把其他主题的名称变成
+  // 可点击链接（每个目标只链第一次、跳过代码块、跳过自身）——Wikipedia 式知识网络。
+  const TOPIC_ALIASES = (function () {
+    const map = new Map();
+    const add = function (alias, id) {
+      const a = String(alias).trim();
+      if (a.length < 2) return;
+      const cur = map.get(a.toLowerCase());
+      if (!cur || cur.alias.length < a.length) map.set(a.toLowerCase(), { id: id, alias: a });
+    };
+    TOPICS.forEach(function (t) {
+      add(t.name, t.id);
+      const head = t.name.trim().split(/\s+/)[0];
+      if (/[\u4e00-\u9fa5]/.test(head) && head.length >= 3) add(head, t.id);
+      t.name.split(/[\s\/·]+/).forEach(function (tok) {
+        if (/[A-Za-z]/.test(tok) && tok.length >= 3) add(tok, t.id);
+      });
+    });
+    [['AI 安全', 'safety'], ['知识蒸馏', 'distill'], ['扩散模型/DDIM', 'diffusion'],
+     ['VAE/扩散', 'diffusion'], ['EM', 'em'], ['Mamba', 'ssm'], ['NeRF', 'nerf'],
+     ['LoRA', 'lora'], ['RLHF', 'rlhf'], ['CLIP', 'clip'], ['SVM', 'svm'],
+     ['HMM', 'hmmkalman'], ['卡尔曼', 'hmmkalman'], ['反向传播', 'mlp'],
+     ['RNN', 'rnn'], ['LSTM', 'lstm'], ['GRU', 'gru'], ['GAN', 'gan'],
+     ['VAE', 'vae'], ['ROC', 'evaluation'], ['AUC', 'evaluation'],
+     ['NumPy', 'numpy'], ['RoPE', 'posenc'], ['MAE', 'ssl'], ['CFG', 'sd'],
+     ['贝叶斯网络', 'pgm'], ['高斯混合', 'em'], ['梯度下降', 'gd'],
+     ['交叉熵', 'loss'], ['注意力', 'transformer']
+    ].forEach(function (pair) { add(pair[0], pair[1]); });
+    return Array.from(map.entries())
+      .map(function (e) { return { low: e[0], id: e[1].id, alias: e[1].alias }; })
+      .sort(function (a, b) { return b.alias.length - a.alias.length; });
+  })();
+
+  function autoLinkTopics(mount) {
+    const selfId = mount.dataset.topic || '';
+    const walker = document.createTreeWalker(mount, NodeFilter.SHOW_TEXT, null);
+    const nodes = [];
+    while (walker.nextNode()) {
+      const p = walker.currentNode.parentElement;
+      if (!p || /^(PRE|CODE|A|SCRIPT|STYLE)$/.test(p.tagName)) continue;
+      if (walker.currentNode.nodeValue && walker.currentNode.nodeValue.length >= 4) nodes.push(walker.currentNode);
+    }
+    const linkedIds = new Set([selfId]);
+    nodes.forEach(function (node) {
+      let cur = node, guard = 0;
+      while (cur && guard < 20) {
+        guard++;
+        let match = null;
+        const low = cur.nodeValue.toLowerCase();
+        for (let i = 0; i < TOPIC_ALIASES.length; i++) {
+          const a = TOPIC_ALIASES[i];
+          if (linkedIds.has(a.id)) continue;
+          const pos = low.indexOf(a.low);
+          if (pos < 0) continue;
+          if (/[a-z0-9]/.test(a.low[0]) && pos > 0 && /[a-z0-9]/.test(low[pos - 1])) continue;
+          const afterCh = low[pos + a.low.length] || '';
+          if (/[a-z0-9]/.test(a.low[a.low.length - 1]) && /[a-z0-9]/.test(afterCh)) continue;
+          match = { a: a, pos: pos };
+          break;
+        }
+        if (!match) break;
+        const a = match.a, pos = match.pos;
+        linkedIds.add(a.id);
+        const rest = cur.splitText(pos);
+        const tail = rest.splitText(a.alias.length);
+        const link = document.createElement('a');
+        link.href = '#topic-' + a.id;
+        link.className = 'topic-xref';
+        const tp = TOPICS.find(function (x) { return x.id === a.id; });
+        link.title = '跳转到「' + (tp ? tp.name : a.id) + '」';
+        link.textContent = rest.nodeValue;
+        link.addEventListener('click', function (e) {
+          e.preventDefault();                                  // 拦下原生锚点跳转
+          const targetEl = document.getElementById('topic-' + a.id);
+          if (!targetEl) { location.hash = link.href.slice(1); return; }
+          beginNavJump(targetEl);
+          history.pushState(null, '', link.href);              // 保留可分享的 hash
+          targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          watchJumpSettle();
+        });
+        rest.parentNode.insertBefore(link, rest);
+        rest.parentNode.removeChild(rest);
+        cur = tail;
+      }
+    });
+  }
 
   function deepFallback(src, err) {
     const isFile = location.protocol === 'file:';
@@ -228,7 +317,7 @@
     if (mount.dataset.state === 'loading' || mount.dataset.state === 'done') return;
     const src = mount.dataset.src;
     if (!src) return;
-    if (deepCache[src]) { mount.innerHTML = deepCache[src]; mount.dataset.state = 'done'; return; }
+    if (deepCache[src]) { mount.innerHTML = deepCache[src]; autoLinkTopics(mount); mount.dataset.state = 'done'; return; }
     if (!window.MLMarkdown) {
       mount.innerHTML = deepFallback(src, { message: 'js/markdown.js 未加载' });
       return;
@@ -240,6 +329,7 @@
         const html = window.MLMarkdown.renderWithToc(text);
         deepCache[src] = html;
         mount.innerHTML = html;
+        autoLinkTopics(mount);
         mount.dataset.state = 'done';
       })
       .catch(e => {
@@ -268,7 +358,7 @@
           <div class="topic__top">
             <div class="topic__icon">${t.emoji}</div>
             <div class="topic__title-group">
-              <h3>${t.name} <span class="topic__num">#${num}</span></h3>
+              <h3><span class="topic__name">${t.name}</span> <span class="topic__num">#${num}</span></h3>
               <div class="en">${t.en}</div>
             </div>
           </div>
@@ -404,8 +494,9 @@
       activeCat = chip.dataset.cat;
       bar.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c === chip));
       applyFilters();
-      beginNavJump();
-      document.getElementById('topics').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const topicsSec = document.getElementById('topics');
+      beginNavJump(topicsSec);
+      topicsSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
       watchJumpSettle();
     });
     $('#diffSelect').addEventListener('change', e => {
@@ -423,6 +514,18 @@
         && (!activeDiff || card.dataset.diff === String(activeDiff));
       card.style.display = hit ? '' : 'none';
       if (hit) shown++;
+      // 搜索命中高亮：在主题名里标出命中片段
+      const nameEl = card.querySelector('.topic__name');
+      if (nameEl) {
+        if (!nameEl.dataset.orig) nameEl.dataset.orig = nameEl.textContent;
+        const orig = nameEl.dataset.orig;
+        if (hit && q) {
+          const idx = orig.toLowerCase().indexOf(q);
+          nameEl.innerHTML = idx >= 0
+            ? esc(orig.slice(0, idx)) + '<mark>' + esc(orig.slice(idx, idx + q.length)) + '</mark>' + esc(orig.slice(idx + q.length))
+            : esc(orig);
+        } else nameEl.textContent = orig;
+      }
     });
     // 侧栏链接同步过滤（难度不参与，保持导航完整）
     $$('#navList .nav-link').forEach(a => {
@@ -452,7 +555,7 @@
     if (!m) return;
     const card = document.getElementById('topic-' + m[1]);
     if (!card) return;
-    beginNavJump();
+    beginNavJump(card);
     card.scrollIntoView({ block: 'start' });
     watchJumpSettle();
     if (!m[2]) return;
@@ -461,15 +564,25 @@
   }
 
   // —— 导航跳转的演示挂起控制 ——
-  function beginNavJump() {
+  let navJumpTarget = null;
+  function beginNavJump(targetEl) {
     navJumping = true;
+    navJumpTarget = targetEl || null;
   }
-  // 滚动静止 250ms 视为到位：解除挂起并初始化视口附近的演示
+  // 滚动静止 250ms 视为到位：解除挂起、初始化视口附近的演示，
+  // 并对目标卡片做一次「重新对齐」——消除途中演示撑开页面造成的残余漂移
   function watchJumpSettle() {
     let lastY = window.scrollY;
     const check = () => {
       if (Math.abs(window.scrollY - lastY) < 1) {
-        if (navJumping) { navJumping = false; kickVisibleDemos(); }
+        if (navJumping) {
+          navJumping = false;
+          kickVisibleDemos();
+          if (navJumpTarget) {
+            const t = navJumpTarget; navJumpTarget = null;
+            requestAnimationFrame(() => t.scrollIntoView({ block: 'start' }));
+          }
+        }
         return;
       }
       lastY = window.scrollY;

@@ -344,6 +344,7 @@ body.menu-open .overlay { opacity: 1; pointer-events: auto; }
 }
 .topic__title-group { flex: 1; min-width: 200px; }
 .topic__title-group h3 { font-size: 24px; font-weight: 800; letter-spacing: -.3px; display: flex; align-items: center; gap: 10px; }
+.topic__name mark { background: rgba(255,224,102,.45); color: inherit; border-radius: 3px; padding: 0 2px; }
 .topic__title-group .en { font-size: 13px; color: var(--muted); font-family: var(--font-mono); }
 .topic__num { font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
 
@@ -687,6 +688,13 @@ body.menu-open .overlay { opacity: 1; pointer-events: auto; }
   background: var(--code-bg); border: 1px solid var(--border); border-left: 3px solid var(--accent-5);
   border-radius: 10px; font-size: 17px; overflow-x: auto;
 }
+
+/* --- 长文交叉引用自动链接 --- */
+.topic-xref {
+  color: var(--accent-2); border-bottom: 1px dashed rgba(0, 212, 255, .45);
+  cursor: pointer; transition: all .15s ease;
+}
+.topic-xref:hover { color: var(--accent-3); border-bottom-color: var(--accent-3); background: rgba(255, 122, 198, .08); }
 
 /* --- 代码块 --- */
 .md-code {
