@@ -48,8 +48,10 @@
     secs.forEach(s => {
       html += `<a class="nav-link" data-target="${s.id}"><span class="dot" style="background:var(--accent-2);color:var(--accent-2)"></span>${s.label}</a>`;
     });
-    // 主题按分类分组，可折叠
-    html += '<div class="nav-section">全部主题</div>';
+    // 主题按分类分组，可折叠；附展开/收起全部
+    html += '<div class="nav-section nav-section--groups">全部主题' +
+      '<button class="nav-act" data-navact="expand">展开</button>' +
+      '<button class="nav-act" data-navact="collapse">收起</button></div>';
     const byCat = {};
     TOPICS.forEach((t, i) => { (byCat[t.cat] = byCat[t.cat] || []).push({ t: t, i: i }); });
     Object.keys(CATEGORIES).forEach(key => {
@@ -80,6 +82,33 @@
         head.setAttribute('aria-expanded', String(open));
       });
     });
+    nav.querySelectorAll('.nav-act').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const expand = btn.dataset.navact === 'expand';
+        nav.querySelectorAll('.nav-group').forEach(g => {
+          g.classList.toggle('open', expand);
+          const head2 = g.querySelector('.nav-group__head');
+          if (head2) head2.setAttribute('aria-expanded', String(expand));
+        });
+      });
+    });
+  }
+
+  // ---------- 侧栏整体收起（桌面） ----------
+  function initSidebarCollapse() {
+    const body = document.body;
+    const collapse = document.getElementById('sidebarCollapse');
+    const show = document.getElementById('sidebarShow');
+    let saved = null;
+    try { saved = localStorage.getItem('mlhub-sidebar'); } catch (e) {}
+    if (saved === 'hidden') body.classList.add('sidebar-hidden');
+    const toggle = hide => {
+      body.classList.toggle('sidebar-hidden', hide);
+      try { localStorage.setItem('mlhub-sidebar', hide ? 'hidden' : 'open'); } catch (e) {}
+    };
+    if (collapse) collapse.addEventListener('click', () => toggle(true));
+    if (show) show.addEventListener('click', () => toggle(false));
   }
 
   // ---------- 路线图 ----------
@@ -552,6 +581,7 @@
   applyFilters();
   initScroll();
   initMenu();
+  initSidebarCollapse();
   initHero();
   activateFromHash();
   window.addEventListener('hashchange', activateFromHash);

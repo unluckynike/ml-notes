@@ -66,7 +66,7 @@ $$g \leftarrow \frac{\tau}{\lVert g\rVert}g \quad \text{if } \lVert g\rVert > \t
 
 ---
 
-## 四、面试要点速答
+## 四、要点总结
 
 1. **BPTT 是什么？** 把循环按时间展开后做普通反向传播；同一参数在各步的梯度**累加**。
 2. **梯度消失/爆炸的数学来源？** 雅可比连乘：$\prod \text{diag}(\tanh')W_{hh}^{\text{T}}$；谱半径决定指数放大或衰减。

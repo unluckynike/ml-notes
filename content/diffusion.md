@@ -317,7 +317,7 @@ def sample(model, schedule, shape, device):
 
 ---
 
-## 九、常见误区与面试要点
+## 九、常见误区与要点总结
 
 - [x] 能写出**闭式解** $x_t = \sqrt{\bar\alpha_t}x_0 + \sqrt{1-\bar\alpha_t}\varepsilon$
 - [x] 说清为什么要**预测 ε** 而不是直接预测 $x_0$

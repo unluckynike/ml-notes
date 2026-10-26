@@ -57,7 +57,7 @@ $$x_t = \mu + \epsilon_t + \theta_1\epsilon_{t-1} + \cdots + \theta_q\epsilon_{t
 
 ---
 
-## 五、面试要点速答
+## 五、要点总结
 
 1. **ARIMA 三字母含义？** p 阶自回归、d 阶差分、q 阶移动平均——先差分平稳再建 ARMA。
 2. **AR 与 MA 的物理含义？** 惯性 vs 冲击余波。

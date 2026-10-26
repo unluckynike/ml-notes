@@ -57,7 +57,7 @@ $$y_c = F(x;\theta_{\text{frozen}}) + Z\big(F(x + C(\text{cond}); \theta_c)\big)
 
 参考图注入（IP-Adapter）的对比：ControlNet 注入「几何约束」（在哪怎么摆），IP-Adapter 注入「语义约束」（长什么样）——两者的注意力机制不同（cross-attn on image tokens vs 逐层相加），组合使用是文生图工作流的标配。
 
-## 四、面试要点速答
+## 四、要点总结
 
 1. **零卷积为什么零初始化？** 保证训练起点=原模型输出，微调不动预训练能力——增量学习控制而不遗忘画功。
 2. **ControlNet 与 img2img 的区别？** 结构级注入（外挂网络，精确）vs 全图部分加噪（粗粒度、强度不可分区域调）。

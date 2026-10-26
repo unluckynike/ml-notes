@@ -52,7 +52,7 @@ $$L = \text{E}\left[\min\left(r_tA_t,\;\; \text{clip}(r_t,\;1\pm\epsilon)A_t\rig
 
 ---
 
-## 四、面试要点速答
+## 四、要点总结
 
 1. **策略梯度的核心公式与直觉？** $\nabla J = \text{E}[R\nabla\log\pi]$：按回报大小成比例地推高/压低轨迹的对数概率。
 2. **为什么减 baseline 期望不变？** $\text{E}[b\nabla\log\pi] = b\nabla\text{(sum of probs)} = 0$——与动作无关的量不改变梯度方向，只降方差。

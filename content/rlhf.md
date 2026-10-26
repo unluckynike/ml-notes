@@ -90,7 +90,7 @@ $$\text{Loss}_{\text{DPO}} = -\log\sigma\left(\beta\log\frac{\pi_\theta(y_w|x)}{
 
 ---
 
-## 六、面试要点速答
+## 六、要点总结
 
 1. **RLHF 三个阶段各自解决什么？** SFT 教格式与基础对话；RM 学偏好代理；PPO 把偏好注入策略且 KL 防跑偏。
 2. **Bradley–Terry 假设是什么？** 偏好概率 = 奖励差的 sigmoid；把排序标注转成可微二分类。

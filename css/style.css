@@ -115,6 +115,14 @@ a { color: var(--accent-2); text-decoration: none; }
   display: flex; align-items: center; gap: 12px;
   padding: 22px 20px 14px;
 }
+.sidebar__collapse {
+  margin-left: auto; flex: none;
+  width: 26px; height: 26px; border-radius: 8px;
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--muted); cursor: pointer; font-size: 14px; line-height: 1;
+  transition: all .18s ease;
+}
+.sidebar__collapse:hover { color: var(--text); border-color: var(--accent-2); transform: translateX(-2px); }
 .brand__mark {
   display: grid; place-items: center;
   width: 42px; height: 42px; border-radius: 12px;
@@ -486,6 +494,25 @@ body.menu-open .overlay { opacity: 1; pointer-events: auto; }
 .resource-card p { font-size: 13px; color: var(--text-soft); margin-bottom: 10px; }
 .resource-card a { font-size: 13px; font-weight: 600; }
 
+
+/* ============ 侧栏整体收起（桌面） ============ */
+.sidebar-show {
+  position: fixed; top: 14px; left: 14px; z-index: 210;
+  width: 40px; height: 40px; border-radius: 12px;
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text); cursor: pointer; font-size: 17px;
+  box-shadow: var(--shadow);
+  display: none; align-items: center; justify-content: center;
+  transition: all .18s ease;
+}
+.sidebar-show:hover { background: var(--grad-main); color: #fff; border-color: transparent; }
+@media (min-width: 901px) {
+  body.sidebar-hidden .sidebar { transform: translateX(-100%); box-shadow: none; }
+  body.sidebar-hidden .main { margin-left: 0; }
+  body.sidebar-hidden .sidebar-show { display: flex; }
+  body.sidebar-hidden .sidebar__collapse { display: none; }
+}
+
 /* ============ 页脚 / 回顶 ============ */
 .footer { padding: 40px; text-align: center; color: var(--muted); font-size: 13px; border-top: 1px solid var(--border); }
 .footer p + p { margin-top: 6px; }
@@ -765,6 +792,13 @@ body.menu-open .overlay { opacity: 1; pointer-events: auto; }
 .topic-empty strong { display: block; font-size: 17px; margin-bottom: 10px; color: var(--text-soft); }
 
 /* ============ 侧栏分类分组 ============ */
+.nav-section--groups { display: flex; align-items: center; gap: 6px; }
+.nav-section--groups .nav-act {
+  margin-left: auto; background: none; border: 1px solid var(--border);
+  color: var(--muted); font-size: 10px; padding: 1px 7px; border-radius: 6px;
+  cursor: pointer; font-family: inherit; transition: all .15s ease;
+}
+.nav-section--groups .nav-act:hover { color: var(--accent-2); border-color: var(--accent-2); }
 .nav-group { margin-bottom: 2px; }
 .nav-group__head {
   display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 10px;

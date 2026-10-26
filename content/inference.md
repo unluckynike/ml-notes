@@ -60,12 +60,12 @@ $$\text{KV} = 2 \times L \times n_{\text{kv}} \times d_{\text{head}} \times \tex
 | 算子融合/编译 | kernel 开销 | torch.compile / TensorRT 把碎算子拼成大 kernel |
 | 结构化稀疏/剪枝 | 冗余计算 | 半结构化 2:4 稀疏有硬件加速 |
 
-> [!TIP] 面试常考的估算题
+> [!TIP] 常用的估算题
 > 「7B 模型 fp16 推理最少要多少显存？」——权重 14GB + 少量激活 ≈ 15GB（cache 另算）。「为什么 batch 越大每 token 成本越低？」——权重只搬一次，摊到更多 token（直到算力成为新瓶颈）。会算这两笔账，部署问题就有了锚点。
 
 ---
 
-## 六、面试要点速答
+## 六、要点总结
 
 1. **decode 为什么是带宽瓶颈？** 每 token 一次 GEMV：读全部权重、算术强度极低，GPU 算力闲置。
 2. **KV cache 公式与量级？** 2·L·n_kv·d_head·seq·batch·bytes；Llama-7B fp16 约 0.5MB/token/序列。
