@@ -633,12 +633,14 @@
       }
       dragged = null; panning = false;
     });
+    // 缩放：Ctrl/⌘ + 滚轮（普通滚轮放行给页面滚动——避免「想往下滚页面却被劫持成放大」）
     canvas.addEventListener('wheel', function (e) {
+      if (!(e.ctrlKey || e.metaKey)) return;   // 普通滚轮 → 页面自然滚动
       e.preventDefault();
       const rect = canvas.getBoundingClientRect();
       const px = e.clientX - rect.left, py = e.clientY - rect.top;
       const k0 = cam.k;
-      cam.k = clamp(cam.k * (e.deltaY < 0 ? 1.12 : 0.89), 0.45, 3.2);
+      cam.k = clamp(cam.k * (e.deltaY < 0 ? 1.12 : 0.89), 0.3, 4);
       // 指针锚定：缩放后指针下的世界坐标保持不变
       const wx = (px - W / 2 - cam.x) / k0 + W / 2;
       const wy = (py - H / 2 - cam.y) / k0 + H / 2;
@@ -647,23 +649,52 @@
       wake(20);
     }, { passive: false });
 
+    // 视角：自适应装下全部可见节点
+    function fitView() {
+      const vis = nodes.filter(function (n) { return !hidden.has(n.cat); });
+      if (!vis.length) { cam = { x: 0, y: 0, k: 1 }; wake(30); return; }
+      let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+      vis.forEach(function (n) { x0 = Math.min(x0, n.x); y0 = Math.min(y0, n.y); x1 = Math.max(x1, n.x); y1 = Math.max(y1, n.y); });
+      const pad = 70, bw = Math.max(x1 - x0, 200), bh = Math.max(y1 - y0, 200);
+      cam.k = clamp(Math.min(W / (bw + pad * 2), H / (bh + pad * 2)), 0.3, 1.8);
+      cam.x = W / 2 - cam.k * ((x0 + x1) / 2 - W / 2);
+      cam.y = H / 2 - cam.k * ((y0 + y1) / 2 - H / 2);
+      wake(30);
+    }
+    // 预热后自适应一次，保证初始状态正好装下全部节点
+    const _warm = function () { for (let i = 0; i < 240; i++) tick(); fitView(); };
+    const _wake = wake;
+
     // 工具条：分类筛选 + 重置
     const bar = document.getElementById('graphToolbar');
     if (bar) {
       bar.innerHTML = catList.map(function (c) {
         return '<button class="chip active" data-gcat="' + c + '" style="--chip-color:' + CATEGORIES[c].color + '">' + CATEGORIES[c].label + '</button>';
-      }).join('') + '<button class="graph-reset">重置布局</button>';
+      }).join('') +
+      '<span class="graph-zoom">' +
+      '<button class="graph-reset" data-zoom="in" title="放大（也可 Ctrl/⌘+滚轮）">＋</button>' +
+      '<button class="graph-reset" data-zoom="out" title="缩小">－</button>' +
+      '<button class="graph-reset" data-zoom="fit" title="自适应视角">⌂ 视角</button>' +
+      '<button class="graph-reset">重置布局</button></span>';
+      const zoomBy = function (f) {
+        cam.k = clamp(cam.k * f, 0.3, 4);
+        wake(30);
+      };
       bar.addEventListener('click', function (e) {
         const chip = e.target.closest('.chip');
         if (chip) {
           const c = chip.dataset.gcat;
           if (hidden.has(c)) { hidden.delete(c); chip.classList.add('active'); }
-          else if (!chip.classList.contains('active')) { hidden.add(c); chip.classList.remove('active'); }
           else { hidden.add(c); chip.classList.remove('active'); }
+          fitView();
           wake(60);
           return;
         }
-        if (e.target.classList.contains('graph-reset')) { scatter(); wake(200); }
+        const z = e.target.dataset.zoom;
+        if (z === 'in') zoomBy(1.3);
+        else if (z === 'out') zoomBy(0.77);
+        else if (z === 'fit') fitView();
+        if (e.target.classList.contains('graph-reset') && !z) { scatter(); for (let i = 0; i < 240; i++) tick(); fitView(); wake(200); }
       });
     }
     window.addEventListener('resize', function () {
@@ -687,9 +718,9 @@
       gio.observe(wrap);
     }
 
-    // 预热 240 帧 + 启动渲染
-    for (let i = 0; i < 240; i++) tick();
-    wake(600);
+    // 预热 240 帧 + 自适应视角 + 启动渲染
+    _warm();
+    _wake(400);
   }
 
   // ---------- 资源 ----------
