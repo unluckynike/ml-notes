@@ -109,6 +109,7 @@
     const toggle = hide => {
       body.classList.toggle('sidebar-hidden', hide);
       try { localStorage.setItem('mlhub-sidebar', hide ? 'hidden' : 'open'); } catch (e) {}
+      window.dispatchEvent(new Event('resize'));
     };
     if (collapse) collapse.addEventListener('click', () => toggle(true));
     if (show) show.addEventListener('click', () => toggle(false));
@@ -412,8 +413,9 @@
   // ---------- 知识图谱（力导向大图） ----------
   function buildGraph() {
     const canvas = document.getElementById('graphCanvas');
-    if (!canvas || typeof GRAPH_EDGES === 'undefined') return;
+    if (!canvas) return;
     const wrap = canvas.parentElement;
+    const EDGE_DATA = (typeof GRAPH_EDGES !== 'undefined') ? GRAPH_EDGES : [];
     const ctx = canvas.getContext('2d');
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     let W = wrap.clientWidth, H = Math.max(480, Math.min(700, Math.round(W * 0.58)));
@@ -423,7 +425,7 @@
       return { id: t.id, name: t.name, cat: t.cat, deg: 0, x: 0, y: 0, vx: 0, vy: 0, r: 6 };
     });
     const byId = new Map(nodes.map(function (n) { return [n.id, n]; }));
-    const edges = GRAPH_EDGES.map(function (e) {
+    const edges = EDGE_DATA.map(function (e) {
       return { a: byId.get(e[0]), b: byId.get(e[1]), pre: e[2] === 'pre' };
     }).filter(function (e) { return e.a && e.b; });
     edges.forEach(function (e) { e.a.deg++; e.b.deg++; });
@@ -540,15 +542,28 @@
     let running = false, runFrames = 0;
     function loop() {
       if (!running) return;
-      tick();
-      if (runFrames-- > 0 || dragged) draw();
+      try {
+        tick();
+        if (runFrames-- > 0 || dragged) draw();
+      } catch (err) {
+        running = false;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#b91c1c';
+        ctx.font = '13px monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText('图谱渲染出错（请截图反馈）：', 20, 40);
+        String(err && err.stack || err).split('\n').slice(0, 8).forEach(function (line, i) {
+          ctx.fillText(line.slice(0, 160), 20, 66 + i * 20);
+        });
+        return;
+      }
       if (runFrames > 0) requestAnimationFrame(loop);
       else running = false;
     }
     function wake(frames) {
-      runFrames = frames;
+      runFrames = Math.max(runFrames, frames);
       if (!running) { running = true; requestAnimationFrame(loop); }
-      draw();
     }
 
     // 交互：命中测试
@@ -658,6 +673,19 @@
       wake(30);
     });
     window.addEventListener('mltheme', function () { wake(30); });
+    // 进入视口时复核尺寸并重绘（初始化时区块可能在折叠/不可见状态）
+    if ('IntersectionObserver' in window) {
+      const gio = new IntersectionObserver(function (entries) {
+        if (!entries.some(function (en) { return en.isIntersecting; })) return;
+        const w2 = wrap.clientWidth;
+        if (w2 && Math.abs(w2 - W) > 2) {
+          W = w2;
+          canvas.width = W * dpr; canvas.height = H * dpr;
+        }
+        wake(120);
+      }, { rootMargin: '100px' });
+      gio.observe(wrap);
+    }
 
     // 预热 240 帧 + 启动渲染
     for (let i = 0; i < 240; i++) tick();
