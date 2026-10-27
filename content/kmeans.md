@@ -42,6 +42,30 @@ $$P(x) = \frac{D(x)^2}{\sum_{x'} D(x')^2}$$
 
 **n_init 多次重启**：跑 10 次取 J 最小的一次，是另一层保险（sklearn 默认 n_init=10）。
 
+**二十行完整实现**——k-means++ 初始化加 Lloyd 迭代，「分配 → 移动」的两步坐标下降一目了然：
+
+```python
+import numpy as np
+
+def kmeans(X, K, iters=100, seed=0):
+    rng = np.random.default_rng(seed)
+    C = [X[rng.integers(len(X))]]                       # 1. 首个质心均匀随机
+    for _ in range(K - 1):                              # 2. k-means++：按 D(x)² 概率撒点
+        d2 = np.min(((X[:, None] - np.array(C)) ** 2).sum(-1), axis=1)
+        C.append(X[rng.choice(len(X), p=d2 / d2.sum())])
+    C = np.array(C)
+    for _ in range(iters):                              # 3. Lloyd：分配 → 移动，J 单调不增
+        lab = np.argmin(((X[:, None] - C) ** 2).sum(-1), axis=1)
+        C = np.array([X[lab == k].mean(0) for k in range(K)])
+    lab = np.argmin(((X[:, None] - C) ** 2).sum(-1), axis=1)
+    return lab, ((X - C[lab]) ** 2).sum()               # 划分与 SSE(J)
+
+rng = np.random.default_rng(1)
+X = np.vstack([rng.normal(c, 0.3, size=(50, 2)) for c in [(0, 0), (3, 0), (0, 3)]])
+lab, J = kmeans(X, 3)
+print(sorted(np.bincount(lab).tolist()), round(J, 1))   # [50, 50, 50]：三簇全部找回
+```
+
 ---
 
 ## 三、K 怎么选：三个实用工具

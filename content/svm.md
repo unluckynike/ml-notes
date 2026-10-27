@@ -110,6 +110,22 @@ $$K(x_i, x_j) = \langle \phi(x_i), \phi(x_j)\rangle$$
 - **$\gamma$ 极敏感**：RBF 的 $\gamma$ 过大 = 每个训练点自成一类，过拟合教科书案例。务必交叉验证调 $(C, \gamma)$。
 - **核不能「看见」标签**：用标签构造相似度（比如 target encoding 式的核）是数据泄漏。
 
+**核技巧的全部运算封装在一个函数里**——对偶问题只吃 Gram 矩阵 $K_{ij} = k(x_i, x_j)$，从头到尾不需要显式映射 $\phi$：
+
+```python
+import numpy as np
+
+def rbf(X, Z, gamma=1.0):
+    d2 = ((X[:, None, :] - Z[None, :, :]) ** 2).sum(-1)   # ‖x−z‖² 一次广播算完
+    return np.exp(-gamma * d2)                            # k(x,z) = exp(−γ‖x−z‖²)
+
+X = np.random.default_rng(0).normal(size=(50, 2))
+K = rbf(X, X)                                             # 50×50 Gram 矩阵
+print(K.trace().round(6))                                 # 对角线恒为 1（k(x,x)=1）
+print(np.abs(K - K.T).max() < 1e-12, np.linalg.eigvalsh(K).min() > -1e-9)
+                                                          # 对称 + 半正定 → 合法核
+```
+
 ---
 
 ## 六、SVM vs 逻辑回归：一张表选型
@@ -163,32 +179,6 @@ $$K(x_i, x_j) = \langle \phi(x_i), \phi(x_j)\rangle$$
 **libsvm vs liblinear**：libsvm 支持所有核但 O(n²)；liblinear 只支持线性但 O(n)——百万级样本用 liblinear 的线性 SVM。
 
 ---
-
-## 五、SVM 的核函数选择与超参调优系统化方法
-
-| 核函数 | 公式 | 适用场景 | 关键超参 |
-|---|---|---|---|
-| **线性** | $x^Tx'$ | 高维稀疏（文本/基因） | C |
-| **RBF（高斯）** | $\exp(-\gamma\|x-x'\|^2)$ | 低维连续、非线性 | C + γ |
-| **多项式** | $(\gamma x^Tx' + r)^d$ | 需要特征交互 | C + γ + d |
-| **Sigmoid** | $	anh(\gamma x^Tx' + r)$ | 少用（不总是正定核） | C + γ |
-
-**RBF 的 γ 与 C 的联合调优**（网格搜索 + 交叉验证是标准方法）：
-
-| | C 小（宽间隔） | C 大（窄间隔） |
-|---|---|---|
-| γ 小（宽 RBF） | 欠拟合：近似线性 | 较好的非线性模型 |
-| γ 大（窄 RBF） | 仍然较平滑 | **过拟合**：每个点一个「岛」 |
-
-**经验法则**：先试线性核（如果特征维度 > 样本数，线性核常最优）；再试 RBF 核（C=1, γ=1/n_features 起步）；网格搜索 [0.1, 1, 10] × [0.01, 0.1, 1] 的 C×γ 组合。
-
-## 六、SVR（支持向量回归）与 One-Class SVM
-
-**SVR（回归版）**：不要求预测值精确等于 y，而是落在 ε-管道内（|y−f(x)|≤ε）——管道外的样本才有损失（ε-不敏感损失）。
-
-**One-Class SVM**：只有一个类别的训练数据，学习「正常样本的边界」——异常样本落在边界外。适用于异常检测/新颖性检测（无异常标签的场景），但核函数与 ν 参数需要仔细调优。
-
-**libsvm vs liblinear**：libsvm 支持所有核但 O(n²)；liblinear 只支持线性但 O(n)——百万级样本用 liblinear 的线性 SVM。
 
 ## 七、要点总结
 

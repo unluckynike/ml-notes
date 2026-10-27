@@ -55,6 +55,27 @@ $$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^{\text{T}}}{\sqrt{d_k
 > [!TIP] 记法
 > $\sqrt{d_k}$ 除的不是「随便一个数」，而是**点积的标准差**——本质是方差归一化。记住这个推导，比死记公式稳。
 
+**十行看穿注意力**——Q、K、V 是三张可学习的投影表：「查询」与「键」内积打分，softmax 归一成权重，再加权求和「值」：
+
+```python
+import numpy as np
+
+def softmax(z):
+    z = z - z.max(-1, keepdims=True)          # 数值稳定，防 exp 上溢
+    e = np.exp(z)
+    return e / e.sum(-1, keepdims=True)
+
+def attention(Q, K, V):
+    scores = Q @ K.T / np.sqrt(Q.shape[-1])   # 缩放：不除的话 d_k 大时 softmax 饱和
+    W = softmax(scores)                        # 每行一个分布：第 i 个 token 在看谁
+    return W @ V, W
+
+rng = np.random.default_rng(0)
+Q, K, V = (rng.normal(size=(4, 8)) for _ in range(3))
+out, W = attention(Q, K, V)
+print(W.sum(1).round(6))                      # 每行和为 1 → 注意力是「软寻址」
+```
+
 ---
 
 ## 三、多头注意力：一组注意力不够

@@ -42,6 +42,28 @@ $p$ 是 padding、$s$ 是 stride。常用配置的记忆点：
 > [!TIP] 速算套路
     「输入 224、三层 3×3/步长2 卷积后尺寸？」逐层算：$\lfloor(224+2-3)/2\rfloor+1=112$，再 56，再 28。手算两分钟内出答案，比背表格可靠。
 
+**卷积底层就是矩阵乘**——im2col 把每个感受野摊成一列，所有主流框架的卷积都走这条路（或等价的 FFT/Winograd）：
+
+```python
+import numpy as np
+
+def conv2d_im2col(X, W, stride=1, pad=0):
+    """X:(C_in,H,W)，W:(C_out,C_in,k,k) → 输出 (C_out,Ho,Wo)"""
+    C_in, H, _ = X.shape; C_out, _, k, _ = W.shape
+    Xp = np.pad(X, ((0, 0), (pad, pad), (pad, pad)))
+    Ho = (H + 2 * pad - k) // stride + 1                 # 尺寸公式
+    cols = np.empty((C_in * k * k, Ho * Ho))
+    for i in range(Ho):
+        for j in range(Ho):
+            cols[:, i * Ho + j] = Xp[:, i*stride:i*stride+k, j*stride:j*stride+k].reshape(-1)
+    return (W.reshape(C_out, -1) @ cols).reshape(C_out, Ho, Ho)
+
+X = np.random.default_rng(0).normal(size=(3, 7, 7))
+W = np.random.normal(size=(4, 3, 3, 3))
+print(conv2d_im2col(X, W, pad=1).shape)   # (4, 7, 7)：(7+2−3)+1=7
+print(W.size + W.shape[0])                # 112 = 4·3·3·3 + 4，与参数速算公式一致
+```
+
 ---
 
 ## 三、感受野：一层层「看多大」

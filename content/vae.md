@@ -65,6 +65,22 @@ $$z = \mu_\phi(x) + \sigma_\phi(x) ⊙ \varepsilon,\qquad \varepsilon \sim N(0, 
 > [!TIP] 这个技巧是共享的
 > 重参数化不是 VAE 专利：扩散模型的 $x_t = \sqrt{1-\beta_t}\,x_{t-1} + \sqrt{\beta_t}\,\varepsilon$、策略梯度里的 reparameterization trick、某些 Gumbel-Softmax 离散松弛，核心思想完全相同——**把「采样」改写成「确定性函数 × 外部噪声」**。
 
+**重参数化与闭式 KL**——采样的随机性从 $N(μ, σ²)$ 挪到 $\epsilon \sim N(0,1)$，与参数解耦，梯度得以穿过采样流回编码器：
+
+```python
+import numpy as np
+
+def sample(mu, logvar):
+    """z = μ + σ·ε：σ = exp(0.5·logvar) 保证正定，ε 与参数无关"""
+    eps = np.random.normal(size=mu.shape)
+    return mu + np.exp(0.5 * logvar) * eps
+
+def neg_elbo(x, x_recon, mu, logvar):
+    recon = ((x - x_recon) ** 2).sum()         # 高斯似然 → 重构项是平方误差
+    kl = -0.5 * (1 + logvar - mu**2 - np.exp(logvar)).sum()  # KL‖N(0,1) 闭式解
+    return recon + kl                           # 最小化的就是「负 ELBO」
+```
+
 ---
 
 ## 五、高斯特例：损失函数到底长什么样

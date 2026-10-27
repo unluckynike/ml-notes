@@ -59,6 +59,31 @@ InfoNCE 对温度 τ 的梯度行为：τ→0 时损失对「最难负例」的�
 
 **掩码率与任务难度的定量关系**（MAE 的消融）：图像掩码 75% 时重建任务「必须理解语义」才能补全；掩码 40% 时插值即可蒙混——**掩码率是「逼出语义理解」的旋钮**。文本掩码 15% 的对应逻辑：词的信息密度高，遮太多没有足够约束。这个「按冗余度调掩码率」的原则在视频（90%，时间冗余最高）与音频（Specaugment 只掩频段）上同样适用。
 
+
+**对比学习的目标一行写完**——InfoNCE：把配对的正样本从 2N−1 个候选里认出来，本质是一个 (2N−1) 类的 softmax 分类：
+
+$$L_{\text{InfoNCE}} = -\log \frac{\exp(\text{sim}(z_i, z_j^{+})/\tau)}{\sum_{k \neq i} \exp(\text{sim}(z_i, z_k)/\tau)}$$
+
+温度 $\tau$ 控制分布的锐度：太小 → 盯死最难的负样本，训练不稳；太大 → 梯度摊平，学不到判别特征。三十行验证它的力学：
+
+```python
+import numpy as np
+
+def infonce(z, tau=0.5):
+    """z:(2N, d)——同一张图的两个增广放在 2i 与 2i+1"""
+    z = z / np.linalg.norm(z, axis=1, keepdims=True)   # 归一化 → 内积即余弦
+    sim = z @ z.T / tau
+    np.fill_diagonal(sim, -np.inf)                     # 自己不算自己的负样本
+    sim -= sim.max(1, keepdims=True)                   # 数值稳定
+    lse = np.log(np.exp(sim).sum(1))                   # 分母：全体候选的 log-sum-exp
+    pos = np.arange(len(z)) ^ 1                        # 2i 的正样本是 2i+1（异或 1）
+    return (lse - sim[np.arange(len(z)), pos]).mean()
+
+z = np.random.default_rng(0).normal(size=(8, 4))       # 4 张图 × 2 增广
+print(round(infonce(z), 3))                            # 随机表示 ≈1.5：远高于 0，认不出正对
+z2 = z.copy(); z2[1::2] = z2[::2]                      # 让每对增广完全相同
+print(round(infonce(z2), 3))                           # 明显更小 → 对齐目标就是拉近正对
+```
 ## 常见误区
 
 - **「自监督学习不需要标签」** —— 自监督从数据自身构造伪标签（掩码重建/对比配对/预测下一帧）——不需要人工标注但需要精心设计 pretext task——任务设计替代了标注成本。

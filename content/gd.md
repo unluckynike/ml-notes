@@ -34,6 +34,30 @@ $$L(\theta + \Delta) \approx L(\theta) + \nabla L(\theta)^{\text{T}}\Delta$$
 > 2. **warmup**：训练初期梯度噪声大方向不稳，先线性升 lr 再衰减；
 > 3. **batch 与 lr 的耦合**：batch 放大 k 倍，lr 大致也可放大（线性/平方根缩放规则）——换卡换 batch 必须同步调。
 
+**三种批量跑同一份数据**——全量梯度每步最准但最贵；SGD 每步便宜但带噪声——平滑盆地里噪声无害，复杂损失面上它还顺带起了隐式正则化的作用：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+X = rng.normal(size=(200, 4)); w_true = np.array([1., -2., .5, 3.])
+y = X @ w_true + rng.normal(scale=0.1, size=200)
+
+def run(steps, batch, lr):
+    t = np.zeros(4)
+    for _ in range(steps):
+        if batch is None:                               # 全量：精确最速下降方向
+            g = X.T @ (X @ t - y) / len(y)
+        else:                                           # 小批量：梯度的无偏估计
+            idx = rng.integers(0, len(y), batch)
+            g = X[idx].T @ (X[idx] @ t - y[idx]) / batch
+        t -= lr * g
+    return t
+
+print(round(np.abs(run(200, None, 0.1) - w_true).max(), 3))    # 全量 200 步 ≈ 0.008
+print(round(np.abs(run(200, 32, 0.05) - w_true).max(), 3))     # SGD 同步数也到位——平滑盆地里噪声无害
+print(round(np.abs(run(2000, 32, 0.05) - w_true).max(), 3))    # 且每步只算 32 个样本，成本是全量的 1/6
+```
+
 ---
 
 ## 三、高维真相：鞍点，不是局部最优

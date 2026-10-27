@@ -31,6 +31,14 @@
 > [!NOTE] Byte-level BPE（GPT 系）
 > 直接在**字节**上跑 BPE：任何 UTF-8 字符串都是字节序列——**数学上杜绝 OOV**，任何语言/emoji/代码共用一套 256 起步的字母表。代价：生僻内容会退化成多字节 token（一个中文生僻字 3+ token）。
 
+**BPE 是贪心，Unigram 是概率模型**——两代方法的目标函数对比：
+
+$$\text{BPE：}\qquad (a^*, b^*) = \argmax_{(a, b)} \; \text{count}(a, b)$$
+
+$$\text{Unigram：}\qquad V^* = \argmax_{V,\; |V| = k} \; \sum_{x \in D} \log P(x \mid V), \qquad P(x) = \prod_i P(t_i)$$
+
+BPE 每步选语料里**最频繁的相邻对**合并（贪心，不可回退）；Unigram 先建一个超词表，按「删掉哪个 token 对语料似然伤害最小」用 EM 反复裁剪（概率化，可回退）。WordPiece 介于两者之间：判据不是频率而是**似然增益**——选合并后让语料似然提升最多的对，这就是它给「续接标记」打 `##` 前缀的原因。
+
 ---
 
 ## 二、三大变体对照

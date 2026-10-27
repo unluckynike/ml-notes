@@ -17,6 +17,25 @@ $$\log\frac{P(y=1|x)}{P(y=0|x)} = w^{\text{T}}x + b$$
 
 即**对数几率（log-odds）是线性的**，系数 $w_j$ 的含义是「特征 j 增加一个单位，正类几率乘 $e^{w_j}$」——这是逻辑回归可解释性的来源（风险报告、评分卡的标准建模工具）。
 
+**二十行跑通训练**——注意梯度 $(p - y)\,x$ 的形式：与线性回归的 MSE 梯度同构，没有 sigmoid 导数因子，这正是「交叉熵配 sigmoid」在求导上的优雅：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+X = np.column_stack([np.ones(100), rng.normal(size=(100, 2))])  # 首列=截距
+w_true = np.array([0.5, -2., 1.])
+y = (X @ w_true > 0).astype(float)              # 由 sigmoid 的决策边界生成标签
+
+w = np.zeros(3)
+for _ in range(500):                            # 交叉熵 + 全量梯度下降
+    p = 1 / (1 + np.exp(-X @ w))                # sigmoid：线性得分 → 概率
+    w -= 0.1 * X.T @ (p - y) / len(y)           # 梯度 = (p − y)·x
+
+print(w.round(2))     # 方向与 w_true 一致但更大：完全可分时 MLE 不收敛，权重沿真方向发散
+                      # ——这正是逻辑回归要配正则化（见岭回归/正则化主题）的原因
+print(round(np.mean((1 / (1 + np.exp(-X @ w)) > 0.5) == y), 3))  # 训练集准确率
+```
+
 ---
 
 ## 二、损失从哪来：最大似然而不是拍脑袋

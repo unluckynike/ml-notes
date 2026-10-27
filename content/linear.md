@@ -17,6 +17,25 @@ $$X^{\text{T}}(y - X\beta) = 0 \;\Rightarrow\; X^{\text{T}}X\beta = X^{\text{T}}
 
 **路线 C·最大似然**：$y = X\beta + \epsilon,\ \epsilon\sim N(0,\sigma^2)$，负对数似然展开后只剩 $(y-X\beta)^2$ 项——**最小二乘 = 高斯噪声的 MLE**（换噪声分布就换损失，见损失函数深读）。
 
+**三条路线跑一遍**——两条闭式路解出的 β 应当完全一致（约 1e-15），梯度下降则从另一头逼近同一个解：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+X = np.column_stack([np.ones(100), rng.normal(size=(100, 3))])  # 首列=截距
+beta_true = np.array([2., -1., .5, 3.])
+y = X @ beta_true + rng.normal(scale=0.1, size=100)
+
+beta_ne  = np.linalg.solve(X.T @ X, X.T @ y)   # 路线 A：正规方程
+beta_svd = np.linalg.pinv(X) @ y               # 路线 B/C：SVD（sklearn 的实际路径）
+b = np.zeros(4)                                # 第四条路：梯度下降
+for _ in range(300):
+    b -= 0.1 * X.T @ (X @ b - y) / len(y)
+
+print(np.abs(beta_ne - beta_svd).max())        # ~1e-15：两条闭式路严格一致
+print(np.abs(b - beta_ne).max())               # ~1e-12：GD 也收敛到了同一个解
+```
+
 ---
 
 ## 二、高斯-马尔可夫：为什么「最小二乘」不是随便选的
@@ -75,8 +94,7 @@ $$\hat\beta_0 = \bar{y} - \sum_j \hat\beta_j \bar{x}_j$$
 
 线性模型通过**多项式特征扩展**可以拟合非线性关系：
 
-$$x 
-ightarrow [x_1, x_2, x_1^2, x_2^2, x_1x_2]$$
+$$x \rightarrow [x_1, x_2, x_1^2, x_2^2, x_1x_2]$$
 
 sklearn 的 `PolynomialFeatures(degree=2)` 自动生成交互项与平方项——配合岭回归/Lasso 构成「多项式岭回归/多项式 Lasso」——**在保持「参数线性」的前提下引入「特征非线性」**。
 
@@ -92,25 +110,6 @@ sklearn 的 `PolynomialFeatures(degree=2)` 自动生成交互项与平方项—�
 - **需要概率校准**：逻辑回归天然校准（vs 树模型的分数需要后处理）
 
 ---
-
-## 五、多项式特征与正则化路径
-
-线性模型通过**多项式特征扩展**可以拟合非线性关系：
-
-$$x ightarrow [x_1, x_2, x_1^2, x_2^2, x_1x_2]$$
-
-sklearn 的 `PolynomialFeatures(degree=2)` 自动生成交互项与平方项——配合岭回归/Lasso 构成「多项式岭回归/多项式 Lasso」——**在保持「参数线性」的前提下引入「特征非线性」**。
-
-**正则化路径（Regularization Path）**：λ 从 ∞ 到 0 扫描时系数的变化轨迹——Lasso 的路径展示「特征逐个进入模型」的顺序（LARS 算法高效计算整条路径）——这条路径本身就是特征重要性的排序。
-
-## 六、线性模型的现代应用
-
-尽管深度学习火热，线性模型在以下场景仍是首选：
-
-- **高维稀疏数据**（文本/广告 CTR）：LR + FTRL 在线学习是广告系统的标配
-- **可解释性要求高**（金融风控/医疗诊断）：系数可直接解读，监管友好
-- **样本极少**（n < 100）：线性模型的方差低（偏差虽高但总误差可能更低）
-- **需要概率校准**：逻辑回归天然校准（vs 树模型的分数需要后处理）
 
 ## 四、要点总结
 

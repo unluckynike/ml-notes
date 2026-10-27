@@ -28,6 +28,32 @@ $$\text{Gini}(D) = 1 - \sum_{c}p_c^2$$
 > [!NOTE] 增益偏好「多值特征」的坑
 > 信息增益偏爱取值多的特征（极端：把「样本编号」当特征，增益最大但完全无泛化）。C4.5 的修补是**增益率** = 增益 / 特征固有熵 $\text{IV}(a) = -\sum_v \frac{|D^v|}{|D|}\log_2\frac{|D^v|}{|D|}$；CART 干脆只用二叉切分，天然规避。
 
+**一次贪心分裂的全部逻辑**——对每个特征的每个候选阈值算不纯度增益、取最大者；整棵树就是这个函数的递归：
+
+```python
+import numpy as np
+
+def gini(y):
+    p = np.bincount(y) / len(y)
+    return 1 - (p ** 2).sum()
+
+def best_split(X, y):
+    best = (None, -1.0)
+    for j in range(X.shape[1]):                 # 遍历每个特征
+        for t in np.unique(X[:, j])[:-1]:       # 候选阈值：相邻取值之间
+            L, R = y[X[:, j] <= t], y[X[:, j] > t]
+            if len(L) and len(R):
+                w = len(L) / len(y)
+                gain = gini(y) - w * gini(L) - (1 - w) * gini(R)   # 基尼增益
+                if gain > best[1]:
+                    best = ((j, t), gain)
+    return best
+
+rng = np.random.default_rng(0)
+X = rng.normal(size=(60, 2)); y = (X[:, 0] > 0.3).astype(int)
+print(best_split(X, y))     # ((0, ≈0.3), gain)：正确找到特征 0 与阈值
+```
+
 ---
 
 ## 二、三代算法一张表

@@ -17,6 +17,23 @@
 
 **kd 树 / 球树 / HNSW**：暴力 O(n·d) 每次预测太贵；kd 树把低维（d<20）查询降到 O(log n)，高维退化回暴力——大规模用近似最近邻（HNSW，见 RAG 深读的向量库一节）。
 
+**十行暴力 KNN**——广播算距离加部分排序，就是 sklearn 在中小规模下的全部秘密（更大规模才轮到 kd 树 / ANN 索引）：
+
+```python
+import numpy as np
+
+def knn_predict(Xtr, ytr, x, K=5):
+    d = np.sqrt(((Xtr - x) ** 2).sum(1))        # n 个距离一次广播算完
+    idx = np.argpartition(d, K)[:K]             # O(n) 取前 K 小，不必全排序
+    return np.bincount(ytr[idx]).argmax()       # K 票多数决
+
+rng = np.random.default_rng(0)
+Xtr = rng.normal(size=(200, 2))
+ytr = (Xtr[:, 0] + Xtr[:, 1] > 0).astype(int)
+x_new = np.array([0.6, 0.4])
+print(knn_predict(Xtr, ytr, x_new), knn_predict(Xtr, ytr, x_new, K=1))
+```
+
 ---
 
 ## 二、维度灾难：近邻在高维失灵的三种形式
