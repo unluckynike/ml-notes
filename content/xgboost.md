@@ -59,6 +59,18 @@ $$\text{Gain} = \frac{1}{2}\left[\frac{G_L^2}{H_L + \lambda} + \frac{G_R^2}{H_R 
 
 读法：左孩子得分 + 右孩子得分 − 不分裂得分 − **开新叶子的税** $\gamma$。Gain > 0 才分裂——**剪枝被内置进了分裂准则**，不用像 CART 那样事后剪。
 
+**增益公式十行**——分裂收益的闭式判据，γ 是它的「准入门槛」：
+
+```python
+import numpy as np
+def xgb_gain(GL, HL, GR, HR, lam=1.0, gamma=0.0):
+    s = lambda G, H: G * G / (H + lam)       # 结构分数（λ 在分母压权重）
+    return 0.5 * (s(GL, HL) + s(GR, HR) - s(GL + GR, HL + HR)) - gamma
+
+print(round(xgb_gain(3, 2, 1, 4), 3))        # ≈0.457 > 0：值得分裂
+print(round(xgb_gain(1, 2, 1, 2), 3))        # < 0：收益不及门槛，预剪枝直接停
+```
+
 ---
 
 ## 四、每个超参在公式里的位置

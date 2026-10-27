@@ -28,6 +28,25 @@ $$h_t = (1-z_t)⊙h_{t-1} + z_t⊙\tilde{h}_t$$
 
 **梯度视角**：$\partial h_t/\partial h_{t-1}$ 的主导项是 $\text{diag}(1-z_t)$——与 LSTM 的 $\text{diag}(f_t)$ 同构，**加法+门控保梯度**的核心机制完整保留；砍掉的只是「输出门」这层细粒度遮罩。
 
+**GRU 的一步**——少一个门、少一条状态线，核心是「旧状态与新候选的凸组合」：
+
+```python
+import numpy as np
+def sigmoid(z): return 1 / (1 + np.exp(-z))
+
+def gru_step(x, h, Wz, Wr, Wh):
+    z = sigmoid(Wz @ np.r_[h, x])            # 更新门：1=全采纳候选，0=全保留旧状态
+    r = sigmoid(Wr @ np.r_[h, x])            # 重置门：读多少旧状态
+    h_t = np.tanh(Wh @ np.r_[r * h, x])      # 候选状态
+    return (1 - z) * h + z * h_t             # 凸组合——这就是「门控」的全部
+
+rng = np.random.default_rng(0)
+x, h = rng.normal(size=4), rng.normal(size=3)
+Wz, Wr, Wh = (rng.normal(size=(3, 7)) for _ in range(3))
+h1 = gru_step(x, h, Wz, Wr, Wh)
+print(h1.shape, round(float(np.linalg.norm(h1 - h)), 3))   # 位移量被更新门逐维控制
+```
+
 ---
 
 ## 二、互补绑定的得与失

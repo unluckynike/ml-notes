@@ -51,6 +51,22 @@ $$g \leftarrow \frac{\tau}{\lVert g\rVert}g \quad \text{if } \lVert g\rVert > \t
 
 **截断 BPTT（truncated BPTT）**：长序列每 k 步截断反向（如 k=32），只学 k 步内的依赖——训练省内存更稳，代价是放弃超长依赖，工程上常配合「让 $h$ 跨批次传递」保留状态。
 
+**亲手看梯度消失**——前向 40 步状态一直在流动，梯度侧却在指数衰减：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+n, L = 4, 40
+Wh = 0.8 * rng.normal(size=(n, n)) / np.sqrt(n)   # 循环权重（谱半径<1 附近）
+h = np.zeros(n)
+for t in range(L):                                # 前向：状态每步全量覆写
+    h = np.tanh(Wh @ h + 0.1 * rng.normal(size=n))
+print(h.round(2))
+# 梯度：每步 Jacobian = diag(1 − h²)·Whᵀ，连乘 L 次——
+J = np.diag(1 - h**2) @ Wh.T
+print(round(float(np.abs(np.linalg.eigvals(J)).max()), 3))  # 每步衰减率 <1 → 40 步≈归零
+```
+
 ---
 
 ## 三、RNN 的能力与边界

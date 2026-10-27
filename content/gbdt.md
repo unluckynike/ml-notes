@@ -36,6 +36,23 @@ $$r_i = -\frac{\partial L(y_i, \hat{y}_i)}{\partial \hat{y}_i}\Big|_{\hat{y}=F_{
 2. **子采样（stochastic）**：每棵树只用一部分样本/特征——把 bagging 的方差收益嫁接到 boosting 上；
 3. **树的容量限制**：浅树（3~8 层）是常态——boosting 用「浅树串行」降偏差（对照随机森林「深树并行」降方差，见其深读的分工表）。
 
+**残差提升三十行**——每轮拟合上一轮的负梯度（平方损失下就是残差），小步长累加：
+
+```python
+import numpy as np
+from sklearn.tree import DecisionTreeRegressor
+rng = np.random.default_rng(0)
+X = rng.uniform(-3, 3, 200).reshape(-1, 1)
+y = np.sin(X[:, 0]) + rng.normal(scale=0.1, size=200)
+F = np.full(200, y.mean())                   # F₀ = 常数基线
+base = np.sqrt(np.mean((y - F)**2))
+for m in range(30):                          # 每轮：负梯度 → 小树 → 小步长
+    r = y - F                                # 平方损失的负梯度恰是残差
+    tree = DecisionTreeRegressor(max_depth=2).fit(X, r)
+    F += 0.3 * tree.predict(X)               # 学习率 shrinkage
+print(round(base, 3), '→', round(np.sqrt(np.mean((y - F)**2)), 3))
+```
+
 ---
 
 ## 三、GBDT → XGBoost：一步之遥

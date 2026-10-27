@@ -32,6 +32,33 @@ $$L = -\log\sigma(u_c^{\text{T}}v_w) - \sum_{k=1}^{K}\log\sigma(-u_{n_k}^{\text{
 
 **分层 softmax** 是另一条路（二叉树路径上的 logistic），现代实现基本都用负采样。
 
+**负采样一步的梯度**——1 正 K 负，各自的 sigmoid 残差乘对方的向量，就这么朴素：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+V, D = 50, 8
+W_in = rng.normal(scale=0.1, size=(V, D))    # 中心词向量（查表用）
+W_out = rng.normal(scale=0.1, size=(V, D))   # 上下文向量（算分用）
+sigmoid = lambda u: 1 / (1 + np.exp(-u))
+
+def sgns_step(c, o, K=5, lr=0.1):
+    """c: 中心词, o: 真实上下文词；负样本从词表随机抽"""
+    v_c = W_in[c]
+    g = sigmoid(W_out[o] @ v_c) - 1          # 正样本残差 σ(u_o·v) − 1
+    grad_v = g * W_out[o]
+    negs = rng.integers(0, V, K)
+    for n in negs:
+        gn = sigmoid(W_out[n] @ v_c)         # 负样本残差就是 σ(u_n·v) 本身
+        grad_v += gn * W_out[n]
+    W_in[c] -= lr * grad_v
+    W_out[o] -= lr * g * v_c
+    for n in negs:                           # 负样本把 v_c 往外推
+        W_out[n] -= lr * sigmoid(W_out[n] @ v_c) * v_c
+
+sgns_step(3, 7)                              # 百万级重复这个过程 = word2vec
+```
+
 ---
 
 ## 二、为什么浅网络能学到语义

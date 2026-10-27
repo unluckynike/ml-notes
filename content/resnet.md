@@ -37,6 +37,23 @@ $$\frac{\partial L}{\partial x} = \frac{\partial L}{\partial y}\left(\frac{\part
 
 **维度不匹配时**（通道数变化/下采样）：$x$ 换成 $W_sx$（1×1 卷积投影）——但实验发现恒等捷径效果最好，投影只在必要处用。
 
+**恒等支路的梯度账**——每层 Jacobian 从「乘 w」变成「乘 1+w」，深度的连乘不再归零：
+
+```python
+import numpy as np
+def chain_grad(L, residual):
+    """普通链每层乘 w；残差链乘 1+w（恒等支路常开）"""
+    w = -0.2
+    g = 1.0
+    for _ in range(L):
+        g *= w + (1.0 if residual else 0.0)
+    return abs(g)
+
+for L in (10, 40):
+    print(L, f"{chain_grad(L, False):.1e}", f"{chain_grad(L, True):.1e}")
+# 普通：1e-7 → 1e-28（消失）；残差：0.1 → 1e-4（一路可达）
+```
+
 ---
 
 ## 三、Bottleneck 与网络全景

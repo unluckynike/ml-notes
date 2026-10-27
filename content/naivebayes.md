@@ -27,6 +27,30 @@ $$\hat{y} = \argmax_y\; P(y)\prod_{j=1}^{d}P(x_j|y)$$
 
 **为什么能赢**：参数极少（每类每特征一个），小样本/高维（词表 10 万维）下方差小；「聪明」模型（KNN/SVM）在这个超维稀疏空间反而过拟合。**文本分类至今的强基线**——任何新文本模型的第一道对手。
 
+**朴素贝叶斯就是数数**——训练是统计频率加拉普拉斯平滑，预测是对数空间里的加分比较：
+
+```python
+import numpy as np
+def nb_fit(X, y, alpha=1.0):
+    """伯努利朴素贝叶斯：所有参数 = 数数 + 拉普拉斯平滑"""
+    cls, cnt = np.unique(y, return_counts=True)
+    prior = cnt / len(y)
+    like = np.array([(X[y == c].sum(0) + alpha) / (cnt[i] + 2 * alpha)
+                     for i, c in enumerate(cls)])
+    return cls, prior, like
+
+def nb_predict(model, x):
+    cls, prior, like = model
+    logp = np.log(prior) + (np.log(like) * x + np.log(1 - like) * (1 - x)).sum(1)
+    return cls[logp.argmax()]
+
+rng = np.random.default_rng(0)
+X = (rng.random((200, 6)) < 0.3).astype(int)
+y = (X[:, 0] & X[:, 1]).astype(int)          # 真实规则=AND：独立性假设明显不成立
+model = nb_fit(X, y)
+print(round(np.mean([nb_predict(model, x) == t for x, t in zip(X, y)]), 3))
+```
+
 ---
 
 ## 二、垃圾邮件的工程细节

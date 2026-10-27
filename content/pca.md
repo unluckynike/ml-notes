@@ -54,6 +54,20 @@ Z = X @ Vt[:2].T                 # 2. 取前 2 个主成分方向的投影
 var_ratio = S**2 / (S**2).sum()  # 3. 各主成分的方差占比
 ```
 
+**SVD 视角的三行实现**——sklearn 的 `PCA` 底层就是这段：中心化、SVD、取前 k 个奇异向量：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+X = rng.normal(size=(200, 5)) @ rng.normal(size=(5, 5))   # 有相关性的数据
+Xc = X - X.mean(0)                        # 中心化是 PCA 的前置必需
+U, S, Vt = np.linalg.svd(Xc, full_matrices=False)
+var = S**2 / (len(Xc) - 1)                # 主成分方差 = 奇异值²/(n−1)
+Z = Xc @ Vt[:2].T                         # 投影到前两个主成分
+print((var / var.sum()).round(3))         # 方差解释率——决定留几个成分
+print(np.corrcoef(Z.T).round(4)[0, 1])    # ≈0：主成分之间严格零相关
+```
+
 ---
 
 ## 四、什么时候会骗你

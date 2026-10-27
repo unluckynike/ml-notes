@@ -22,6 +22,12 @@
 
 **自动增广谱系**：AutoAugment（RL 搜策略）→ Fast AutoAugment → RandAugment（随机够用）→ TrivialAugment（更简单更强）——一条「搜索出来的不如简单随机」的工程演化史。
 
+**MixUp 把「增广」写成了标签上的线性插值**——不止增强输入，连监督信号一起插：
+
+$$\tilde{x} = \lambda x_i + (1-\lambda) x_j, \qquad \tilde{y} = \lambda y_i + (1-\lambda) y_j, \qquad \lambda \sim \text{Beta}(\alpha, \alpha)$$
+
+$\alpha \to 0$ 退回原样本对，$\alpha \to \infty$ 退回五五开——$\alpha \in [0.2, 0.4]$ 是常用甜点。CutMix 把「插值输入」换成「贴块」：保留空间局部性，标签按面积比例分配。两者的共同本质：**在输入空间与标签空间同时施加线性先验**，逼模型放弃过自信、学会在类间「缓坡过渡」。
+
 ---
 
 ## 二、NLP 与其他模态为什么难

@@ -29,6 +29,31 @@ $$o_t = \sigma(W_o\,[h_{t-1}, x_t] + b_o),\qquad h_t = o_t ⊙ \tanh(c_t)$$
 - **$\tanh(c_t)$ 限幅**：$c$ 本身无界增长会数值爆炸，输出前压回 (-1,1)；但 $c$ 的**传递不受限幅影响**。
 - **门是逐元素（⊙）的**：向量的每一维有独立的开关——「词性」可以长期记住，「当前主语单复数」可以快速更新，互不干扰。
 
+**门控的一步全部逻辑**——注意细胞状态的更新是**加法**（f·c + i·g），这正是梯度高速路的来源：
+
+```python
+import numpy as np
+def sigmoid(z): return 1 / (1 + np.exp(-z))
+
+def lstm_step(x, h, c, W, bf=3.0):
+    """bf 初始化为大正数 → 遗忘门起步≈0.95（关键工程细节）"""
+    n = len(h)
+    z = np.r_[h, x]
+    H = W[:4 * n]
+    f, i, o = sigmoid(H[0] @ z + bf), sigmoid(H[1] @ z), sigmoid(H[2] @ z)
+    g = np.tanh(H[3] @ z)
+    c = f * c + i * g                        # 细胞状态：加法更新，对比 RNN 的全量覆写
+    h = o * np.tanh(c)
+    return h, c, f
+
+rng = np.random.default_rng(0)
+x, h, c = rng.normal(size=4), rng.normal(size=3), rng.normal(size=3)
+W = rng.normal(size=(12, 7))
+h1, c1, f = lstm_step(x, h, c, W)
+print(f.round(3))                            # ≈0.95：bf=3 的意义——训练初期「先别忘」
+print(np.abs(h1).max() < 1.0)                # 输出被 tanh 压在 [−1, 1]
+```
+
 ---
 
 ## 二、为什么这解决了梯度消失

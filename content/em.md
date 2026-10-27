@@ -57,6 +57,24 @@ $$\mu_k = \frac{\sum_i r_{ik}x_i}{\sum_i r_{ik}},\qquad \pi_k = \frac{\sum_i r_{
 
 **实践警告**：$\Sigma_k$ 在小簇/高维下奇异（$|\Sigma|\to 0$，似然爆炸到 ∞）——标准补丁是加正则 $\Sigma_k \leftarrow \Sigma_k + \lambda I$（sklearn 的 `reg_covar`）。初值用 k-means++ 的聚类结果，比随机初始化稳得多。
 
+**一维 GMM 的 EM 三十行**——E 步算责任（贝叶斯公式），M 步加权 MLE 闭式更新，交替到不动点：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+X = np.r_[rng.normal(0, 1, 300), rng.normal(5, 1, 200)]
+mu, sd, pi = np.array([-1., 6.]), np.ones(2), np.array([.5, .5])
+for _ in range(50):                          # EM：E 步 → M 步
+    # E 步：责任 r[k] = 后验 P(z=k | x)
+    p = pi[:, None] * np.exp(-0.5 * ((X[None] - mu[:, None]) / sd[:, None])**2) / sd[:, None]
+    r = p / p.sum(0)
+    # M 步：加权 MLE 的闭式解
+    N = r.sum(1)
+    pi, mu = N / len(X), (r * X).sum(1) / N
+    sd = np.sqrt((r * (X[None] - mu[:, None])**2).sum(1) / N)
+print(pi.round(2), mu.round(2), sd.round(2)) # ≈[.6,.4] [0,5] [1,1]（分量顺序可能互换）
+```
+
 ---
 
 ## 四、EM 的家族谱系
