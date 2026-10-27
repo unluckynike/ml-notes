@@ -66,6 +66,72 @@ $$\theta \leftarrow \theta - \eta\left(\frac{\hat{m}_t}{\sqrt{\hat{v}_t}+\vareps
 - **「β1=0.9, β2=0.999 是普适默认值」** —— 这些默认值在多数任务上工作良好；但在 **稀疏梯度/强化学习/大 batch** 场景需要调整（如 β2=0.99 或 0.95）——默认值不是最优值。
 - **「weight decay 和 L2 正则化是同一件事」** —— 在 SGD 中数学等价但在 **Adam 中不等价**（AdamW 论文的核心发现）：L2 正则的梯度被自适应缩放扭曲——AdamW 通过解耦修复了这一点。
 
+---
+
+## 五、优化器的完整超参搜索空间
+
+| 超参 | SGD+M | Adam/AdamW | 说明 |
+|---|---|---|---|
+| learning_rate | 0.01~0.1(CV) / 1e-5~1e-3(NLP) | 1e-5~1e-3 | **最重要** |
+| momentum / β₁ | 0.9 | 0.9 | 动量/一阶矩 |
+| — / β₂ | — | 0.999 | 二阶矩衰减 |
+| weight_decay | 1e-4~1e-2 | 1e-4~1e-1(AdamW) | 解耦正则化 |
+| warmup_steps | 0~2000 | 500~5000 | Transformer 必需 |
+| lr_scheduler | step/cosine | linear/cosine + warmup | 调度策略 |
+
+**优化器选择的决策树**：
+
+```
+你的模型是 Transformer？
+├── 是 → AdamW + warmup + cosine decay
+└── 否 → CNN/ResNet？
+    ├── 是 → SGD + momentum (lr=0.1, cosine)
+    └── 不确定 → AdamW + 默认超参（先跑通再优化）
+```
+
+## 六、学习率与 batch size 的缩放法则
+
+**线性缩放法则**（Goyal et al., 2017）：batch size × k → learning rate × k——**前提**：训练初期用 warmup（大 batch 初期梯度方差更小但也更「冷启动」）。
+
+**平方根缩放**：lr × √k——当线性缩放导致不稳定时的保守替代。
+
+**LAMB 优化器**：专为超大 batch（>32K）设计——通过逐层信任比自适应调整更新步长——BERT-Large 训练时间从数天缩短到数小时。
+
+**超大批量的隐藏代价**：大 batch 减少梯度噪声 → 泛化可能变差（需要更长的训练来补偿）——「大 batch + 短训练」和「小 batch + 长训练」的最终效果可能相当，但前者更快后者更省。
+
+---
+
+## 五、优化器的完整超参搜索空间
+
+| 超参 | SGD+M | Adam/AdamW | 说明 |
+|---|---|---|---|
+| learning_rate | 0.01~0.1(CV) / 1e-5~1e-3(NLP) | 1e-5~1e-3 | **最重要** |
+| momentum / β₁ | 0.9 | 0.9 | 动量/一阶矩 |
+| — / β₂ | — | 0.999 | 二阶矩衰减 |
+| weight_decay | 1e-4~1e-2 | 1e-4~1e-1(AdamW) | 解耦正则化 |
+| warmup_steps | 0~2000 | 500~5000 | Transformer 必需 |
+| lr_scheduler | step/cosine | linear/cosine + warmup | 调度策略 |
+
+**优化器选择的决策树**：
+
+```
+你的模型是 Transformer？
+├── 是 → AdamW + warmup + cosine decay
+└── 否 → CNN/ResNet？
+    ├── 是 → SGD + momentum (lr=0.1, cosine)
+    └── 不确定 → AdamW + 默认超参（先跑通再优化）
+```
+
+## 六、学习率与 batch size 的缩放法则
+
+**线性缩放法则**（Goyal et al., 2017）：batch size × k → learning rate × k——**前提**：训练初期用 warmup。
+
+**平方根缩放**：lr × √k——当线性缩放导致不稳定时的保守替代。
+
+**LAMB 优化器**：专为超大 batch（>32K）设计——通过逐层信任比自适应调整更新步长——BERT-Large 训练时间从数天缩短到数小时。
+
+**超大批量的隐藏代价**：大 batch 减少梯度噪声 → 泛化可能变差（需要更长的训练来补偿）——「大 batch + 短训练」和「小 batch + 长训练」的最终效果可能相当，但前者更快后者更省。
+
 ## 五、要点总结
 
 1. **动量为什么治震荡？** 震荡方向梯度正负抵消、一致方向累积——指数平均充当方向滤波器。

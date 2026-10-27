@@ -73,6 +73,32 @@ $$g \leftarrow \frac{\tau}{\lVert g\rVert}g \quad \text{if } \lVert g\rVert > \t
 - **「双向 RNN 的输出可以用于语言模型」** —— 双向 RNN 在计算 t 时刻的隐藏状态时**使用了未来信息**（t 之后的输入）——不满足自回归生成的因果约束，不能直接当语言模型用。
 - **「注意力机制完全取代了 RNN」** —— 在流式推理（token-by-token 生成，O(1) 状态）与超长序列（线性计算成本）场景，RNN/SSM 的思路仍有优势（Mamba 就是 SSM 路线）——不是「淘汰」而是「各有所长」。
 
+---
+
+## 五、Seq2Seq 与注意力：从 RNN 到 Transformer 的过渡
+
+RNN 处理「输入序列 → 输出序列」任务时，编码器-解码器（Seq2Seq）架构将输入压缩为固定向量再解码——瓶颈在于「固定向量装不下任意长的输入信息」。**注意力机制**最初就是为了解决这个瓶颈而发明的（Bahdanau 2014）：
+
+$$\text{context}_t = \sum_{i=1}^{T} \alpha_{t,i} \cdot h_i, \quad \alpha_{t,i} = \text{softmax}(e_{t,i})$$
+
+解码器在每一步「回看」编码器的所有隐状态 $h_i$，按注意力权重 $\alpha$ 加权取信息——**不再把全部信息塞进一个固定向量**。
+
+这个注意力机制后来被单独抽取出来——**「Attention is all you need」**（2017）——去掉了 RNN 骨干，只用注意力 + FFN 堆叠，就是 Transformer。所以：注意力起源于 RNN 的瓶颈，反过来取代了 RNN。
+
+## 六、实战：RNN 的超参与陷阱
+
+| 超参 | 推荐值 | 陷阱 |
+|---|---|---|
+| hidden_size | 128~512 | 太大→过拟合+计算慢 |
+| num_layers | 1~2 | >2 需要 residual 连接 |
+| gradient clipping | max_norm=5.0 | 不裁剪→梯度爆炸 NaN |
+| dropout | 0.2~0.5（层间） | 太多→训练不稳定 |
+| bidirectional | 分类/NER 用，LM 不用 | 双向不能做自回归生成 |
+
+**梯度裁剪是 RNN 训练的标配**（不是可选）：即使用了 LSTM/GRU，遇到异常长的序列仍可能梯度爆炸——`clip_grad_norm_(model.parameters(), 5.0)` 一行代码防止 NaN。
+
+**序列长度不等时的 batching**：按长度排序→分桶（bucketing）→pad 到桶内最长→用 pack_padded_sequence 跳过 pad 计算——不排序直接 pad 会浪费大量计算在 pad 上。
+
 ## 四、要点总结
 
 1. **BPTT 是什么？** 把循环按时间展开后做普通反向传播；同一参数在各步的梯度**累加**。

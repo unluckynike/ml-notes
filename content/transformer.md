@@ -129,6 +129,34 @@ x → 多头注意力 → 残差相加 → LayerNorm → 前馈网络(FFN) → �
 - **「Transformer 的 FFN 层只是「多余的全连接层」」** —— FFN 占参数量约 2/3，是模型的「知识存储层」（key-value memory 的解读）——注意力做信息路由、FFN 做知识存储——两者功能截然不同。
 - **「attention is all you need = 注意力是唯一的必要组件」** —— Transformer 还需要 FFN/残差连接/LayerNorm/位置编码——缺一不可；论文标题是修辞，不是技术声明。
 
+---
+
+## 五、注意力的变体与效率优化
+
+标准 Self-Attention 的 O(n²) 复杂度在长序列上成为瓶颈——效率优化是一个活跃的研究方向：
+
+| 变体 | 核心思想 | 复杂度 | 精度 |
+|---|---|---|---|
+| **Sparse Attention** | 每个 token 只注意局部/随机/全局子集 | O(n√n) | ≈ Full |
+| **Linear Attention** | 用核函数替代 softmax（可结合律） | O(n) | 有损 |
+| **FlashAttention** | 精确注意力但通过 tiling 减少 HBM 读写 | O(n²) 但快 | **精确** |
+| **Sliding Window** | 每个 token 只看最近 w 个 | O(n·w) | 局部 |
+| **Mamba/SSM** | 线性递归（无注意力） | O(n) | 不同范式 |
+
+**FlashAttention 的关键洞察**：注意力的瓶颈不在计算（FLOPs）而在**显存读写**（中间的 n×n 矩阵要写回 HBM 再读回 SRAM）。FlashAttention 通过分块计算 + 在 SRAM 中保持中间结果，将 HBM 读写减少 √n 倍——**数学上精确但速度快 2~4 倍**。
+
+**工程含义**：FlashAttention 使得 32K 上下文训练成为可能（否则 OOM），且它是**数学等价的精确注意力**（不是近似）——这是它优于 Linear Attention/Sparse 变体的原因。
+
+## 六、Transformer 的缩放法则与涌现能力
+
+**Scaling Laws（Kaplan 2020 / Chinchilla 2022）**的三个核心结论：
+
+1. 损失 L(N) 随参数 N、数据 D、计算 C 幂律下降：L ∝ N^{-α}·D^{-β}
+2. **Chinchilla 最优**：给定计算预算，参数与数据应等比缩放（D ≈ 20N）
+3. **涌现能力**：某些能力（多步推理/指令跟随）在小模型接近零，跨过阈值后**突然出现**
+
+**涌现的争议**：Schaeffer et al.（2023）认为涌现可能是**度量指标的假象**——用连续指标（如 token 级准确率）代替离散指标（答案正确/错误）时，「涌现」变成了平滑改善——争议尚无定论。
+
 ## 七、要点总结
 
 1. **为什么要缩放 $\sqrt{d_k}$？** 点积方差随维度线性增长，softmax 会饱和导致梯度消失；除以 $\sqrt{d_k}$ 恢复方差为 1。

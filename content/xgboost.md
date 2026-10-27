@@ -106,6 +106,34 @@ model.fit(X, y)
 
 ---
 
+---
+
+## 五、XGBoost vs LightGBM vs CatBoost 的技术对比
+
+三个梯度提升框架各有独特的工程创新：
+
+| 维度 | XGBoost | LightGBM | CatBoost |
+|---|---|---|---|
+| 树生长策略 | level-wise（逐层） | leaf-wise（最优叶生长） | 对称/ oblivious 树 |
+| 分裂搜索 | 预排序 + 分位草图 | 直方图（ Histogram） | 直方图 + 有序目标编码 |
+| 类别特征 | 需 one-hot/编码 | 原生支持（Fisher 最优分割） | **有序目标编码**（防泄漏） |
+| 并行 | 特征并行 + 数据并行 | 特征并行 + 数据并行 | GPU 加速最佳 |
+| 速度 | 中 | **快** | 中 |
+| 类别特征 | 弱 | 中 | **强** |
+
+**选型**：特征工程好 + 小数据 → XGBoost（更稳定）；大数据 + 需要速度 → LightGBM；类别特征多（用户/商品 ID）→ CatBoost。
+
+## 六、XGBoost 超参调优的系统化方法
+
+XGBoost 的超参分为四组，调优有先后依赖：
+
+1. **固定学习率 → 调树结构**：`max_depth`(3~8)、`min_child_weight`(1~10)、`gamma`(0~1)；
+2. **调采样**：`subsample`(0.6~0.9)、`colsample_bytree`(0.6~0.9)——防过拟合；
+3. **调正则化**：`reg_alpha`(L1, 0~10)、`reg_lambda`(L2, 1~10)——进一步压缩；
+4. **降低学习率 + 增加树数**：`learning_rate`(0.01~0.1) + `n_estimators`(↑) + `early_stopping_rounds`(50)。
+
+**贝叶斯优化（Optuna）是标准工具**——网格搜索在 10+ 超参空间中效率极低；Optuna 的 TPE 采样在 100~200 次试验内找到接近最优的配置。
+
 ## 七、要点总结
 
 1. **XGBoost 与 GBDT 的核心区别？** 二阶泰勒（牛顿法 vs 梯度）、叶子权重闭式解、正则化进目标（$\gamma$、$\lambda$）、内置剪枝、工程并行。

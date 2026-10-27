@@ -113,6 +113,50 @@ def generate(model, ids, max_new=50, temp=0.8, top_p=0.95):
 - **「上下文窗口 = 记忆力」** —— 窗口是注意力可达的范围，不是「记住」——模型不会从上下文中「学习」新知识并保留到下次对话（无权重更新）；「记住」是 anthropomorphism。
 - **「更大的模型一定更好」** —— Scaling Law 描述的是损失下降趋势；小模型+好 prompt/RAG/工具可打大模型的裸输出——选择模型要看任务，不是只看参数量。
 
+---
+
+## 五、GPT 训练管线的完整成本分解
+
+GPT 级模型的训练成本不是一个数字而是一张表：
+
+| 阶段 | 算力占比 | 说明 |
+|---|---|---|
+| **数据收集与清洗** | ~10%（人力为主） | 去重/去毒/质量过滤/配比——数据工程决定上限 |
+| **预训练（PT）** | ~80% | 万卡集群数周~数月；能源成本是主要开销 |
+| **SFT（监督微调）** | ~5% | 高质量指令数据（~100K 条），1~8 卡数天 |
+| **RLHF/DPO** | ~5% | 偏好标注+策略优化；提升可用性 |
+
+**推理成本（部署后持续发生）**：
+
+- 每 1000 token：GPT-4 级 ~$0.03-0.10、7B 开源 ~$0.001（自部署）
+- 推理成本 = 硬件折旧 + 能耗 + 运维——**是训练成本的数十倍**（模型生命周期内持续累积）
+- 降低推理成本三板斧：量化（见模型量化主题）+ 路由（见模型路由主题）+ 缓存（KV cache/语义缓存）
+
+## 六、评测数据集污染检测的实操
+
+污染（benchmark data leaking into training data）的检测方法：
+
+```python
+# n-gram 重叠检测（13-gram 是常用的严格标准）
+from collections import defaultdict
+
+def get_ngrams(text, n=13):
+    words = text.lower().split()
+    return {' '.join(words[i:i+n]) for i in range(len(words)-n+1)}
+
+# 构建训练集索引
+train_ngrams = set()
+for doc in training_corpus:
+    train_ngrams |= get_ngrams(doc.text)
+
+# 检测基准集
+for q in benchmark_questions:
+    if get_ngrams(q.question) & train_ngrams:
+        print(f"⚠ 污染嫌疑: {q.id}")
+```
+
+**Beyond n-gram**：语义嵌入相似度（嵌入距离 < 0.85 即嫌疑）、成员推断攻击（模型对训练数据的过拟合程度）——多层检测比单层更可靠。
+
 ## 七、要点总结
 
 1. **GPT 与 BERT 的目标差异？** 自回归（因果掩码，预测下一词）vs 掩码语言模型（双向，完形填空）；生成 vs 理解的原生倾向由此而来。

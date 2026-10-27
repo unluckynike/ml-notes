@@ -81,6 +81,45 @@ C=10（漏一个病人 = 误报十个正常人）时阈值应降到 ≈0.09。�
 - **「交叉验证分数的方差可以忽略」** —— 小数据集上不同折的分数差异可能很大（±5%+）；应报告均值±标准差，且用同一折结构比较模型。
 - **「测试集只用了一次所以没泄漏」** —— 数据泄漏不只发生在测试集复用：特征工程用了全量统计量、时间序列打乱切分、目标编码未隔离——泄漏的形式比想象多。
 
+---
+
+## 五、校准曲线与期望校准误差（ECE）
+
+一个准确率高的模型可能「过度自信」：预测 95% 概率的事件只有 80% 发生——这就是**校准问题**。可靠性曲线（Reliability Diagram）是诊断工具：
+
+- **理想校准**：预测概率 70% 的所有样本中，70% 确实为正 → 点落在对角线上；
+- **过度自信**：预测 90% 的桶中只有 75% 为正 → 点低于对角线（深度学习常见）；
+- **欠自信**：预测 60% 的桶中有 80% 为正 → 点高于对角线（传统 SVM 常见）。
+
+**ECE（Expected Calibration Error）** = Σ(每个桶的 |accuracy − confidence| × 桶内样本占比)——一个标量总结校准程度。ECE < 5% 为良好。
+
+**校准方法**：Platt Scaling（逻辑回归在验证集上拟合 sigmoid）或 Isotonic Regression（非参数阶梯函数）——在验证集上拟合一个「概率→概率」的映射函数。
+
+## 六、统计显著性检验：A/B 测试的完整计算
+
+```python
+# 双比例 z 检验
+import numpy as np
+from scipy import stats
+
+def ab_test(n_a, conv_a, n_b, conv_b, alpha=0.05):
+    p_a = conv_a / n_a
+    p_b = conv_b / n_b
+    p_pool = (conv_a + conv_b) / (n_a + n_b)
+    se = np.sqrt(p_pool * (1-p_pool) * (1/n_a + 1/n_b))
+    z = (p_b - p_a) / se
+    p_value = 2 * (1 - stats.norm.cdf(abs(z)))
+    # 效应量与置信区间
+    diff = p_b - p_a
+    ci = [diff - 1.96*se, diff + 1.96*se]
+    # 功效分析（事后）
+    effect = abs(diff)
+    power = stats.norm.cdf(effect/se - stats.norm.ppf(1-alpha/2))
+    return {'p_value': p_value, 'significant': p_value < alpha,
+            'lift': f'{diff*100:.2f}pp', 'CI': f'[{ci[0]*100:.2f}%, {ci[1]*100:.2f}%]',
+            'power': f'{power*100:.0f}%'}
+```
+
 ## 五、要点总结
 
 1. **AUC 的概率解释？** 随机正样本得分高于随机负样本的概率；与阈值无关、不平衡稳健。
