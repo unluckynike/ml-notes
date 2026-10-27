@@ -24,6 +24,7 @@
   function applyTheme(mode) {
     document.documentElement.setAttribute('data-theme', mode);
     try { localStorage.setItem('mlhub-theme', mode); } catch (e) {}
+    window.dispatchEvent(new Event('mltheme'));
   }
   function toggleTheme() {
     const cur = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
@@ -498,11 +499,17 @@
       ctx.scale(cam.k, cam.k);
       ctx.translate(-W / 2, -H / 2);
       const dim = function (n) { return hovered && n !== hovered && !n._adj; };
+      const light = document.documentElement.getAttribute('data-theme') === 'light';
+      const edgePre = light ? 'rgba(30,58,138,0.40)' : 'rgba(140,160,210,0.30)';
+      const edgeRel = light ? 'rgba(71,85,105,0.26)' : 'rgba(140,160,210,0.12)';
+      const edgeHot = light ? 'rgba(2,132,199,0.95)' : 'rgba(0,212,255,0.85)';
+      const labelCol = light ? 'rgba(30,41,59,0.92)' : 'rgba(210,220,245,0.9)';
+      const labelHot = light ? '#0c4a6e' : '#ffffff';
       // 边
       edges.forEach(function (e) {
         if (hidden.has(e.a.cat) || hidden.has(e.b.cat)) return;
         const hot = hovered && (e.a === hovered || e.b === hovered);
-        ctx.strokeStyle = hot ? 'rgba(0,212,255,0.85)' : (e.pre ? 'rgba(140,160,210,0.28)' : 'rgba(140,160,210,0.12)');
+        ctx.strokeStyle = hot ? edgeHot : (e.pre ? edgePre : edgeRel);
         ctx.lineWidth = hot ? 2 : e.pre ? 1.2 : 0.8;
         if (!e.pre) ctx.setLineDash([3, 4]);
         ctx.beginPath(); ctx.moveTo(e.a.x, e.a.y); ctx.lineTo(e.b.x, e.b.y); ctx.stroke();
@@ -519,7 +526,7 @@
         if (isHot) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(n.x, n.y, n.r + 4, 0, 7); ctx.stroke(); }
         // 标签：悬浮/邻接/大节点/高缩放时显示
         if (isHot || isAdj || n.deg >= 5 || cam.k > 1.35) {
-          ctx.fillStyle = isHot ? '#fff' : 'rgba(210,220,245,0.9)';
+          ctx.fillStyle = isHot ? labelHot : labelCol;
           ctx.font = (isHot ? 'bold ' : '') + '10px "PingFang SC", sans-serif';
           ctx.textAlign = 'center';
           ctx.fillText(n.name, n.x, n.y + n.r + 11);
@@ -650,6 +657,7 @@
       canvas.style.height = H + 'px';
       wake(30);
     });
+    window.addEventListener('mltheme', function () { wake(30); });
 
     // 预热 240 帧 + 启动渲染
     for (let i = 0; i < 240; i++) tick();
