@@ -8836,6 +8836,406 @@
     generate();
   }
 
+  // ============================================================
+  // 多臂老虎机：三种探索策略的真实对比
+  // ============================================================
+  function bandit(container) {
+    const d = demoShell('多臂老虎机 · 探索策略', '5 台老虎机有隐藏的中奖率（虚线=真实值）。三种策略同时各自跑：ε-greedy / UCB / Thompson——看累积遗憾（越低越好）与拉臂分布的差别。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 470);
+    const rng = makeRng(1956);
+    const K = 5;
+    const TRUEP = [0.30, 0.50, 0.45, 0.20, 0.65];
+    const BEST = Math.max.apply(null, TRUEP);
+    const COLORS = [C.cyan, C.magenta, C.green];
+    // 三策略状态
+    function newState() {
+      return { counts: zeros(K), wins: zeros(K), t: 0, regret: [0], pulls: [] };
+    }
+    let states = null, eps = 0.10;
+    function sampleBeta(a, b) {
+      // Beta 整数参数近似：均匀分布和的比值
+      let x = 0, y = 0;
+      for (let i = 0; i < a; i++) x += rng();
+      for (let i = 0; i < b; i++) y += rng();
+      return x / (x + y);
+    }
+    function pull(arm) { return rng() < TRUEP[arm] ? 1 : 0; }
+    function stepAll() {
+      // 每个策略独立跑一轮
+      states.forEach(function (st, si) {
+        let arm;
+        if (si === 0) {   // ε-greedy
+          arm = rng() < eps ? Math.floor(rng() * K) : st.counts.reduce(function (bi, c, i, arr2) { return c > arr2[bi] ? i : bi; }, 0);
+        } else if (si === 1) {   // UCB1
+          if (st.t < K) arm = st.t;
+          else {
+            arm = 0; let bv = -1;
+            for (let k = 0; k < K; k++) {
+              const q = st.wins[k] / st.counts[k] + Math.sqrt(2 * Math.log(st.t) / st.counts[k]);
+              if (q > bv) { bv = q; arm = k; }
+            }
+          }
+        } else {          // Thompson
+          arm = 0; let bv = -1;
+          for (let k = 0; k < K; k++) {
+            const q = sampleBeta(st.wins[k] + 1, st.counts[k] - st.wins[k] + 1);
+            if (q > bv) { bv = q; arm = k; }
+          }
+        }
+        const r2 = pull(arm);
+        st.counts[arm]++; st.wins[arm] += r2; st.t++;
+        st.regret.push(st.regret[st.regret.length - 1] + (BEST - TRUEP[arm]));
+        st.pulls.push(arm);
+      });
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const names = ['ε-greedy(0.1)', 'UCB1', 'Thompson'];
+      // 右上：累积遗憾曲线
+      const rb = { l: 400, r: 720, t: 96, b: 250 };
+      ctx.strokeStyle = C.axis; ctx.strokeRect(rb.l, rb.t, rb.r - rb.l, rb.b - rb.t);
+      const maxR = Math.max.apply(null, states.map(function (st) { return st.regret[st.regret.length - 1]; })) || 1;
+      states.forEach(function (st, si) {
+        ctx.strokeStyle = COLORS[si]; ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        st.regret.forEach(function (r2, t) {
+          const x = rb.l + t / Math.max(st.regret.length - 1, 1) * (rb.r - rb.l);
+          const y = rb.b - r2 / maxR * (rb.b - rb.t);
+          if (t === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      });
+      text(ctx, '累积遗憾（越低越好）', rb.l, 82, C.text, 'left', 11);
+      names.forEach(function (n2, si) { text(ctx, n2, rb.l + 6, rb.t + 18 + si * 17, COLORS[si], 'left', 10.5); });
+      text(ctx, 'T=' + states[0].t, rb.r - 8, rb.t + 14, C.muted, 'right', 10);
+      // 左下：当前选中策略的拉臂分布 + 估计
+      const lb = { l: 70, r: 360, t: 290, b: 430 };
+      ctx.strokeStyle = C.axis; ctx.strokeRect(lb.l, lb.t, lb.r - lb.l, lb.b - lb.t);
+      text(ctx, '拉臂分布（策略 1：ε-greedy）', lb.l, 278, C.text, 'left', 10.5);
+      const st0 = states[0];
+      const maxC = Math.max.apply(null, st0.counts) || 1;
+      for (let k = 0; k < K; k++) {
+        const y = lb.t + 16 + k * 26;
+        ctx.fillStyle = 'rgba(0,212,255,0.55)';
+        ctx.fillRect(lb.l + 8, y, (st0.counts[k] / maxC) * (lb.r - lb.l - 70), 16);
+        text(ctx, '臂' + (k + 1) + ' 真实' + TRUEP[k].toFixed(2), lb.l + 10, y + 8, '#0c1224', 'left', 9);
+      }
+      // 右下：估计 vs 真实
+      text(ctx, '各策略对「最优臂」的估计：', 400, 278, C.text, 'left', 10.5);
+      states.forEach(function (st, si) {
+        const bestArm = st.counts.reduce(function (bi, c, i, arr2) { return c > arr2[bi] ? i : bi; }, 0);
+        const est = st.counts[bestArm] ? st.wins[bestArm] / st.counts[bestArm] : 0;
+        text(ctx, names[si].slice(0, 4) + '：估计臂' + (bestArm + 1) + '为 ' + est.toFixed(2), 400, 298 + si * 20, COLORS[si], 'left', 10.5);
+      });
+      text(ctx, '遗憾 = 最优臂期望回报 − 实际获得回报（累积）——好的策略快速锁定最优臂、停止探索', 70, H - 36, C.text, 'left', 11);
+      text(ctx, 'UCB 用「不确定度」主动探索（不确定的臂自动加分）；Thompson 从后验采样——贝叶斯式的优雅探索', 70, H - 18, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeRange(1, 30, 1, Math.round(eps * 100), v => { eps = v / 100; }, 'ε%'));
+    d.controls.appendChild(makeButton('跑 100 轮', function () { for (let i = 0; i < 100; i++) stepAll(); draw(); }, true));
+    d.controls.appendChild(makeButton('跑 1000 轮', function () { for (let i = 0; i < 1000; i++) stepAll(); draw(); }));
+    d.controls.appendChild(makeButton('重置', function () { states = [newState(), newState(), newState()]; draw(); }));
+    states = [newState(), newState(), newState()];
+    for (let i = 0; i < 100; i++) stepAll();
+    draw();
+  }
+
+  // ============================================================
+  // 离线 RL：数据覆盖与保守价值估计
+  // ============================================================
+  function offlinerl(container) {
+    const d = demoShell('离线 RL · 数据覆盖与外推', '「宝藏」在右侧 x=2.5，但历史数据几乎只在左侧活动：朴素价值外推把稀疏区的噪声当真（虚高曲线），保守惩罚（CQL 思路）把外推压住。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 470);
+    const rng = makeRng(20150);
+    const BINS = 60, XMIN = -3, XMAX = 3;
+    let data = [], hist = zeros(BINS), naive = zeros(BINS), consv = zeros(BINS), truth = zeros(BINS);
+    const bOf = x => clamp(Math.floor((x - XMIN) / (XMAX - XMIN) * BINS), 0, BINS - 1);
+    const xOf = b => XMIN + (b + 0.5) / BINS * (XMAX - XMIN);
+    const rew = x => Math.exp(-Math.pow(x - 2.4, 2) / 0.25) * 5;
+    function gen() {
+      data = [];
+      // 行为策略：起点在左，向左漂移为主，偶尔向右
+      for (let tr = 0; tr < 300; tr++) {
+        let x = -3 + rng() * 1.6;
+        for (let t = 0; t < 12; t++) {
+          data.push({ x: x });
+          x = clamp(x + (rng() < 0.75 ? -0.35 : 0.7) + gauss(rng) * 0.25, XMIN, XMAX);
+        }
+      }
+      estimate();
+    }
+    function estimate() {
+      hist = zeros(BINS);
+      data.forEach(function (p) { hist[bOf(p.x)]++; });
+      // 有数据 bin 的经验回报
+      const binReward = zeros(BINS), binN = zeros(BINS);
+      data.forEach(function (p) { binReward[bOf(p.x)] += rew(p.x); binN[bOf(p.x)]++; });
+      const emp = binReward.map(function (s, i) { return binN[i] ? s / binN[i] : 0; });
+      // 朴素外推：空 bin 用最近有数据 bin 的值（零阶保持）——噪声当真，虚高
+      let lastV = 0;
+      naive = zeros(BINS);
+      for (let b = 0; b < BINS; b++) { if (binN[b]) lastV = emp[b]; naive[b] = lastV; }
+      // 保守：把「数据支撑弱」的 bin 向全局均值收缩（CQL 思想的 1D 版）
+      const globalMean = data.reduce(function (s2, p) { return s2 + rew(p.x); }, 0) / data.length;
+      consv = emp.map(function (v, b) {
+        const conf = Math.min(1, binN[b] / 30);
+        return v * conf + globalMean * (1 - conf);
+      });
+      // 真实价值：对真动力学做粗值迭代（网格上的 DP）
+      truth = zeros(BINS);
+      for (let pass = 0; pass < 200; pass++) for (let b = BINS - 2; b >= 1; b--) {
+        const r2 = rew(xOf(b));
+        truth[b] = r2 * 0.4 + 0.95 * Math.max(truth[b + 1], truth[b - 1]) * 0.6;
+      }
+      draw();
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const box = { l: 70, r: 710, t: 110, b: 400 };
+      ctx.strokeStyle = C.axis; ctx.strokeRect(box.l, box.t, box.r - box.l, box.b - box.t);
+      const sx = b => box.l + b / BINS * (box.r - box.l);
+      const sy = v => box.b - clamp(v / 6, 0, 1) * (box.b - box.t);
+      // 数据覆盖直方图
+      const hmax = Math.max.apply(null, hist) || 1;
+      hist.forEach(function (n2, b) {
+        const h = n2 / hmax * 60;
+        ctx.fillStyle = 'rgba(120,145,200,0.35)';
+        ctx.fillRect(sx(b), box.b - h, (box.r - box.l) / BINS, h);
+      });
+      text(ctx, '灰柱 = 数据覆盖（行为策略几乎只去左边——「宝藏」在右边）', 70, 82, C.text, 'left', 11);
+      // 真实价值
+      ctx.strokeStyle = 'rgba(233,238,251,0.85)'; ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      truth.forEach(function (v, b) { if (b === 0) ctx.moveTo(sx(b), sy(v)); else ctx.lineTo(sx(b), sy(v)); });
+      ctx.stroke();
+      // 朴素外推（危险）
+      ctx.strokeStyle = C.red; ctx.lineWidth = 2;
+      ctx.beginPath();
+      naive.forEach(function (v, b) { if (b === 0) ctx.moveTo(sx(b), sy(v * 2.2)); else ctx.lineTo(sx(b), sy(v * 2.2)); });
+      ctx.stroke();
+      // 保守
+      ctx.strokeStyle = C.green; ctx.lineWidth = 2;
+      ctx.beginPath();
+      consv.forEach(function (v, b) { if (b === 0) ctx.moveTo(sx(b), sy(v * 2.2)); else ctx.lineTo(sx(b), sy(v * 2.2)); });
+      ctx.stroke();
+      text(ctx, '数据支撑区', sx(4), box.t + 16, C.muted, 'left', 10.5);
+      text(ctx, '外推区（数据稀疏）', sx(46), box.t + 16, C.red, 'left', 10.5);
+      text(ctx, '白线=真实价值　红线=朴素外推（空区把噪声当真，虚高误导策略）　绿线=保守估计（CQL 思路：数据撑不住就收缩）', 70, 82, C.text, 'left', 11);
+      text(ctx, '数据 ' + data.length + ' 条轨迹×12 步　离线 RL 的核心难题：策略要去的区域，数据可能从没覆盖过——直接外推=自欺', 70, H - 34, C.text, 'left', 11);
+      text(ctx, '谱系：BC（纯模仿）→ BCQ/CQL（保守）→ IQL → Decision Transformer（序列建模）——应用：医疗/自动驾驶/推荐等无法在线试错的领域', 70, H - 16, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeButton('重新采集数据', gen, true));
+    gen();
+  }
+
+  // ============================================================
+  // MCTS：井字棋 + 蒙特卡洛树搜索（真实算法）
+  // ============================================================
+  function mcts(container) {
+    const d = demoShell('MCTS · 井字棋对弈', '你执 O 先手点棋盘，MCTS 执 X 用指定次数的模拟应手——右侧显示每个候选位置的访问/胜率统计；另可批量评估 MCTS 对随机对手的胜率。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 470);
+    const rng = makeRng(1912);
+    let board = zeros(9), sims = 300, stats = null, busy = false, record = { w: 0, l: 0, d: 0 };
+    const WINS = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+    function winner(bd) {
+      for (const w2 of WINS) if (bd[w2[0]] && bd[w2[0]] === bd[w2[1]] && bd[w2[1]] === bd[w2[2]]) return bd[w2[0]];
+      return bd.every(function (v) { return v; }) ? 'D' : null;
+    }
+    function movesOf(bd) { const m2 = []; for (let i = 0; i < 9; i++) if (!bd[i]) m2.push(i); return m2; }
+    // MCTS：以 p（当前执子视角）搜索最佳动作
+    function mctsSearch(bd, p, nSims) {
+      const children = movesOf(bd).map(function (m2) {
+        const nb = bd.slice(); nb[m2] = p;
+        return { move: m2, board: nb, wins: 0, visits: 0 };
+      });
+      if (!children.length) return { move: -1, children: children };
+      for (let s = 0; s < nSims; s++) {
+        // UCT 选子（简化：两阶段——先各访问一次，之后按 UCT 选）
+        let child;
+        const unvisited = children.filter(function (c) { return c.visits === 0; });
+        if (unvisited.length) child = unvisited[0];
+        else {
+          child = children.reduce(function (best, c) {
+            const uct = c.wins / c.visits + 1.4 * Math.sqrt(Math.log(s + 1) / c.visits);
+            const bu = best.wins / best.visits + 1.4 * Math.sqrt(Math.log(s + 1) / best.visits);
+            return uct > bu ? c : best;
+          });
+        }
+        // playout：从 child.board 随机走到终局
+        const simB = child.board.slice();
+        let turn = p === 'X' ? 'O' : 'X', result = winner(simB);
+        while (!result) {
+          const ms = movesOf(simB);
+          const mv = ms[Math.floor(rng() * ms.length)];
+          simB[mv] = turn;
+          turn = turn === 'X' ? 'O' : 'X';
+          result = winner(simB);
+        }
+        // 回传：从 p 视角记分
+        child.visits++;
+        if (result === p) child.wins += 1;
+        else if (result === 'D') child.wins += 0.5;
+      }
+      return { move: children.reduce(function (best, c) { return c.visits > best.visits ? c : best; }).move, children: children };
+    }
+    // 交互棋盘坐标
+    const bx = 70, by = 100, cs2 = 90;
+    function cellAt(px, py) {
+      for (let i = 0; i < 9; i++) {
+        const x0 = bx + (i % 3) * cs2, y0 = by + Math.floor(i / 3) * cs2;
+        if (px >= x0 && px <= x0 + cs2 && py >= y0 && py <= y0 + cs2) return i;
+      }
+      return -1;
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      // 棋盘
+      for (let i = 0; i < 9; i++) {
+        const x0 = bx + (i % 3) * cs2, y0 = by + Math.floor(i / 3) * cs2;
+        ctx.fillStyle = 'rgba(18,26,46,0.9)';
+        ctx.fillRect(x0, y0, cs2 - 3, cs2 - 3);
+        ctx.strokeStyle = C.axis; ctx.strokeRect(x0, y0, cs2 - 3, cs2 - 3);
+        if (board[i]) {
+          text(ctx, board[i], x0 + cs2 / 2 - 2, y0 + cs2 / 2, board[i] === 'X' ? C.cyan : C.magenta, 'center', 30);
+        }
+      }
+      text(ctx, '你 = O（先手）　MCTS = X', bx, 82, C.text, 'left', 12);
+      // 右侧：候选统计
+      const rx = 380;
+      text(ctx, 'MCTS 评估（' + sims + ' 次模拟）', rx, 88, C.yellow, 'left', 12);
+      if (stats) {
+        const maxV = Math.max.apply(null, stats.map(function (c) { return c.visits; })) || 1;
+        stats.forEach(function (c, i) {
+          const y = 110 + i * 34;
+          const wr = c.visits ? c.wins / c.visits : 0;
+          text(ctx, '位置 ' + (c.move + 1), rx, y + 10, C.text, 'left', 10.5);
+          ctx.fillStyle = 'rgba(120,140,190,0.2)';
+          ctx.fillRect(rx + 80, y, 150, 18);
+          ctx.fillStyle = 'rgba(0,212,255,0.7)';
+          ctx.fillRect(rx + 80, y, (c.visits / maxV) * 150, 18);
+          text(ctx, '访问' + c.visits + ' · 胜率' + (wr * 100).toFixed(0) + '%', rx + 240, y + 13, C.muted, 'left', 9.5);
+        });
+      }
+      text(ctx, '对随机对手 ' + record.w + '胜 ' + record.d + '平 ' + record.l + '负（各 ' + (record.w + record.d + record.l) + ' 局）', rx, 268, C.text, 'left', 11);
+      text(ctx, 'MCTS 四步：选择(UCT) → 扩展 → 随机模拟 → 回传——模拟次数越多，评估越准（AlphaGo 把「随机模拟」换成策略/价值网络）', 70, H - 34, C.text, 'left', 11);
+      text(ctx, '井字棋是完美信息博弈的最小样本——同样的算法 + 神经网络先验 = AlphaGo/AlphaZero', 70, H - 16, C.text, 'left', 10);
+    }
+    function mctsTurn() {
+      if (winner(board)) { draw(); return; }
+      busy = true;
+      setTimeout(function () {
+        const res = mctsSearch(board, 'X', sims);
+        if (res.move >= 0) board[res.move] = 'X';
+        stats = res.children;
+        busy = false;
+        draw();
+      }, 60);
+    }
+    d.canvas.addEventListener('click', function (e) {
+      if (busy) return;
+      const rect = d.canvas.getBoundingClientRect();
+      const cell = cellAt((e.clientX - rect.left) * (780 / rect.width), (e.clientY - rect.top) * (470 / rect.height));
+      if (cell < 0 || board[cell] || winner(board)) return;
+      board[cell] = 'O';
+      draw();
+      mctsTurn();
+    });
+    d.controls.appendChild(makeRange(50, 1000, 50, sims, function (v) { sims = v; }, '模拟次数'));
+    d.controls.appendChild(makeButton('重开一局', function () { board = zeros(9); stats = null; draw(); }, true));
+    d.controls.appendChild(makeButton('MCTS vs 随机 ×100 局', function () {
+      busy = true;
+      setTimeout(function () {
+        record = { w: 0, l: 0, d: 0 };
+        for (let g = 0; g < 100; g++) {
+          const bd = zeros(9);
+          let turn = 'O', res = null;    // MCTS 执 X 后手
+          while (!(res = winner(bd))) {
+            if (turn === 'X') { bd[mctsSearch(bd, 'X', 80).move] = 'X'; }
+            else { const ms = movesOf(bd); bd[ms[Math.floor(rng() * ms.length)]] = 'O'; }
+            turn = turn === 'X' ? 'O' : 'X';
+          }
+          if (res === 'X') record.w++; else if (res === 'O') record.l++; else record.d++;
+        }
+        busy = false;
+        draw();
+      }, 50);
+    }));
+    draw();
+  }
+
+  // ============================================================
+  // AI 法规与合规：风险分级判定器（真实规则引擎）
+  // ============================================================
+  function aireg(container) {
+    const d = demoShell('AI 法规 · 风险分级判定器', '选择用途与角色，按 EU AI Act 的风险分级逻辑 + 我国生成式 AI 办法要求，实时给出风险等级与义务清单——合规是工程交付物的一部分。');
+    container.appendChild(d.root);
+    const { ctx, W, H } = setup(d.canvas, 780, 470);
+    const USES = [
+      { id: 'chat', name: '通用聊天助手', eu: 'limited', cn: '生成式AI服务' },
+      { id: 'content', name: '公开内容生成', eu: 'limited', cn: '生成式AI服务' },
+      { id: 'recruit', name: '招聘筛选', eu: 'high', cn: '算法备案' },
+      { id: 'credit', name: '信用评分', eu: 'high', cn: '算法备案' },
+      { id: 'medical', name: '医疗诊断辅助', eu: 'high', cn: '器械/备案' },
+      { id: 'edu', name: '教育考试评分', eu: 'high', cn: '算法备案' },
+      { id: 'bio', name: '实时生物识别（公共）', eu: 'banned', cn: '严格限制' },
+      { id: 'social', name: '社交平台推荐算法', eu: 'high', cn: '算法备案' }
+    ];
+    const ROLES = ['开发提供者', '部署使用方'];
+    const LEVELS = {
+      banned: { name: '不可接受风险', color: '#b91c1c', duties: ['禁止提供/使用（少数执法例外）', '已部署的必须下线'] },
+      high: { name: '高风险', color: '#ea580c', duties: ['风险管理与质量管理体系', '数据治理：训练数据代表性/偏差审查', '技术文档与日志留存', '透明度：告知用户正在与 AI 交互', '人工监督机制（human oversight）', '准确率/鲁棒性/安全性评估', '注册到欧盟数据库（提供者）', '我国的对应：算法备案 + 安全评估'] },
+      limited: { name: '有限风险', color: '#ca8a04', duties: ['透明度义务：告知内容由 AI 生成', '生成内容标识（我国：显式+隐式标识）', '深伪内容需披露真实来源', '我国：生成式 AI 服务备案（大模型上线备案）'] },
+      minimal: { name: '最小风险', color: '#16a34a', duties: ['无强制义务', '推荐：自愿性透明与内部治理', '推荐：用户反馈通道'] }
+    };
+    let use = USES[0], role = 0, publicRelease = true;
+    function judge() {
+      let eu = use.eu;
+      if (role === 1 && eu === 'high' && (use.id === 'recruit' || use.id === 'credit' || use.id === 'edu')) eu = eu;  // 部署方同样承担高风险义务
+      if (use.id === 'content' && publicRelease) eu = 'limited';
+      if (use.id === 'chat' && publicRelease) eu = 'limited';
+      const level = LEVELS[eu];
+      const duties = level.duties.slice();
+      if (role === 1 && eu === 'high') duties.push('部署方义务：告知受影响者 + 人工复核');
+      if (publicRelease && (use.id === 'chat' || use.id === 'content')) duties.push('我国：显式标识 + 隐式水印（标识办法）');
+      return { eu: eu, level: level, duties: duties };
+    }
+    function draw() {
+      clear(ctx, W, H); grid(ctx, W, H, 40);
+      const r2 = judge();
+      // 风险金字塔
+      const lv = [
+        ['不可接受', 'banned'], ['高风险', 'high'], ['有限风险', 'limited'], ['最小风险', 'minimal']
+      ];
+      const py0 = 100, lw = [240, 380, 500, 600];
+      lv.forEach(function (row, i) {
+        const y = py0 + i * 52;
+        const isCur = r2.eu === row[1];
+        const w2 = lw[i];
+        ctx.fillStyle = isCur ? LEVELS[row[1]].color : 'rgba(120,140,190,0.18)';
+        ctx.globalAlpha = isCur ? 0.9 : 0.5;
+        ctx.beginPath();
+        const x0 = W / 2 - w2 / 2;
+        ctx.fillRect(x0, y, w2, 42);
+        ctx.globalAlpha = 1;
+        text(ctx, row[0], W / 2, y + 21, isCur ? '#fff' : C.muted, 'center', 12);
+      });
+      // 义务清单
+      const ry = 330;
+      text(ctx, '判定：' + use.name + '（' + ROLES[role] + '）→ ' + r2.level.name, 70, ry, C.yellow, 'left', 13);
+      r2.duties.forEach(function (d2, i) {
+        text(ctx, '☑ ' + d2, 86, ry + 26 + i * 20, C.text, 'left', 11);
+      });
+      text(ctx, '用途与角色决定义务——同样的模型，用在招聘就是高风险、用来聊天就是有限风险', 70, H - 34, C.text, 'left', 11);
+      text(ctx, '合规工程化：风险分级 → 义务映射 → 文档与日志 → 持续监控——把法规变成可执行的检查表', 70, H - 16, C.text, 'left', 10);
+    }
+    d.controls.appendChild(makeSelect(USES.map(function (u, i) { return { value: i, label: u.name }; }), function (v) { use = USES[+v]; draw(); }));
+    d.controls.appendChild(makeSelect(ROLES.map(function (r2, i) { return { value: i, label: r2 }; }), function (v) { role = +v; draw(); }));
+    d.controls.appendChild(makeButton('切换：是否公开发布', function () { publicRelease = !publicRelease; draw(); }, true));
+    draw();
+  }
+
   window.MLDemos = {
     dist: dist, linear: linear, logistic: logistic, tree: tree, forest: forest,
     xgboost: xgboost, svm: svm, kmeans: kmeans, pca: pca, mlp: mlp, rnn: rnn, lstm: lstm, seq: seq,
@@ -8866,6 +9266,7 @@
     videounder: videounder, context: context, fairness: fairness, llmeval: llmeval,
     prob: prob, lincalc: lincalc, infotheory: infotheory, numpy: numpy,
     hmmkalman: hmmkalman, experiment: experiment, aisearch: aisearch,
-    router: router, watermark: watermark
+    router: router, watermark: watermark,
+    bandit: bandit, offlinerl: offlinerl, mcts: mcts, aireg: aireg
   };
 })();

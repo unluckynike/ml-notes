@@ -60,7 +60,7 @@ const ROADMAP = [
   {
     title: '进阶与应用',
     color: '#c084fc',
-    items: ['GAN 生成模型', '强化学习 · 策略梯度 · DQN', '迁移学习', '推荐系统', '异常检测', '世界模型与自动驾驶', '联邦学习', '差分隐私', '具身智能', '语音对话系统', '语音合成 TTS']
+    items: ['GAN 生成模型', '强化学习 · 策略梯度 · DQN', '多臂老虎机与探索', '离线强化学习', 'MCTS 与 AlphaGo', '迁移学习', '推荐系统', '异常检测', '世界模型与自动驾驶', '联邦学习', '差分隐私', '具身智能', '语音对话系统', '语音合成 TTS']
   },
   {
     title: '计算机视觉',
@@ -85,7 +85,7 @@ const ROADMAP = [
   {
     title: '工程方法论',
     color: '#f59e0b',
-    items: ['AI 历史与流派', '特征工程', '实验设计与 A/B 测试', '模型评估与调参', 'LLM 评测与裁判', 'AutoML', '机制可解释性', '算法公平性', '共形预测', '因果推断', '序列预测·时间序列', '时间序列 ARIMA', 'MLOps 与监控', 'AI 芯片与算力']
+    items: ['AI 历史与流派', '特征工程', '实验设计与 A/B 测试', '模型评估与调参', 'LLM 评测与裁判', 'AutoML', '机制可解释性', '算法公平性', 'AI 法规与合规', '共形预测', '因果推断', '序列预测·时间序列', '时间序列 ARIMA', 'MLOps 与监控', 'AI 芯片与算力']
   }
 ];
 
@@ -164,7 +164,12 @@ const GRAPH_EDGES = [
   ['causal', 'experiment', 'pre'], ['causal', 'pgm', 'rel'], ['mlops', 'experiment', 'rel'],
   ['mlops', 'anomaly', 'rel'], ['chip', 'parallel', 'rel'], ['chip', 'inference', 'rel'],
   ['chip', 'quant', 'rel'], ['history', 'gpt', 'rel'], ['history', 'transformer', 'rel'],
-  ['mlops', 'feature', 'rel'], ['transfer', 'fl', 'rel']
+  ['mlops', 'feature', 'rel'], ['transfer', 'fl', 'rel'],
+  ['bandit', 'experiment', 'rel'], ['bandit', 'rl', 'pre'], ['bandit', 'recsys', 'rel'],
+  ['offlinerl', 'rl', 'pre'], ['offlinerl', 'embodied', 'rel'], ['mcts', 'bandit', 'pre'],
+  ['mcts', 'rl', 'rel'], ['mcts', 'cot', 'rel'], ['mcts', 'world', 'rel'],
+  ['aireg', 'safety', 'rel'], ['aireg', 'watermark', 'rel'], ['aireg', 'fairness', 'rel'],
+  ['aireg', 'mlops', 'rel']
 ];
 
 // 六步方法论
@@ -3412,8 +3417,137 @@ const TOPICS = [
     demo: { id: 'clip', title: 'CLIP · 图文对齐演示', note: '三张图与三个词映射到同一空间，点击看匹配对的相似度如何远高于不匹配对。' }, deep: 'content/clip.md'  },
 
   {
-    id: 'rl',
+    id: 'bandit',
     num: '67',
+    emoji: '🎰',
+    name: '多臂老虎机与探索',
+    en: 'Multi-Armed Bandits',
+    cat: 'rl',
+    diff: 3,
+    accent: '#ffd166',
+    tagline: '「该试新的还是用已知最好的？」——探索与利用困境的最小化身，UCB 与 Thompson 采样给出有数学保证的答案。',
+    intro: {
+      what: '多臂老虎机（MAB）研究在未知奖励分布的 K 个选项间如何分配尝试：ε-greedy、UCB（置信上界）、Thompson 采样三大策略；核心度量是遗憾（regret）——最优选择与实际选择的期望回报差。',
+      problem: '推荐系统冷启动、A/B 流量分配、临床试药——任何「不知道哪个选项最好，但要边用边学」的场景都是 bandit；A/B 测试把探索与利用完全分开（先测后用），bandit 让它们同时进行。',
+      idea: '探索-利用的形式化：遗憾 = Σ(最优期望 − 实际期望)；好策略的遗憾亚线性增长（UCB/Thompson 的遗憾 O(log T)——比朴素 ε-greedy 的 O(T) 好一个量级）。'
+    },
+    principle: {
+      text: [
+        'ε-greedy：以 ε 概率随机探索、其余利用当前最优——简单，但探索盲目（不区分「不确定」与「确认差」）。',
+        'UCB1：选择「均值 + 置信半径」最大的臂——乐观面对不确定性：没试过几次的臂置信区间宽，自动获得尝试机会；遗憾 O(log T) 有证明。',
+        'Thompson 采样：为每个臂维护奖励的后验分布（Beta），每轮从各后验采样选最大——贝叶斯式的优雅，工业 A/B 与推荐的主力算法。'
+      ],
+      formula: {
+        html: 'UCB: a<sub>t</sub> = <span class="fn">argmax</span><sub>a</sub> [ <span class="sym">Q̂</span>(a) + c<span class="sqrt">√</span>(<span class="sym">ln t</span> / <span class="sym">n</span><sub>a</sub>) ]',
+        note: '均值项利用、不确定度项探索——c 控制天平。随 t 增大，未充分尝试的臂不确定度上升，自动被访问。'
+      }
+    },
+    example: {
+      analogy: '餐厅选菜：总点熟悉的菜（利用）永远不知道新菜好不好（探索亏机会）；聪明的吃法是「新菜也偶尔试试，而且刚开的店优先试」——UCB 的乐观主义。',
+      mini: '演示里三策略在同样的 5 台老虎机上各跑各的：ε-greedy 的遗憾线性爬升（盲目探索持续付学费），UCB/Thompson 快速锁定最优臂、遗憾走平。'
+    },
+    pros: ['样本效率高：遗憾亚线性（快速停止为差选项付费）', '无需预先样本量计算（对比 A/B 测试）', '天然适合流量分配：随时可以把流量搬向更好的选项'],
+    cons: ['奖励延迟时（点击很久才发生）需专门处理', '上下文相关的选择要用 contextual bandit（LinUCB）', '非平稳环境（奖励分布随时间变）需要滑动窗口/折扣变体'],
+    history: [
+      { year: '1933', text: 'Thompson 提出后验采样思想（比「Thompson 采样」这个名字早了半个世纪）。' },
+      { year: '1985~2002', text: 'UCB 家族确立，遗憾分析成为 bandit 理论核心。' },
+      { year: '2010s', text: '互联网工业大规模应用：新闻推荐（Yahoo!）、实验平台、广告。' },
+      { year: '至今', text: 'contextual bandit 与强化学习之间的桥梁；推荐/实验系统的标配组件。' },
+    ],
+    use: ['推荐系统的探索流量分配（新内容保底曝光）', 'A/B 测试的自适应版本（尽早把流量搬向好方案）', '任何「多选项+即时反馈」的决策（选广告/选标题/选价格）'],
+    avoid: ['奖励严重延迟的场景（bandit 假设即时反馈）', '状态重要的场景（升级为 contextual bandit 或 RL）', '把 regret 理论界当实际保证（假设常被现实打破）'],
+    learn: ['在演示里对比 <strong>三种策略的遗憾曲线</strong>：ε-greedy 直线爬升 vs UCB/Thompson 走平。', '看 <strong>拉臂分布</strong>：好策略把尝试集中到最优臂。', '调 <strong>ε</strong>：太大持续付学费、太小困在次优。', '进阶：读 Sutton & Barto 第 2 章——bandit 是 RL 的第 0 课。'],
+    demo: { id: 'bandit', title: '多臂老虎机 · 探索策略', note: '5 台老虎机三种策略同台：ε-greedy/UCB/Thompson 的遗憾曲线与拉臂分布实时对比。' }, deep: 'content/bandit.md'  },
+
+  {
+    id: 'offlinerl',
+    num: '68',
+    emoji: '🗄️',
+    name: '离线强化学习',
+    en: 'Offline Reinforcement Learning',
+    cat: 'rl',
+    diff: 4,
+    accent: '#ffd166',
+    tagline: '只用历史数据学策略、完全不与环境交互——医疗/自动驾驶/工业这些「试错代价是真实伤害」领域的关键技术。',
+    intro: {
+      what: '离线（batch）RL 从**固定的历史数据集**学习策略，学习过程中不再与环境交互：数据来自人类操作记录/旧策略运行日志，学习完直接部署。',
+      problem: '在线 RL 要试错——自动驾驶试错的代价是真实事故、医疗试错的代价是真实伤害；监督学习又无法解决「长期后果」的信用分配。离线 RL 是两者的桥：从静态数据中提取策略。',
+      idea: '核心难题是**分布偏移**：策略要访问的状态，数据集可能从未覆盖——价值函数在这些区域的外推不可靠且会被贪心利用（虚高导致危险决策）。对策家族：保守估计（CQL：压低数据外的 Q 值）、策略约束（BCQ：动作别离数据太远）、不确定性惩罚、序列建模（Decision Transformer）。'
+    },
+    principle: {
+      text: [
+        '分布偏移的数学：Q 函数在数据支撑外是「自由外推」——贪心策略会精准找到这些虚高错误的点去访问，误差自我放大（与模型基 RL 的复合误差同源）。',
+        '保守 Q 学习（CQL）：训练时额外最小化「数据外动作的 Q 值」——把支撑外的估值压到数据内的水平以下，贪心利用无从下手。',
+        'Decision Transformer 路线：把 (状态, 动作, 奖励) 当序列用 Transformer 建模——「以目标回报为条件的动作生成」，与语言建模同构（见 GPT 深读）。'
+      ],
+      formula: {
+        html: '朴素外推：Q(s, a) → 数据外的 <span class="fn">任意值</span>（不可控）；CQL：min λ·<span class="sym">E</span><sub>s∼D, a∉D</sub>[Q(s,a)] − Q(s,a<sub>D</sub>)',
+        note: '保守化的实现：对数据分布外动作的 Q 值施加下降压力——外推不再虚高，策略自然被约束在数据支撑附近。'
+      }
+    },
+    example: {
+      analogy: '老司机的行车记录仪：学开车不能靠「让 AI 上路试错」（危险），只能从人类司机的记录里学——但记录里没有「冰面上怎么救车」，直接外推会自信地犯错。离线 RL 的全部难题就是这个。',
+      mini: '演示里数据（灰柱）几乎只在左侧、宝藏（价值峰）在右侧：朴素外推的红线在数据稀疏区虚高误导，保守估计的绿线诚实收缩。'
+    },
+    pros: ['试错代价不可接受领域的唯一选择（医疗/驾驶/工业）', '复用海量历史日志（旧策略运行数据变废为宝）', '部署前可充分评估（策略是静态函数，可离线审计）'],
+    cons: ['数据覆盖不足的区域学不到（只能保守或回避）', '保守过度则学不出好策略（权衡是核心超参）', '奖励函数需从数据反推（ Rewards 期望的设计偏差直接进策略）'],
+    history: [
+      { year: '2012~19', text: 'Batch RL 概念成型；BCQ 等约束类方法提出。' },
+      { year: '2020', text: 'CQL（保守 Q 学习）成为标杆；D4RL 基准发布。' },
+      { year: '2021', text: 'IQL（隐式 Q 学习）避免访问 unseen 动作；Decision Transformer 用序列建模做 RL。' },
+      { year: '至今', text: '与大规模数据结合（机器人数据集/人类演示）成为具身智能与离线决策的主力。' },
+    ],
+    use: ['医疗决策支持（病历数据学策略）', '自动驾驶与机器人（历史驾驶/演示数据）', '推荐/定价等「只能用日志评估」的业务'],
+    avoid: ['数据覆盖接近决策分布（普通监督学习即可）', '能安全在线试错（在线 RL 更强）', '奖励定义模糊且无人类偏好可用'],
+    learn: ['在演示里对比 <strong>朴素外推与保守估计</strong> 在数据稀疏区的形状。', '理解 <strong>分布偏移</strong>：策略去的地方 ≠ 数据去过的地方。', '记住 <strong>方法家族</strong>：保守/策略约束/不确定性/序列建模。', '进阶：读 Levine et al. 的 Offline RL 综述——领域地图。'],
+    demo: { id: 'offlinerl', title: '离线 RL · 数据覆盖与外推', note: '灰柱=数据覆盖（几乎全在左）；朴素外推红线在数据稀疏区虚高、保守估计绿线诚实收缩。' }, deep: 'content/offlinerl.md'  },
+
+  {
+    id: 'mcts',
+    num: '69',
+    emoji: '🌳',
+    name: 'MCTS 与 AlphaGo',
+    en: 'Monte Carlo Tree Search',
+    cat: 'rl',
+    diff: 4,
+    accent: '#ffd166',
+    tagline: '蒙特卡洛树搜索：用「随机模拟+统计回传」在博弈树里找好棋——AlphaGo 把随机模拟换成神经网络先验，搜索+学习的合体。',
+    intro: {
+      what: 'MCTS 通过反复「选择→扩展→模拟→回传」逐步构建不对称的博弈树：有希望的分支越探越深，无希望的尽早放弃；UCB 公式在探索与利用间平衡。',
+      problem: '围棋的搜索空间约 10^170——暴力穷举不可能；人类棋手的「棋感」（哪些步值得细想）+「局面判断」（当前谁优）又难以编程。需要一种能结合两者、按需分配计算的方法。',
+      idea: '四步循环：选择（从根按 UCT 走到叶节点）→ 扩展（加一个新子节点）→ 模拟（随机走到底得胜负）→ 回传（结果沿路径更新统计）。AlphaGo/AlphaZero 的改造：随机模拟换成策略/价值网络——「模拟」变成「神经网络直接判断」。'
+    },
+    principle: {
+      text: [
+        'UCT 公式：子节点价值 = 胜率 + c·√(ln 父访问数 / 子访问数)——胜率（利用）与访问数（探索）的平衡，与多臂老虎机同源（每个节点是一个 bandit）。',
+        'AlphaGo 三网络：策略网络（棋感：候选步概率）缩小搜索宽度、价值网络（局面判断）替代随机模拟、加上 MCTS 精算——「人类棋感的神经版 + 蒙特卡洛精算」。',
+        'AlphaZero：不用人类棋谱、纯自我对弈从零学习——同样的算法在围棋/国际象棋/将棋上全部达到超人类，证明「学习+搜索」范式的通用性。'
+      ],
+      formula: {
+        html: 'UCT: a* = <span class="fn">argmax</span><sub>a</sub> [ <span class="sym">w</span><sub>a</sub>/<span class="sym">n</span><sub>a</sub> + c<span class="sqrt">√</span>(<span class="sym">ln N</span>/<span class="sym">n</span><sub>a</sub>) ]',
+        note: '胜率项（利用）与探索项（不确定度）之和——每个节点都是一个 bandit，MCTS 是「树上的 UCB 联合体」。'
+      }
+    },
+    example: {
+      analogy: '探险队在岔路口分配探照时间：走过的岔路越走越清楚（统计），没走的按「与已探明的相似度+没走过」给机会（UCT）——好路线越探越深，差路线浅尝辄止。',
+      mini: '演示里 121 个主题外的你可以在井字棋上亲自与 MCTS 对弈：调低模拟次数它频频失误，调高后几乎不可战胜——「算力换棋力」的最小可见样本。'
+    },
+    pros: ['通用：换一个规则/模拟器就能用于新博弈或规划问题', '按需分配计算：好分支深挖、差分支浅尝', '与神经网络天然互补：网络出先验、搜索出精确'],
+    cons: ['纯随机模拟在围棋级别效果差（需要网络先验）', '每次决策都要成百上千次模拟（算力开销）', '完美信息博弈主场——不完美信息（扑克）要 CFR 类方法'],
+    history: [
+      { year: '2006', text: 'Kocsis & Szepesvári 提出 UCT（UCT=UCB+树）。' },
+      { year: '2012~15', text: 'Coulom 的 CrazyStone 与 MoHex 展示 MCTS+ML 的威力。' },
+      { year: '2016', text: 'AlphaGo 胜李世石：策略/价值网络 + MCTS 的巅峰展示。' },
+      { year: '2017+', text: 'AlphaZero：纯自我对弈通吃三大棋；MuZero 连规则都学（模型基 RL）。' },
+    ],
+    use: ['棋类/卡牌等完美信息博弈', '规划问题（组合优化、资源调度）', 'LLM 推理的搜索增强（ToT/MCTS 式推理，见思维链深读）'],
+    avoid: ['状态-动作空间巨大且无好的先验/模拟器', '随机模拟噪声淹没策略差异的精细博弈', '需要严格最优解的组合问题（精确算法优先）'],
+    learn: ['在演示里把 <strong>模拟次数从 50 调到 1000</strong>，感受「算力换棋力」。', '亲手下棋 <strong>骗一次 MCTS</strong>（低模拟时的漏洞）。', '理解 <strong>UCT 的两项</strong> 与 bandit 的关系（每个节点=一个老虎机）。', '进阶：读 AlphaGo 论文的搜索章节——网络先验如何注入 MCTS。'],
+    demo: { id: 'mcts', title: 'MCTS · 井字棋对弈', note: '真实 MCTS 算法：你执 O 它执 X，右侧实时显示每个候选位置的访问/胜率统计。' }, deep: 'content/mcts.md'  },
+
+  {
+    id: 'rl',
+    num: '70',
     emoji: '🎮',
     name: '强化学习',
     en: 'Reinforcement Learning',
@@ -3461,7 +3595,7 @@ const TOPICS = [
 
   {
     id: 'pg',
-    num: '68',
+    num: '71',
     emoji: '🎯',
     name: '策略梯度与 Actor-Critic',
     en: 'Policy Gradient & Actor-Critic',
@@ -3509,7 +3643,7 @@ const TOPICS = [
 
   {
     id: 'dqn',
-    num: '69',
+    num: '72',
     emoji: '🧠',
     name: '深度强化学习 DQN',
     en: 'Deep Q-Network (DQN)',
@@ -3557,7 +3691,7 @@ const TOPICS = [
 
   {
     id: 'token',
-    num: '70',
+    num: '73',
     emoji: '✂️',
     name: 'Tokenization 分词',
     en: 'Tokenization (BPE / WordPiece)',
@@ -3606,7 +3740,7 @@ const TOPICS = [
 
   {
     id: 'word2vec',
-    num: '71',
+    num: '74',
     emoji: '🧭',
     name: '词嵌入 Word2Vec',
     en: 'Word Embeddings (Word2Vec)',
@@ -3654,7 +3788,7 @@ const TOPICS = [
 
   {
     id: 'bert',
-    num: '72',
+    num: '75',
     emoji: '🧩',
     name: 'BERT 与编码器模型',
     en: 'BERT & Encoder-only Models',
@@ -3703,7 +3837,7 @@ const TOPICS = [
 
   {
     id: 'gpt',
-    num: '73',
+    num: '76',
     emoji: '🔮',
     name: 'GPT 架构与预训练',
     en: 'GPT & Pretraining',
@@ -3752,7 +3886,7 @@ const TOPICS = [
 
   {
     id: 'posenc',
-    num: '74',
+    num: '77',
     emoji: '📐',
     name: '位置编码与长上下文',
     en: 'Positional Encoding & Long Context',
@@ -3802,7 +3936,7 @@ const TOPICS = [
 
   {
     id: 'lora',
-    num: '75',
+    num: '78',
     emoji: '🔩',
     name: '微调与 LoRA',
     en: 'Fine-tuning & LoRA',
@@ -3851,7 +3985,7 @@ const TOPICS = [
 
   {
     id: 'watermark',
-    num: '76',
+    num: '79',
     emoji: '💧',
     name: '水印与内容检测',
     en: 'Watermarking & Detection',
@@ -3894,7 +4028,7 @@ const TOPICS = [
 
   {
     id: 'rlhf',
-    num: '77',
+    num: '80',
     emoji: '⚖️',
     name: 'RLHF 与对齐',
     en: 'Reinforcement Learning from Human Feedback',
@@ -3943,7 +4077,7 @@ const TOPICS = [
 
   {
     id: 'router',
-    num: '78',
+    num: '81',
     emoji: '🔀',
     name: '模型路由与成本',
     en: 'Model Routing & Cost',
@@ -3986,7 +4120,7 @@ const TOPICS = [
 
   {
     id: 'dataeng',
-    num: '79',
+    num: '82',
     emoji: '🧹',
     name: '数据工程与合成数据',
     en: 'Data Engineering & Synthetic Data',
@@ -4029,7 +4163,7 @@ const TOPICS = [
 
   {
     id: 'parallel',
-    num: '80',
+    num: '83',
     emoji: '🧩',
     name: '分布式训练与并行',
     en: 'Distributed Training & Parallelism',
@@ -4078,7 +4212,7 @@ const TOPICS = [
 
   {
     id: 'inference',
-    num: '81',
+    num: '84',
     emoji: '🚀',
     name: '推理优化与部署',
     en: 'LLM Inference Optimization',
@@ -4127,7 +4261,7 @@ const TOPICS = [
 
   {
     id: 'quant',
-    num: '82',
+    num: '85',
     emoji: '📦',
     name: '模型量化',
     en: 'Model Quantization',
@@ -4175,7 +4309,7 @@ const TOPICS = [
 
   {
     id: 'prompt',
-    num: '83',
+    num: '86',
     emoji: '💬',
     name: '提示工程',
     en: 'Prompt Engineering',
@@ -4224,7 +4358,7 @@ const TOPICS = [
 
   {
     id: 'context',
-    num: '84',
+    num: '87',
     emoji: '📋',
     name: '上下文工程',
     en: 'Context Engineering',
@@ -4266,7 +4400,7 @@ const TOPICS = [
 
   {
     id: 'cot',
-    num: '85',
+    num: '88',
     emoji: '💭',
     name: '思维链与推理模型',
     en: 'Chain-of-Thought & Reasoning Models',
@@ -4314,7 +4448,7 @@ const TOPICS = [
 
   {
     id: 'codegen',
-    num: '86',
+    num: '89',
     emoji: '👨‍💻',
     name: '代码生成与结构化解码',
     en: 'Code Generation & Structured Decoding',
@@ -4357,7 +4491,7 @@ const TOPICS = [
 
   {
     id: 'mathllm',
-    num: '87',
+    num: '90',
     emoji: '🧮',
     name: '数学推理',
     en: 'Mathematical Reasoning',
@@ -4400,7 +4534,7 @@ const TOPICS = [
 
   {
     id: 'embed',
-    num: '88',
+    num: '91',
     emoji: '🧲',
     name: '多模态检索与嵌入',
     en: 'Embeddings & Multimodal Retrieval',
@@ -4443,7 +4577,7 @@ const TOPICS = [
 
   {
     id: 'vlm',
-    num: '89',
+    num: '92',
     emoji: '🖼️',
     name: '多模态大模型 VLM',
     en: 'Vision-Language Models',
@@ -4491,7 +4625,7 @@ const TOPICS = [
 
   {
     id: 'bench',
-    num: '90',
+    num: '93',
     emoji: '📏',
     name: '评测基准与数据污染',
     en: 'Benchmarks & Data Contamination',
@@ -4539,7 +4673,7 @@ const TOPICS = [
 
   {
     id: 'safety',
-    num: '91',
+    num: '94',
     emoji: '🚨',
     name: 'AI 安全与对齐',
     en: 'AI Safety & Alignment',
@@ -4586,7 +4720,7 @@ const TOPICS = [
 
   {
     id: 'aisearch',
-    num: '92',
+    num: '95',
     emoji: '🔭',
     name: 'AI 搜索引擎',
     en: 'AI-Powered Search',
@@ -4628,7 +4762,7 @@ const TOPICS = [
 
   {
     id: 'ir',
-    num: '93',
+    num: '96',
     emoji: '🔎',
     name: '信息检索',
     en: 'Information Retrieval',
@@ -4671,7 +4805,7 @@ const TOPICS = [
 
   {
     id: 'rag',
-    num: '94',
+    num: '97',
     emoji: '📚',
     name: 'RAG 检索增强生成',
     en: 'Retrieval-Augmented Generation',
@@ -4720,7 +4854,7 @@ const TOPICS = [
 
   {
     id: 'kg',
-    num: '95',
+    num: '98',
     emoji: '💠',
     name: '知识图谱',
     en: 'Knowledge Graphs',
@@ -4763,7 +4897,7 @@ const TOPICS = [
 
   {
     id: 'agent',
-    num: '96',
+    num: '99',
     emoji: '🕵️',
     name: 'Agent 与工具调用',
     en: 'AI Agent & Tool Use (ReAct)',
@@ -4811,7 +4945,7 @@ const TOPICS = [
 
   {
     id: 'cua',
-    num: '97',
+    num: '100',
     emoji: '🖱️',
     name: '计算机使用智能体',
     en: 'Computer-Use Agents',
@@ -4858,7 +4992,7 @@ const TOPICS = [
 
   {
     id: 'multiagent',
-    num: '98',
+    num: '101',
     emoji: '🤝',
     name: '多智能体协作',
     en: 'Multi-Agent Collaboration',
@@ -4906,7 +5040,7 @@ const TOPICS = [
 
   {
     id: 'recsys',
-    num: '99',
+    num: '102',
     emoji: '🛍️',
     name: '推荐系统',
     en: 'Recommender Systems',
@@ -4954,7 +5088,7 @@ const TOPICS = [
 
   {
     id: 'anomaly',
-    num: '100',
+    num: '103',
     emoji: '🚨',
     name: '异常检测',
     en: 'Anomaly Detection',
@@ -5002,7 +5136,7 @@ const TOPICS = [
 
   {
     id: 'speech',
-    num: '101',
+    num: '104',
     emoji: '🎙️',
     name: '语音识别与合成',
     en: 'Speech Recognition & Synthesis (ASR/TTS)',
@@ -5050,7 +5184,7 @@ const TOPICS = [
 
   {
     id: 'tts',
-    num: '102',
+    num: '105',
     emoji: '🔊',
     name: '语音合成 TTS',
     en: 'Text-to-Speech',
@@ -5098,7 +5232,7 @@ const TOPICS = [
 
   {
     id: 'voicechat',
-    num: '103',
+    num: '106',
     emoji: '🎙️',
     name: '语音对话系统',
     en: 'Spoken Dialogue Systems',
@@ -5141,7 +5275,7 @@ const TOPICS = [
 
   {
     id: 'world',
-    num: '104',
+    num: '107',
     emoji: '🌍',
     name: '世界模型与自动驾驶',
     en: 'World Models & Autonomous Driving',
@@ -5184,7 +5318,7 @@ const TOPICS = [
 
   {
     id: 'embodied',
-    num: '105',
+    num: '108',
     emoji: '🤖',
     name: '具身智能',
     en: 'Embodied AI & Robotics',
@@ -5232,7 +5366,7 @@ const TOPICS = [
 
   {
     id: 'fl',
-    num: '106',
+    num: '109',
     emoji: '🌍',
     name: '联邦学习',
     en: 'Federated Learning',
@@ -5280,7 +5414,7 @@ const TOPICS = [
 
   {
     id: 'dp',
-    num: '107',
+    num: '110',
     emoji: '🔒',
     name: '差分隐私',
     en: 'Differential Privacy',
@@ -5329,7 +5463,7 @@ const TOPICS = [
 
   {
     id: 'history',
-    num: '108',
+    num: '111',
     emoji: '🏛️',
     name: 'AI 历史与流派',
     en: 'History & Schools of AI',
@@ -5377,7 +5511,7 @@ const TOPICS = [
 
   {
     id: 'experiment',
-    num: '109',
+    num: '112',
     emoji: '🧪',
     name: '实验设计与 A/B 测试',
     en: 'Experiment Design & A/B Testing',
@@ -5420,7 +5554,7 @@ const TOPICS = [
 
   {
     id: 'feature',
-    num: '110',
+    num: '113',
     emoji: '🛠️',
     name: '特征工程',
     en: 'Feature Engineering',
@@ -5468,7 +5602,7 @@ const TOPICS = [
 
   {
     id: 'evaluation',
-    num: '111',
+    num: '114',
     emoji: '🎛️',
     name: '模型评估与调参',
     en: 'Evaluation & Hyperparameter Tuning',
@@ -5517,7 +5651,7 @@ const TOPICS = [
 
   {
     id: 'llmeval',
-    num: '112',
+    num: '115',
     emoji: '🧑‍⚖️',
     name: 'LLM 评测与裁判',
     en: 'LLM-as-a-Judge',
@@ -5560,7 +5694,7 @@ const TOPICS = [
 
   {
     id: 'hpo',
-    num: '113',
+    num: '116',
     emoji: '🎛️',
     name: '超参数优化与贝叶斯搜索',
     en: 'Hyperparameter Optimization',
@@ -5608,7 +5742,7 @@ const TOPICS = [
 
   {
     id: 'automl',
-    num: '114',
+    num: '117',
     emoji: '🏭',
     name: 'AutoML',
     en: 'Automated Machine Learning',
@@ -5651,7 +5785,7 @@ const TOPICS = [
 
   {
     id: 'interp',
-    num: '115',
+    num: '118',
     emoji: '🔬',
     name: '机制可解释性',
     en: 'Mechanistic Interpretability',
@@ -5694,7 +5828,7 @@ const TOPICS = [
 
   {
     id: 'fairness',
-    num: '116',
+    num: '119',
     emoji: '⚖️',
     name: '算法公平性',
     en: 'Algorithmic Fairness',
@@ -5736,8 +5870,51 @@ const TOPICS = [
     demo: { id: 'fairness', title: '公平性 · 指标与权衡', note: '两组分数分布 + 阈值滑杆：通过率/TPR/校准的冲突实时可见——公平选型是价值判断。' }, deep: 'content/fairness.md'  },
 
   {
+    id: 'aireg',
+    num: '120',
+    emoji: '⚖️',
+    name: 'AI 法规与合规',
+    en: 'AI Regulation & Compliance',
+    cat: 'method',
+    diff: 2,
+    accent: '#f59e0b',
+    tagline: '把法规变成工程交付物：EU AI Act 的风险分级、我国生成式 AI 的备案与标识、算法备案——合规是可执行的检查表，不是口号。',
+    intro: {
+      what: 'AI 法规地图：EU AI Act 的四档风险分类与义务、我国《生成式人工智能服务管理暂行办法》与算法推荐规定（备案/标识/安全评估）、美国 NIST AI RMF 框架；按角色（提供者/部署者）与用途划分义务。',
+      problem: 'AI 系统进入医疗/招聘/信贷等高风险场景，法规强制要求治理证据（风险评估/审计/备案）；违规的代价是下架、罚款（EU 最高全球营收 7%）与法律责任——合规是工程交付物的一部分。',
+      idea: '方法论：先按「用途+角色+技术特征」判定风险等级 → 映射义务清单（透明度/人工监督/数据治理/注册备案）→ 落地为工程检查表 → 持续监控与文档留存。EU 按风险分级，我国按「算法类型+服务形态」双轨。'
+    },
+    principle: {
+      text: [
+        'EU AI Act 四档：不可接受（禁止：社会评分/实时生物识别执法等）、高风险（医疗/招聘/信贷/教育：强制义务）、有限风险（聊天/内容生成：透明度义务）、最小风险（无强制）。',
+        '我国双轨：算法推荐规定（备案+生态治理）+ 生成式 AI 暂行办法（安全评估+备案+标识+训练数据合规）；深度合成规定（显式+隐式标识）。',
+        '工程映射：每条法规义务对应一个可交付的工程物——风险文档（风险管理系统）、训练数据记录（数据治理）、评测报告（准确性/鲁棒性）、水印/标识（透明度）、日志与监控（MLOps 深读的治理一节）。'
+      ],
+      formula: {
+        html: '义务 = <span class="fn">f</span>(用途, 角色, 技术特征)，　风险 ∈ [不可接受, 高, 有限, 最小]',
+        note: '法规义务是「用途×角色×技术」的函数——同样的模型换用途就换义务集，这正是演示的规则引擎所编码的。'
+      }
+    },
+    example: {
+      analogy: '食品行业的 HACCP 体系：不是「相信厨师手艺」而是「关键控制点有检查表+记录」——AI 合规同理：把价值观转成可检查、可审计的工程流程。',
+      mini: '演示里选「招聘筛选」→ 高风险（8 项义务含偏差审查与人工监督）；选「通用聊天」→ 有限风险（透明度+标识）；切换角色看义务如何移动。'
+    },
+    pros: ['AI 产品上线的合规检查表（EU/中国双轨）', '高风险场景的义务映射与文档准备', '算法备案与生成内容标识的工程落地'],
+    cons: ['法规快速演化（以官方文本为准）', '跨国部署需逐司法辖区分析', '把「合规文档」当「实际安全」（两回事）'],
+    history: [
+      { year: '2016', text: 'GDPR 确立自动化决策的权利（解释权/反对权）。' },
+      { year: '2018', text: 'GDPR 生效；我国《电子商务法》规范推荐算法。' },
+      { year: '2022', text: '我国算法推荐规定与深度合成规定发布；EU 政治 agreement。' },
+      { year: '2024+', text: 'EU AI Act 生效分阶段实施；我国生成式 AI 标识办法与大模型备案常态化。' },
+    ],
+    use: ['AI 产品的上线合规评审（EU/中国双轨）', '高风险场景（招聘/信贷/医疗）的义务映射', '算法备案与生成内容标识的工程落地'],
+    avoid: ['把合规当一次性项目（法规与模型都在演化）', '混淆「有文档」与「有治理」（文档要反映现实）', '忽略部署方的义务（提供者合规≠使用合规）'],
+    learn: ['在演示里切换 <strong>用途与角色</strong>，观察义务清单的变化。', '对照 <strong>EU 四档与我国双轨</strong> 的映射关系。', '把每条义务翻译成 <strong>工程交付物</strong>（文档/评测/监控）。', '进阶：通读 EU AI Act 附件 III 的高风险清单。'],
+    demo: { id: 'aireg', title: 'AI 法规 · 风险分级判定器', note: '选择用途与角色，按 EU AI Act 逻辑实时判定风险等级与义务清单。' }, deep: 'content/aireg.md'  },
+
+  {
     id: 'conformal',
-    num: '117',
+    num: '121',
     emoji: '🎯',
     name: '共形预测',
     en: 'Conformal Prediction',
@@ -5785,7 +5962,7 @@ const TOPICS = [
 
   {
     id: 'causal',
-    num: '118',
+    num: '122',
     emoji: '🧭',
     name: '因果推断',
     en: 'Causal Inference',
@@ -5833,7 +6010,7 @@ const TOPICS = [
 
   {
     id: 'mlops',
-    num: '119',
+    num: '123',
     emoji: '🛠️',
     name: 'MLOps 与模型监控',
     en: 'MLOps & Model Monitoring',
@@ -5881,7 +6058,7 @@ const TOPICS = [
 
   {
     id: 'chip',
-    num: '120',
+    num: '124',
     emoji: '🔌',
     name: 'AI 芯片与算力',
     en: 'AI Chips & Compute',
