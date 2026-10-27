@@ -62,6 +62,13 @@ ViT 的固定 patch（16×16）在密集预测/小目标上的两个问题与对
 
 **MAE 的 view**：ViT 的 patch 化对掩码自监督极其友好——「丢 patch」就是掩码（CNN 的特征图掩码做不到）——这是 ViT 在自监督时代反超 CNN 的架构红利之一（见自监督深读的 MAE 一节）。
 
+## 常见误区
+
+- **「ViT 需要 ImageNet 级别的数据才能训练」** —— 原始 ViT 确实需要 JFT-300M 级数据；但 **DeiT** 通过蒸馏+强增广在 ImageNet-1k 上训练效果媲美——数据效率是可解决的工程问题。
+- **「ViT 的 attention map = 模型的『关注区域』」** —— attention map 只是注意力权重的可视化——不等于模型决策的因果解释（可能只反映信息流动而非判别依据）；Grad-CAM/SAM 类方法更适合解释。
+- **「ViT 的 patch 越小精度越高」** —— patch 越小 token 数越多（计算量平方增长）且每个 patch 的信息量越少——patch 大小是计算预算与精度的权衡，不是越小越好。
+- **「ViT 不能用于密集预测（分割/检测）因为输出是全局向量」** —— ViT 的中间层输出（所有 token 的特征图）可以用于密集预测——Swin/BEiT/ViT-Adapter 等变体专门为此设计。
+
 ## 四、要点总结
 
 1. **ViT 怎么处理图像？** 切 16×16 patch → 线性投影成 token + 位置嵌入 → 标准 Transformer 编码器 → [CLS] 分类；patch 化等价于 stride=P 的卷积。
