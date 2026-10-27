@@ -500,6 +500,7 @@
       ctx.translate(W / 2 + cam.x, H / 2 + cam.y);
       ctx.scale(cam.k, cam.k);
       ctx.translate(-W / 2, -H / 2);
+      drawCount++;
       const dim = function (n) { return hovered && n !== hovered && !n._adj; };
       const light = document.documentElement.getAttribute('data-theme') === 'light';
       const edgePre = light ? 'rgba(30,58,138,0.40)' : 'rgba(140,160,210,0.30)';
@@ -536,10 +537,15 @@
         ctx.globalAlpha = 1;
       });
       ctx.restore();
+      // 状态角标（自诊断：W/H/缩放/帧数随时可见）
+      ctx.fillStyle = light ? 'rgba(30,41,59,0.5)' : 'rgba(139,147,184,0.6)';
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText('W' + W + ' × H' + H + ' · k' + cam.k.toFixed(2) + ' · 节点' + nodes.length + ' · 边' + edges.length + ' · 帧' + drawCount, 10, H - 8);
     }
 
     // 主循环：交互后跑 120 帧（省电），静止即停
-    let running = false, runFrames = 0;
+    let running = false, runFrames = 0, drawCount = 0;
     function loop() {
       if (!running) return;
       try {
@@ -659,6 +665,7 @@
       cam.k = clamp(Math.min(W / (bw + pad * 2), H / (bh + pad * 2)), 0.3, 1.8);
       cam.x = W / 2 - cam.k * ((x0 + x1) / 2 - W / 2);
       cam.y = H / 2 - cam.k * ((y0 + y1) / 2 - H / 2);
+      draw();                                    // 同步首帧：不依赖动画帧
       wake(30);
     }
     // 预热后自适应一次，保证初始状态正好装下全部节点
@@ -704,6 +711,18 @@
       wake(30);
     });
     window.addEventListener('mltheme', function () { wake(30); });
+    if ('ResizeObserver' in window) {
+      const gro = new ResizeObserver(function () {
+        const w2 = wrap.clientWidth;
+        if (w2 && Math.abs(w2 - W) > 2) {
+          W = w2;
+          canvas.width = W * dpr; canvas.height = H * dpr;
+          fitView();
+        }
+        wake(20);
+      });
+      gro.observe(wrap);
+    }
     // 进入视口时复核尺寸并重绘（初始化时区块可能在折叠/不可见状态）
     if ('IntersectionObserver' in window) {
       const gio = new IntersectionObserver(function (entries) {
@@ -718,8 +737,19 @@
       gio.observe(wrap);
     }
 
-    // 预热 240 帧 + 自适应视角 + 启动渲染
-    _warm();
+    // 预热 240 帧 + 自适应视角 + 同步首帧（不依赖 rAF——部分环境动画帧不触发）
+    try {
+      _warm();
+    } catch (err) {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.fillStyle = '#b91c1c';
+      ctx.font = '13px monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText('图谱初始化出错（请截图反馈）：', 20, 40);
+      ctx.fillText(String(err && err.message || err).slice(0, 120), 20, 66);
+      return;
+    }
+    draw();
     _wake(400);
   }
 
