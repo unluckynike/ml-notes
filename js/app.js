@@ -685,6 +685,7 @@
       '<button class="graph-reset">重置布局</button></span>';
       const zoomBy = function (f) {
         cam.k = clamp(cam.k * f, 0.3, 4);
+        draw();                                    // 同步绘制：不依赖动画帧
         wake(30);
       };
       bar.addEventListener('click', function (e) {
@@ -693,7 +694,7 @@
           const c = chip.dataset.gcat;
           if (hidden.has(c)) { hidden.delete(c); chip.classList.add('active'); }
           else { hidden.add(c); chip.classList.remove('active'); }
-          fitView();
+          fitView();                               // 内部已同步绘制
           wake(60);
           return;
         }
