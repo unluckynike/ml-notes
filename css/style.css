@@ -554,6 +554,25 @@ body.menu-open .overlay { opacity: 1; pointer-events: auto; }
 .theme-fixed:hover { background: var(--grad-main); color: #fff; border-color: transparent; }
 @media (max-width: 900px) { .theme-fixed { display: none; } }
 
+/* 固定 GitHub 仓库入口（桌面端，主题切换钮左侧） */
+.gh-fixed {
+  position: fixed; top: 18px; right: 78px; z-index: 85;
+  width: 42px; height: 42px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface); color: var(--text); border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow); transition: all .25s;
+}
+.gh-fixed svg { width: 22px; height: 22px; fill: currentColor; }
+.gh-fixed:hover { background: var(--grad-main); color: #fff; border-color: transparent; transform: translateY(-2px); }
+@media (max-width: 900px) { .gh-fixed { display: none; } }
+
+/* 移动端 topbar 内的 GitHub 入口（主题钮右侧） */
+.topbar__gh {
+  display: flex; align-items: center; margin-left: 10px;
+  color: var(--text); text-decoration: none;
+}
+.topbar__gh svg { width: 21px; height: 21px; fill: currentColor; }
+
 /* ============ 动画 ============ */
 @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
 @keyframes tabIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -849,7 +868,7 @@ body.menu-open .overlay { opacity: 1; pointer-events: auto; }
     --muted: #555; --code-bg: #f3f4f6; --code-fg: #111; --code-inline-fg: #065f46;
     --header-bg: #fff; --shadow: none; --glow: none;
   }
-  .sidebar, .topbar, .backtop, .theme-fixed, .read-progress, .hero__canvas, .hero__scroll,
+  .sidebar, .topbar, .backtop, .theme-fixed, .gh-fixed, .topbar__gh, .read-progress, .hero__canvas, .hero__scroll,
   .overlay, .topic-toolbar, .topic__tabs, .demo-mount, .deep-loading, .deep-error,
   .btn, .roadmap, .method-cards, .resource-grid, .footer { display: none !important; }
   .main { margin-left: 0 !important; }
