@@ -48,7 +48,7 @@ def lstm_step(x, h, c, W, bf=3.0):
 
 rng = np.random.default_rng(0)
 x, h, c = rng.normal(size=4), rng.normal(size=3), rng.normal(size=3)
-W = rng.normal(size=(12, 7))
+W = 0.01 * rng.normal(size=(12, 7))  # 小初始化（训练起点的量级）
 h1, c1, f = lstm_step(x, h, c, W)
 print(f.round(3))                            # ≈0.95：bf=3 的意义——训练初期「先别忘」
 print(np.abs(h1).max() < 1.0)                # 输出被 tanh 压在 [−1, 1]

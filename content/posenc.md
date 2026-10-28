@@ -46,6 +46,25 @@ $$\theta_j = 10000^{-2j/d},\qquad j = 0, 1, \ldots, d/2-1$$
 > [!TIP] 为什么不把位置加到输入
 > 加在输入只有一次注入（且逐层稀释）；RoPE 在**每层注意力的打分处**注入位置——位置信息贯穿全网络，长程对齐更稳。
 
+**RoPE 十行**——把相邻维度对当平面坐标旋转，内积自动只看角度差：
+
+```python
+import numpy as np
+def rope(q, pos, base=10000):
+    d = len(q)
+    out = np.empty_like(q)
+    for i in range(0, d, 2):
+        theta = base ** (-i / d)               # 低维转得快，高维转得慢
+        c, s = np.cos(pos * theta), np.sin(pos * theta)
+        out[i], out[i+1] = q[i]*c - q[i+1]*s, q[i]*s + q[i+1]*c
+    return out
+
+rng = np.random.default_rng(0)
+q = rng.normal(size=8)
+print(round(float(rope(q, 0) @ rope(q, 3)), 4),
+      round(float(rope(q, 7) @ rope(q, 10)), 4))   # 两个内积相等：只依赖相对位置差
+```
+
 ---
 
 ## 三、外推与「长上下文」的工程

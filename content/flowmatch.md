@@ -19,6 +19,24 @@ $$L_{\text{CFM}} = \text{E}\left[\lVert v_\theta(x_t, t) - (x_1 - x_0)\rVert^2\r
 
 **CFM 定理**：这个条件损失的梯度与「回归真实边际速度场」的目标梯度相同——所以我们**不需要知道配对**，随机配对训练出的 $v_\theta$ 就是边际最优。这绕开了「学传输计划」的复杂性，是整个方法能 work 的理论支点。
 
+**线性路径的两行目标**——整流流的速度场对任意 t 都是常数向量，这是「直」的全部含义：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+x0 = rng.normal(size=(64, 2))                              # 噪声（源分布）
+x1 = x0 * 0.3 + rng.normal(0, 0.1, size=(64, 2)) + np.array([2., 0.])  # 数据（目标分布）
+
+def fm_target(x0, x1, t):
+    x_t = (1 - t) * x0 + t * x1                 # 线性插值路径
+    return x_t, x1 - x0                         # 目标速度场：恒为 x₁ − x₀
+
+x = x0[0].copy()
+for t in np.linspace(0, 1, 10, endpoint=False):
+    x = x + 0.1 * (x1[0] - x0[0])               # 完美速度场下欧拉积分 = 直线运输
+print(np.abs(x - x1[0]).max() < 1e-9)           # 十步精确到达：直路径少步即可采样
+```
+
 ---
 
 ## 二、与扩散的关系：同一问题的两种参数化

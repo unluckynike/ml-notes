@@ -17,6 +17,24 @@ $$y = \sum_{i \in \text{TopK}(g(x))} g_i(x)\cdot E_i(x),\qquad g(x) = \text{soft
 
 **关键设计动机**：模型的「知识」存在参数里（希望多），计算是每 token 的（希望少）——MoE 用 N 倍参数、约 1 倍计算，换来在同等推理成本下明显更高的容量上限。实测（Mixtral 8×7B）：47B 总参数、每 token 约 13B 激活，性能对齐更大稠密模型。
 
+**Top-k 路由的前向**——MoE 的账本核心：参数 8 个专家，每个 token 只算 2 个：
+
+```python
+import numpy as np
+def moe_forward(x, experts, W_g, k=2):
+    logits = W_g @ x
+    topk = np.argsort(logits)[-k:]             # 只取 top-k
+    gates = np.exp(logits[topk]); gates /= gates.sum()
+    return sum(g * experts[e](x) for e, g in zip(topk, gates)), topk
+
+rng = np.random.default_rng(0)
+d, n_exp = 4, 8
+experts = [lambda x, W=rng.normal(size=(d, d)): np.tanh(W @ x) for _ in range(n_exp)]
+W_g = rng.normal(size=(n_exp, d))
+y, used = moe_forward(rng.normal(size=d), experts, W_g)
+print(len(experts), '个专家，本次只激活', used)   # 8 个专家，只激活 [i j]
+```
+
 ---
 
 ## 二、路由训练的两大病与药

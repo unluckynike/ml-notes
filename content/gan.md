@@ -19,6 +19,21 @@ $$\min_{G}\;\max_{D}\; V(D, G) = \text{E}_{x\sim p_{\text{data}}}\left[\log D(x)
 > [!WARN] 论文里的一个坑
 > 原论文外层用的是 $\min_G \max_D$，但**实际训练用「非饱和」损失**：G 最大化 $\log D(G(z))$ 而不是最小化 $\log(1-D(G(z)))$。两者理论最优相同，但前者的梯度在「D 很自信地识破 G」时不会消失——早期训练 G 很烂、D 全对，饱和版梯度趋近 0，G 直接学不动。
 
+**最优判别器的形状**——正文推导的解析解 $D^* = p_d/(p_d+p_g)$ 代进两个分布就能看见：
+
+```python
+import numpy as np
+grid = np.linspace(-3, 3, 400)
+norm = lambda m, s: np.exp(-0.5*((grid-m)/s)**2)/(s*np.sqrt(2*np.pi))
+pd = 0.5*norm(-1, 0.3) + 0.5*norm(1, 0.3)    # 双峰 p_data
+pg = norm(0, 1.0)                            # 单峰 p_g（还没学会双峰）
+D = pd / (pd + pg)                           # 最优判别器
+print(D[np.argmin(abs(grid-1))].round(3),    # 数据峰值处 ≈0.73：偏向「真」
+      D[np.argmin(abs(grid))].round(3))      # 重叠谷底 ≈0.01：一眼识破
+# 当 p_g 离 p_data 远，D≈0 处 log(1−D) 的梯度≈0（饱和）；换 −log D 梯度≈1/p_g——
+# 这正是「非饱和损失」存在的理由
+```
+
 ---
 
 ## 二、最优判别器：一步步推

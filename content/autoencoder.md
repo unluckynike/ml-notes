@@ -17,6 +17,24 @@ $$L = \lVert x - D(E(x))\rVert^2,\qquad E: \text{R}^d \to \text{R}^k,\; D: \text
 
 **欠完备 vs 过完备**：$k < d$ 靠架构约束；$k \ge d$ 时必须靠**正则**（稀疏惩罚、去噪、dropout）防恒等——否则白训。
 
+**纯 NumPy 的自编码器**——没有标签，损失就是「自己重构自己」，瓶颈逼它学出压缩表示：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+X = rng.normal(size=(500, 8))
+W1 = rng.normal(size=(8, 2)) * 0.1        # 编码器 8→2（瓶颈）
+W2 = rng.normal(size=(2, 8)) * 0.1        # 解码器 2→8
+for step in range(300):
+    z = np.tanh(X @ W1)
+    x_hat = z @ W2
+    g = 2 * (x_hat - X) / len(X)           # MSE 对 x_hat 的梯度
+    W2 -= 0.05 * z.T @ g                   # 解码器梯度
+    W1 -= 0.05 * X.T @ ((g @ W2.T) * (1 - z**2))   # 链式回传过 tanh
+    if step % 100 == 0:
+        print(step, round(float(np.mean((x_hat - X)**2)), 3))
+```
+
 ---
 
 ## 二、去噪自编码器（DAE）：学流形而非函数

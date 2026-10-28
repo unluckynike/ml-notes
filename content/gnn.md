@@ -33,6 +33,28 @@ $\tilde{A}$ 是加自环的邻接矩阵，$\tilde{D}$ 是度矩阵——**归一
 
 工业场景（数亿节点）用 GraphSAGE 系：**邻居采样**（每节点采 10~25 个）控制计算树爆炸，「PinSage」（Pinterest）是其著名落地。
 
+**GCN 一层 + 过平滑苗头**——「归一化邻接 × 特征 × 权重」，层数越深节点表示越趋同：
+
+```python
+import numpy as np
+def gcn_layer(A, X, W):
+    D_inv = np.diag(1 / np.sqrt(A.sum(1) + 1e-9))
+    A_hat = D_inv @ A @ D_inv                  # 对称归一化（自环可再加 I）
+    return np.tanh(A_hat @ X @ W)
+
+rng = np.random.default_rng(0)
+n = 6
+A = (rng.random((n, n)) < 0.4).astype(float)
+A = np.maximum(A, A.T)                         # 无向图：对称邻接
+X = rng.normal(size=(n, 4))
+H = X
+for _ in range(2):
+    H = gcn_layer(A, H, rng.normal(size=(H.shape[1], 3)))
+Hn = H / np.linalg.norm(H, axis=1, keepdims=True)
+sim = Hn @ Hn.T
+print(round(float(sim[~np.eye(n, dtype=bool)].mean()), 3))  # 平均余弦相似度：层数↑ → 趋近 1
+```
+
 ---
 
 ## 三、过平滑：GNN 的宿命

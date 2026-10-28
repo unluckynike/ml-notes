@@ -19,6 +19,27 @@ $$A(x \to x') = \min\left(1,\; \frac{\pi(x')q(x'|x)}{\pi(x)q(x|x')}\right)$$
 
 对称提议（q 两向相等）时退化为纯密度比 π(x′)/π(x)。**这就是那个公式的来历：不是拍脑袋，是细致平衡方程的解。**
 
+**Metroplis 算法二十行**——只要能算目标密度的「比值」，连归一化常数都不需要：
+
+```python
+import numpy as np
+def metropolis(logp, x0, steps=20000, scale=0.5, seed=0):
+    rng = np.random.default_rng(seed)
+    x, lp, acc, chain = x0, logp(x0), 0, []
+    for i in range(steps):
+        prop = x + rng.normal(scale=scale)     # 对称提议 → 接受率只看目标比
+        lpp = logp(prop)
+        if np.log(rng.random()) < lpp - lp:    # MH 准则：min(1, p(新)/p(旧))
+            x, lp = prop, lpp; acc += 1
+        chain.append(x)
+    return np.array(chain), acc / steps
+
+logp = lambda x: -0.5 * (x - 2)**2              # 目标 N(2,1)，未归一化
+chain, rate = metropolis(logp, 0.0)
+print(round(chain[1000:].mean(), 2), round(chain[1000:].std(), 2), round(rate, 2))
+# ≈2.0 ≈1.0 0.5~0.9：均值与标准差都被链摸了出来
+```
+
 ---
 
 ## 二、两大病与诊断

@@ -17,6 +17,21 @@ $$L = \alpha\,T^2\,\text{KL}\left(\text{softmax}(z_T/T)\,\|\,\text{softmax}(z_S/
 
 **温度的几何**：T=1 时 softmax 只放大头部；T 大时 logit 差被除尽，**长尾里的「3 比 7 更像 8」这类相对信息被展开**。教师的「错误」也有价值——它对错样本的概率分布仍编码了类间结构。
 
+**温度与暗知识**——同一个 student，温度一变，损失里包含了「类间相似度」信息：
+
+```python
+import numpy as np
+def soft_ce(student, teacher, T=4.0):
+    sm = lambda z: (lambda e: e / e.sum())(np.exp(z / T - z.max() / T))
+    p_t = sm(teacher)
+    return -(p_t * np.log(sm(student) + 1e-12)).sum()
+
+teacher = np.array([5.0, 3.0, 0.2, 0.1])       # 「猫 狗 卡车 飞机」
+student = np.array([4.0, 2.5, 0.5, 1.0])       # 学生的毛病：飞机分太多
+print(round(float(soft_ce(student, teacher, 1)), 3),   # T=1：只盯 top-1 对不对
+      round(float(soft_ce(student, teacher, 4)), 3))   # T=4：暗知识也进损失
+```
+
 ---
 
 ## 二、蒸馏家族全景

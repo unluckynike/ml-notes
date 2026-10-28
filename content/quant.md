@@ -15,6 +15,26 @@ $$\min_{\hat{W}}\;\lVert W X - \hat{W}X\rVert_F^2$$
 
 $X$ 是校准数据过该层的输入（几百条代表性样本的激活）。**关键转变：权重的重要性由 X 决定**——同样大小的扰动，作用在「激活常经过的子空间」上伤害更大。
 
+**对称量化与误差抵消**——权重的相对误差不小，但作用在输出上会部分互相抵消：
+
+```python
+import numpy as np
+def quantize_sym(w, bits=4):
+    qmax = 2**(bits - 1) - 1                    # 4bit → [−7, 7]
+    scale = np.abs(w).max() / qmax
+    q = np.clip(np.round(w / scale), -qmax, qmax)
+    return q * scale, scale
+
+rng = np.random.default_rng(0)
+w = rng.normal(scale=0.1, size=(64, 64))
+w_hat, s = quantize_sym(w)
+v = rng.normal(size=64)
+u, u_hat = w @ v, w_hat @ v                  # 同一个输入过全精度/量化后的线性层
+werr = np.abs(w - w_hat).mean() / np.abs(w).mean()
+oerr = np.linalg.norm(u - u_hat) / np.linalg.norm(u)
+print(round(float(werr), 3), round(float(oerr), 3))   # 权重误差 ~15%，输出误差更小——误差抵消
+```
+
 ---
 
 ## 二、RTN 的天花板

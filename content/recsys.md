@@ -17,6 +17,16 @@
 - **负采样是双塔的灵魂**：全量负样本不存在，采样策略（随机/popularity/批内负样本 in-batch negatives）直接决定召回质量；批内互相当负样本 + logQ 校正是工程标配；
 - **序列模型（SASRec/BST）**：用户行为序列过 self-attention，预测下一个点击——捕捉短期兴趣，替代「把历史求平均」的粗糙表示。
 
+**矩阵分解把推荐写成补全问题**——只观测到 Ω 里的打分，其余当未观测（不是 0！）：
+
+$$\min_{P, Q} \sum_{(u, i) \in \Omega} (r_{ui} - p_u^{\text{T}} q_i)^2 + \lambda \left( \lVert P \rVert^2 + \lVert Q \rVert^2 \right)$$
+
+排序层的质量用 NDCG 衡量——位置越靠前权重越高（对数折减）：
+
+$$\text{DCG@k} = \sum_{j=1}^{k} \frac{2^{rel_j} - 1}{\log_2 (j + 1)}, \qquad \text{NDCG@k} = \frac{\text{DCG@k}}{\text{IDCG@k}}$$
+
+注意矩阵分解的目标里**没有出现排序**：它优化的是评分回归（RMSE），而业务要的是 top-k 排序质量——这就是「排序层」必须单独存在、以及 BPR/WARP 等排序目标函数被发明出来的原因。
+
 ---
 
 ## 二、排序层：从 LR 到 DIN

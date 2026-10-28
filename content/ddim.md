@@ -18,6 +18,23 @@ $$x_{t-1} = \sqrt{\bar\alpha_{t-1}}\;\hat{x}_0 + \sqrt{1-\bar\alpha_{t-1}-\sigma
 
 **跳步**：确定性意味着轨迹是「一条线」——不必沿原始时间网格走，可以取子序列（如每 4 步取一点，1000 步 → 25 步）。质量损失来自「大步长下 $\hat x_0$ 预测的误差被放大」，实践 20~50 步几乎无损（本站 DDIM 演示实测 25 步追平 100 步 DDPM）。
 
+**DDIM 广义更新十行**——$\eta=0$ 时确定性，$\eta=1$ 退回 DDPM：
+
+```python
+import numpy as np
+def ddim_step(x, eps, a_t, a_s, eta=0.0):
+    """a_t, a_s 是 ᾱ（累计信噪比）：先估 x₀，再朝它走一步"""
+    x0 = (x - np.sqrt(1 - a_t) * eps) / np.sqrt(a_t)
+    sig = eta * np.sqrt((1 - a_s) / (1 - a_t)) * np.sqrt(1 - a_t / a_s)
+    z = np.random.normal(size=x.shape) if eta > 0 else 0.0
+    return np.sqrt(a_s) * x0 + np.sqrt(max(1 - a_s - sig**2, 0)) * eps + sig * z
+
+x = np.random.default_rng(0).normal(size=4)
+eps = np.random.normal(size=4)
+print(np.allclose(ddim_step(x, eps, 0.19, 0.51),
+                  ddim_step(x, eps, 0.19, 0.51)))   # η=0：两次结果完全一致
+```
+
 ---
 
 ## 二、确定性带来的三个红利
