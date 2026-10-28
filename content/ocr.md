@@ -19,6 +19,24 @@ CRNN（2015-17 定型）：**卷积提特征（视觉）→ 按列切帧（把�
 
 现代变体：检测用 DBNet（可微二值化）分割文本行；识别端 SVTR 等纯 Transformer 替换 RNN；中文场景还要分词字典与形近字处理（己/已/巳）。
 
+
+**CER：OCR 的成绩单**——编辑距离对齐识别结果与真值：
+
+```python
+import numpy as np
+def cer(ref, hyp):
+    d = np.zeros((len(ref) + 1, len(hyp) + 1), dtype=int)
+    for i in range(len(ref) + 1): d[i, 0] = i
+    for j in range(len(hyp) + 1): d[0, j] = j
+    for i in range(1, len(ref) + 1):
+        for j in range(1, len(hyp) + 1):
+            d[i, j] = min(d[i-1, j] + 1, d[i, j-1] + 1,
+                          d[i-1, j-1] + (ref[i-1] != hyp[j-1]))
+    return d[-1, -1] / len(ref)
+
+print('CER:', round(cer('发票金额壹仟贰佰元', '发票金额壹仟弐伯元'), 3))
+# 数字字段错一个字符可能比文字错一整句代价更高——按字段加权评估更接近业务
+```
 ## 二、版面层：结构的恢复
 
 - **版面分析**：检测标题/段落/表格/图片/公式区域（目标检测模型的文档特化，LayoutLM 系把「文本+坐标+图像」三路信息联合建模）；

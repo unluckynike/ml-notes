@@ -19,6 +19,19 @@ $$y_c = F(x;\theta_{\text{frozen}}) + Z\big(F(x + C(\text{cond}); \theta_c)\big)
 
 为什么关键：若随机初始化注入，微调早期就破坏预训练分布（灾难性遗忘的微调版）——生成质量崩、控制也学不稳。零卷积把「学控制」变成纯增量：**不动的部分保证画功，从零的部分长出控制**。这个思想与 LoRA 的 B 零初始化（见其深读）、ResNet 的恒等初始化（见其深读）一脉相承——**「新能力零起点，旧能力零损伤」**。
 
+**零卷积的力学**——从 0 开始的卷积让控制分支「初始不影响」、训练中渐入：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+W0 = np.zeros((3, 3)); W0 += rng.normal(scale=0.01, size=(3, 3))   # 零初始化后微扰
+x = rng.normal(size=(8, 8))
+feat = np.tanh(np.random.default_rng(1).normal(size=(8, 8)))
+out = x + W0[1, 1] * feat                        # 控制信号以 0 权重注入
+print('初始影响:', float(np.abs(out - x).max()), '≈ 0 → 底模行为原样保留')
+# 训练中 W 慢慢长出非零值 → 控制力「渐入」，底模能力不受伤
+```
+
 ---
 
 ## 二、可控生成设计模式全家福

@@ -19,6 +19,22 @@ Lost in the Middle（2023）的实验：把关键事实放在 20 个文档的不
 
 **工程含义**：检索内容的重排（最高分放开头、次高放结尾）、指令位置、关键约束的重复——都是零训练成本的结构优化。
 
+**上下文预算分配计算**——先算账，再决定压缩谁：
+
+```python
+import numpy as np
+budget = 8192
+parts = {'system': 512, 'rag_passages': 4096, 'history': 4096, 'user': 512, 'output': 1024}
+total = sum(parts.values())
+print('总预算', budget, '| 已用', total, '| 超出', max(total - budget, 0))
+if total > budget:                               # 超预算的压缩顺序（保输出与 system）
+    for k in ['history', 'rag_passages']:
+        cut = min(parts[k] // 2, total - budget)
+        parts[k] -= cut; total -= cut
+        if total <= budget: break
+print('压缩后', parts, '| 余量', budget - total)
+```
+
 ---
 
 ## 二、压缩的纪律：有损但可控

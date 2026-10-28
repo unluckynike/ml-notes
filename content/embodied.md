@@ -5,6 +5,23 @@
 > [!KEY] 一句话抓住本质
 > 具身智能的核心矛盾：**互联网级通识可以预训练，物理交互数据永远稀缺**。VLA 模型解决「架构统一」（视觉+语言+动作一个 Transformer），但决定成败的是数据策略：遥操作（贵而准）、仿真（多而有差）、视频学习（泛而弱）——三条腿的配比是每家公司的核心机密。
 
+**动作离散化**——连续控制量变成 token，机器人控制就套进了语言模型的范式：
+
+```python
+import numpy as np
+def discretize(action, bins, lo, hi):
+    """7 自由度机械臂：每维 256 桶 → 动作 = 7 个 token"""
+    t = np.clip((action - lo) / (hi - lo), 0, 1 - 1e-9)
+    return (t * bins).astype(int)
+
+rng = np.random.default_rng(0)
+a = rng.uniform(-1, 1, size=7)                   # 7 维连续动作
+tokens = discretize(a, 256, -1, 1)
+recon = tokens / 255 * 2 - 1
+print(tokens, '| 量化误差:', float(np.abs(a - recon).max()).__round__(3))
+# 256 桶误差 ~0.004——对大多数操作足够；VLA 模型直接「说」出这串 token
+```
+
 ---
 
 ## 一、动作 token 化：机器人控制 = 序列建模

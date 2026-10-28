@@ -31,6 +31,27 @@ $$P(x) = \frac{1}{Z} \prod_{c \in C} \psi_c(x_c), \qquad Z = \sum_x \prod_{c \in
 
 有向图的因子分解**免费送出条件独立**（d-分离直接从图上读，无需计算）；无向图的势函数不需要指定方向，代价是 $Z$ 算不动（对数线性模型的配分函数求和是 #P 难的）。这两个公式分别是「生成式模型的压缩表示」与「能量模型的原型」——RBM、条件随机场、diffusion 的 score 视角，都是后者的直系后代。
 
+**链上信念传播**——两个方向的消息一乘，边缘分布出来了：
+
+```python
+import numpy as np
+T = 5; K = 2                                    # 5 节点链，2 个隐状态
+prior = np.array([0.6, 0.4])
+trans = np.array([[0.8, 0.2], [0.1, 0.9]])      # 平滑转移：倾向不动
+emit = np.array([[0.7, 0.3], [0.2, 0.8]])       # 各状态观测分布
+obs = [0, 0, 1, 0, 1]
+
+alpha = prior * emit[obs[0]]                    # 前向消息
+for t in range(1, T):
+    alpha = emit[obs[t]] * (trans @ alpha)
+    alpha /= alpha.sum()
+backward = np.ones(K)                           # 后向消息
+for t in range(T - 2, -1, -1):
+    backward = trans.T @ (emit[obs[t+1]] * backward)
+post = alpha * backward; post /= post.sum()
+print('首节点后验:', post.round(3))
+```
+
 ---
 
 ## 二、推断：从枚举到信念传播

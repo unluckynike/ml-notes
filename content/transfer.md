@@ -5,6 +5,31 @@
 > [!KEY] 一句话抓住本质
 > 迁移学习 = 把「源任务学到的表示」搬到目标任务。核心事实：**底层特征是通用的（边缘/纹理/句法），高层特征是任务相关的（物体/语义）**——所以迁移的主要自由度是「冻结多少层、用多小的学习率微调哪些层」。
 
+**线性探针 vs 全量微调**——同一个预训练特征，两种迁移的差距：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+n, d = 300, 16
+X_src = rng.normal(size=(n, d))
+W_true = rng.normal(size=(d, 2))
+F = np.column_stack([np.tanh(X_src @ W_true),                # 与任务相关的方向（好预训练）
+                     np.tanh(X_src @ rng.normal(size=(d, 7)))])  # 其余随机方向
+y = (np.tanh(X_src @ W_true)[:, 0] > 0).astype(int) * 2 - 1
+
+def train_logistic(X, y, iters=500, lr=0.1):
+    w = np.zeros(X.shape[1])
+    for _ in range(iters):
+        p = 1 / (1 + np.exp(-X @ w))
+        w -= lr * X.T @ (p - (y + 1) / 2) / len(y)
+    return w
+
+Xtr, ytr = F[:250], y[:250]; Xte, yte = F[250:], y[250:]
+w = train_logistic(Xtr, (ytr + 1) / 2)
+acc = float(np.mean(((Xte @ w > 0).astype(int) * 2 - 1) == yte))
+print('线性探针准确率:', round(acc, 3), '（特征含相关方向 → 冻结即可用；特征差则必须微调）')
+```
+
 ---
 
 ## 一、三种姿势：从轻到重

@@ -37,6 +37,20 @@ $f(x^{+})$ 是目前最优值，$\Phi, \phi$ 是标准正态的 CDF 与密度。
 
 反例：早期 NAS 用「字符串编码整个网络」的巨大空间，搜索几周不如人类一周——**空间设计错误的锅**。
 
+**Successive Halving 的骨架**——预算只续给活下来的候选：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+scores = rng.normal(size=16) + rng.normal(scale=0.3, size=16)
+alive = np.arange(16)
+for budget, keep in [(1, 8), (3, 4), (9, 1)]:    # 预算 ×3，名额 ÷2
+    est = scores[alive] + rng.normal(scale=1/np.sqrt(budget), size=len(alive))
+    alive = alive[np.argsort(est)[::-1][:keep]]
+print('胜者真实分数:', round(float(scores[alive[0]]), 2), '| 全场最高:', round(float(scores.max()), 2))
+# 大多数候选只花 1 单位预算就被淘汰——省下的算力给了潜力股
+```
+
 ---
 
 ## 三、多保真评估：实用化的钥匙

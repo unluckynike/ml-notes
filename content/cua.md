@@ -17,6 +17,23 @@ VLM 需要把「设置按钮」映射到屏幕坐标（像素级）。三个难�
 
 工程缓解：**Set-of-Mark**（先标注可交互元素再给模型选择）、 accessibility tree（无障碍树）与视觉并用（有 DOM 时坐标免费）、分区域放大二次定位。
 
+**Agent 循环伪代码**——每步「感知→定位→动作→验证」，失败就走恢复分支：
+
+```python
+def computer_use_loop(goal, max_steps=20):
+    for step in range(max_steps):
+        screen = screenshot()
+        target = ground(screen, goal)            # 视觉定位：目标元素在哪
+        if target is None:
+            recover()                            # 回退：关弹窗/换路径/重试
+            continue
+        act(target)
+        if verify(goal, screenshot()):           # 动作后必须验证
+            return True
+    return False
+# 可用性 = 1 − (失败步数 / 总步数)，恢复分支是拉开差距的地方
+```
+
 ---
 
 ## 二、循环设计：错误恢复决定可用性

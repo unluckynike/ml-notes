@@ -5,6 +5,48 @@
 > [!KEY] 一句话抓住本质
 > 软水印的本质是**把「模型身份」编码进 token 的统计分布**：单个 token 看不出任何异常，几十上百个 token 的统计偏向（绿名单占比）却能被假设检验捕获。它是「机器可验证的出处证明」，不是「防伪印章」——攻防天生的不对称决定了它的定位是「提高滥用成本」而非「绝对防伪」。
 
+**绿名单机制十行**——按前一个 token 的哈希把词表对半分，生成时偏向绿色：
+
+```python
+import numpy as np
+V, gamma, delta = 50, 0.25, 2.0                  # 25% 绿名单，绿词 logit +2
+def green_mask(prev):
+    h = (prev * 2654435761) % V                  # 同一前词 → 同一绿名单（可复现检测）
+    mask = np.zeros(V, dtype=bool)
+    mask[np.random.default_rng(h).choice(V, int(V * gamma), replace=False)] = True
+    return mask
+
+rng = np.random.default_rng(0)
+seq = [int(rng.integers(V))]
+for _ in range(20):
+    lg = rng.normal(size=V)
+    lg[green_mask(seq[-1])] += delta             # 绿词加权
+    seq.append(int(rng.choice(V, p=(lambda e: e/e.sum())(np.exp(lg - lg.max())))))
+greens = sum(int(green_mask(seq[i])[seq[i+1]]) for i in range(19))
+print('采到绿词的比例:', round(greens / 19, 2), '（基线 0.25，显著偏高即可检测）')
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+V, gamma, delta = 50, 0.25, 2.0                  # 25% 绿名单，绿词 logit +2
+def green_mask(prev_token):
+    h = (prev_token * 2654435761) % V
+    mask = np.zeros(V, dtype=bool)
+    mask[np.argsort(np.arange(V))[:int(V * gamma)]] = False
+    rng_g = np.random.default_rng(h)
+    mask[rng_g.choice(V, int(V * gamma), replace=False)] = True
+    return mask
+
+def sample(logits, prev):
+    mask = green_mask(prev)
+    logits = logits.copy(); logits[mask] += delta
+    e = np.exp(logits - logits.max()); return int(rng.choice(V, p=e/e.sum()))
+
+seq = [int(rng.integers(V))]
+for _ in range(20): seq.append(sample(rng.normal(size=V), seq[-1]))
+greens = sum(green_mask(seq[i]) for i in range(19))
+print('绿词占比:', round(float(greens / 19), 2), '（基线 0.25，显著偏高即可检测）')
+```
+
 ---
 
 ## 一、绿名单的完整数学

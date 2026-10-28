@@ -22,6 +22,21 @@
 
 **分阶段生效**（2024 年 8 月起）：禁止条款 6 个月后、GPAI（通用 AI）义务 12 个月后、高风险大部分义务 24~36 个月后——**时间表本身就是合规计划模板**。
 
+**风险分档的最小判别逻辑**——EU AI Act 的执法骨架就是这段决策树：
+
+```python
+import numpy as np
+def risk_tier(use_case, biometric_id, critical_infra, chatbot):
+    if biometric_id or critical_infra:
+        return '不可接受风险：禁止'
+    if use_case in ('招聘筛选', '信贷评分', '考试评分'):
+        return '高风险：合规义务（审计/人类监督）'
+    if chatbot:
+        return '有限风险：透明度义务（告知是 AI）'
+    return '最小风险：自由使用'
+print(risk_tier('客服', False, False, True), '|', risk_tier('招聘筛选', False, False, False))
+```
+
 ---
 
 ## 二、中国双轨：算法治理与生成式 AI

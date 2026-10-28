@@ -19,6 +19,24 @@ $$P\left[\min_{a\in A} h(a) = \min_{b\in B} h(b)\right] = J$$
 
 k 个独立哈希 → k 维签名，签名一致的比例 ≈ J（标准误 $\sqrt{J(1-J)/k}$——k=16 时约 ±0.12，k=128 时 ±0.04）。**比对成本从 O(|A|+|B|) 降到 O(k)**。LSH 分桶（签名前 b 段一致才候选）进一步避免全对比——工业管线（MinHashLSH）用它处理万亿 token。
 
+**MinHash 十行**——大语料去重的地基（Jaccard 的线性时间代理）：
+
+```python
+import numpy as np
+def minhash_sig(items, n_perm=8, seed=0):
+    rng = np.random.default_rng(seed)
+    return np.array([min((int(rng.integers(1, 2**31)) * h) % (2**31 - 1) for h in items)
+                     for _ in range(n_perm)])
+
+s1 = {hash(w) % 1000 for w in "the cat sat on the mat".split()}
+s2 = {hash(w) % 1000 for w in "the cat sat on a mat".split()}
+s3 = {hash(w) % 1000 for w in "quantum field theory basics".split()}
+jac = lambda u, v: len(u & v) / len(u | v)
+print('真实 Jaccard:', round(jac(s1, s2), 2), 'vs', round(jac(s1, s3), 2))
+print('签名一致率:', float(np.mean(minhash_sig(s1) == minhash_sig(s2))).__round__(2), 'vs',
+      float(np.mean(minhash_sig(s1) == minhash_sig(s3))).__round__(2))
+```
+
 ---
 
 ## 二、清洗管线的完整清单

@@ -24,6 +24,22 @@ $$L_{\text{aux}} = \alpha \, n \sum_{e=1}^{n} f_e \, p_e$$
 
 $f_e$ 是这一批里实际被派给专家 e 的 token 比例，$p_e$ 是路由器给 e 的平均概率。由柯西不等式 $L_{\text{aux}} \ge 1$，**取等当且仅当流量完全均匀**——辅助损失压得越低，专家越被均匀使用。代价也写在这个公式里：它惩罚一切「专业化」，与 MoE 想要的分工天然打架，后来者（专家 choice、负载_DROP 策略）都在找这个折中。
 
+**路由的成本收益账**——大部分流量走便宜模型，尾部才用贵的：
+
+```python
+import numpy as np
+def route_cost(n, p_cheap, cost_c, cost_e, retry_cost):
+    cheap_first = n * (cost_c + p_cheap * 0)             # 全部先试便宜模型
+    escalations = int(n * (1 - p_cheap))                 # 失败者升级
+    total = cheap_first + escalations * cost_e + escalations * retry_cost
+    all_expensive = n * cost_e
+    return total, all_expensive
+
+t, e = route_cost(10000, 0.8, 0.002, 0.02, 0.004)
+print(f'路由方案: ${t:.0f} | 全贵模型: ${e:.0f} | 省下 {1 - t/e:.0%}')
+# 账面上省 80%，但升级样本的延迟和坏口碑是「隐性成本」——正文第二节
+```
+
 ---
 
 ## 二、完整成本账：显性与隐性

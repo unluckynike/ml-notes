@@ -14,6 +14,24 @@
 - **反馈环（feedback loop）**：模型的预测影响它未来的训练数据（推荐系统只见过「被推荐过的物品」的反馈）——自我强化偏差；
 - **静默失败**：模型不报错、只是悄悄变差——**没有监控的模型 = 没有错误处理的代码**。
 
+**PSI 漂移检测**——特征分布漂移的行业标准指标，一行算完：
+
+```python
+import numpy as np
+def psi(train, live, bins=10):
+    edges = np.quantile(train, np.linspace(0, 1, bins + 1))
+    edges[0], edges[-1] = -np.inf, np.inf
+    p = np.histogram(train, edges)[0] / len(train) + 1e-6
+    q = np.histogram(live, edges)[0] / len(live) + 1e-6
+    return float(((p - q) * np.log(p / q)).sum())
+
+rng = np.random.default_rng(0)
+train = rng.normal(size=5000)
+print('无漂移 PSI:', round(psi(train, rng.normal(size=2000)), 3))
+print('漂移 PSI:', round(psi(train, rng.normal(0.5, 1.2, 2000)), 3))
+# 经验阈值：PSI < 0.1 稳定，0.1~0.25 关注，> 0.25 报警
+```
+
 ---
 
 ## 二、两级监控

@@ -39,6 +39,31 @@ $S \in \{0, 0.5, 1\}$ 是实际结果，$E$ 是期望胜率，$K$ 是单局权�
 
 演示里的「测出胜率失真」公式化：测出胜率 = 真实胜率 ⊕ 位置偏差 ⊕ 长度偏差——偏差强度哪怕只有 10~20%，也足以颠倒 5 个百分点内的真实差距。
 
+**成对胜率到 Bradley–Terry 分数**——竞技场排名的最小实现：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+n_models = 4
+true_skill = np.array([0.0, 0.5, 1.0, 1.5])
+wins = np.zeros((n_models, n_models))
+for _ in range(2000):                            # 模拟对局
+    i, j = rng.integers(0, n_models, 2)
+    if i == j: continue
+    pi = 1 / (1 + np.exp(true_skill[j] - true_skill[i]))
+    wins[i, j] += rng.random() < pi
+# BT 极大似然用简单的迭代比例拟合
+r = np.zeros(n_models)
+for _ in range(200):
+    for i in range(n_models):
+        for j in range(n_models):
+            if i == j or wins[i, j] + wins[j, i] == 0: continue
+            n_ij = wins[i, j] + wins[j, i]
+            e = wins[i, j] / n_ij
+            r[i] += 0.1 * (e - 1 / (1 + np.exp(r[j] - r[i]))) * n_ij / n_models
+print('学到的分数:', r.round(2), '| 真实:', true_skill, '（相对顺序应一致）')
+```
+
 ---
 
 ## 三、裁判校准的具体操作

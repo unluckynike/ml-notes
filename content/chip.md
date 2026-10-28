@@ -26,6 +26,19 @@
 $$P = \min \left( P_{\text{peak}}, \; I \times BW \right), \qquad I = \frac{\text{FLOPs}}{\text{Bytes}}$$
 
 $I$ 是算术强度（每字节内存流量摊到多少次浮点运算），$BW$ 是显存带宽，$P_{\text{peak}}$ 是算力峰值。两条线的交点叫**脊点** $I^* = P_{\text{peak}}/BW$：$I < I^*$ 时瓶颈在带宽（加算力无用），$I > I^*$ 时瓶颈在算力（加带宽无用）。上一节那张「算子强度账本」就是各算子的 $I$ 值排序——大矩阵乘在脊点右侧，逐元素算子与 beam search 在左侧。
+
+**同一台机器的两个天花板**——矩阵乘吃算力，逐元素吃带宽：
+
+```python
+import numpy as np, time
+A = np.random.rand(2048, 2048); B = np.random.rand(2048, 2048)
+t0 = time.perf_counter(); C = A @ B; t1 = time.perf_counter()
+mm = 2 * 2048**3 / (t1 - t0) / 1e9
+t0 = time.perf_counter(); D = A * 2.0; t1 = time.perf_counter()
+ew = 2 * A.nbytes / (t1 - t0) / 1e9
+print(f'矩阵乘 {mm:.0f} GFLOPS（算力受限）| 逐元素 {ew:.0f} GB/s（带宽受限）')
+# Roofline 的两条线：I 高的算子吃第一条，I 低的吃第二条
+```
 ## 二、利用率的经济现实
 
 - **训练集群 MFU（模型算力利用率）**：业界标杆 40~60%——剩下的算力去了通信（All-Reduce）、数据加载、非 GEMM 算子、气泡；

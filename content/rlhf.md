@@ -13,6 +13,27 @@
 - SFT 只能模仿示范，**表达不了「两个都不错但 A 更好」这种序数信号**——而人类标注偏好比写标准答案便宜得多、一致性也更高。
 - RLHF 把「好」的定义从「像示范」升级为「奖励模型打分高且不跑偏」。
 
+**奖励模型的最小训练目标**——偏好对的 sigmoid 交叉熵：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+prompts = rng.normal(size=(200, 4))              # 200 条上下文
+r_true = prompts @ np.array([1.0, -0.5, 0.2, 0.0])   # 「真」奖励函数
+chosen = r_true + rng.normal(scale=0.3, size=200)    # 人选的更好
+rejected = r_true - rng.normal(scale=0.3, size=200)
+
+r = np.zeros(4)                                  # 学习中的奖励函数
+for _ in range(500):
+    rc, rj = prompts @ r, prompts @ r
+    diff = (rc - rj) - (chosen - rejected)       # 拟合偏好差
+    grad = prompts.T @ (2 * diff) / len(prompts) # MSE 梯度（示意）
+    r -= 0.1 * grad
+acc = float(np.mean((prompts @ r)[:50] > 0))
+print('学到的奖励权重:', r.round(2), '| 真值 [1, -0.5, 0.2, 0]')
+# PPO 阶段就是拿这个 r 当奖励、对策略加 KL 罚——两阶段共用一个「偏好」概念
+```
+
 ---
 
 ## 二、奖励模型：Bradley–Terry 偏好模型

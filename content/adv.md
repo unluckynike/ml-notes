@@ -13,6 +13,28 @@ Goodfellow（FGSM 论文）的论证：设线性模型 $w^{\text{T}}x$，扰动 
 
 第二条解释（Tsipras et al. 2019）：自然图像只占 $\text{R}^d$ 的极小角落，**任何分类器都要在「贴近样本」处画边界**——存在「人眼不可见但跨界」的邻居是几何必然。两条解释互补：前者解释「攻击为什么好找（梯度指路）」，后者解释「为什么必然存在」。
 
+**FGSM 一步攻击**——沿损失梯度的符号走 ε 步，干净样本就被打错：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+W = rng.normal(size=(4, 8)); x = rng.normal(size=8); y_true = int((W @ x).argmax())
+p = np.exp(W @ x) / np.exp(W @ x).sum()
+g = p @ W - W[y_true]                            # dL/dx（上升方向：让真类概率变小）
+x_adv = x + 0.5 * np.sign(g)
+print('干净预测:', int((W @ x).argmax()), '| 对抗预测:', int((W @ x_adv).argmax()), '| 真类:', y_true)
+# 深度模型同理，只是梯度要经反传；PGD = 多步 FGSM + 随机起点 + 投影回 ε 球
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+W = rng.normal(size=(4, 8)); x = rng.normal(size=8); y_true = 2
+p = np.exp(W @ x) / np.exp(W @ x).sum()
+g = W[y_true] - p @ W                            # dL/dx（线性模型有解析式）
+x_adv = x + 0.1 * np.sign(g)
+print('干净预测:', int((W @ x).argmax()), '| 对抗预测:', int((W @ x_adv).argmax()))
+# 深度模型同理，只是梯度要经反传得到；PGD = 多步 FGSM + 随机起点
+```
+
 ---
 
 ## 二、PGD：攻击与训练的极小极大

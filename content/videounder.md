@@ -5,6 +5,22 @@
 > [!KEY] 一句话抓住本质
 > 视频理解的资源公式：**信息 = 所选帧的判别力，成本 = 帧数 × 每帧 token 数**。所有工程（采样、压缩、时间建模）都在解这一个优化问题——「用最少的 token 覆盖最多的判别信息」。
 
+**均匀采样的信息浪费**——关键帧只占少数：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+T = 300                                          # 30 秒视频
+action_at = np.zeros(T, dtype=bool)
+action_at[95:115] = True                         # 只有 2 秒真的在发生事情
+uniform = np.linspace(0, T - 1, 16).astype(int)
+hit_u = float(action_at[uniform].mean())
+adaptive = np.where(action_at)[0][::max(1, action_at.sum() // 16)][:16]
+hit_a = float(action_at[adaptive].mean())
+print(f'均匀采样命中率 {hit_u:.0%} | 自适应采样命中率 {hit_a:.0%}')
+# 视频理解的第一个杠杆：把预算花在有事件的地方
+```
+
 ---
 
 ## 一、采样的谱系：从均匀到自适应

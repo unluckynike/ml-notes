@@ -11,6 +11,21 @@
 
 若每层只是线性变换 $h = Wx$，则 $W_2W_1x = W'x$——**任意深度的线性层合成还是一个线性层**，深就白搭。激活函数打破了这一坍缩，让深度有了表达力。配套要求：**可导（几乎处处）、单调或有界、导数别太小**。
 
+**五种激活一行对比**——负区间的「小坡」是 GELU/SiLU 更平滑的全部原因：
+
+```python
+import numpy as np
+z = np.linspace(-3, 3, 7)
+gelu = 0.5 * z * (1 + np.tanh(np.sqrt(2/np.pi) * (z + 0.044715 * z**3)))
+silu = z / (1 + np.exp(-z))
+leaky = np.where(z > 0, z, 0.1 * z)
+print('z     ', z.round(1))
+print('relu  ', np.maximum(z, 0).round(2))
+print('gelu  ', gelu.round(2))
+print('silu  ', silu.round(2))
+print('leaky ', leaky.round(2))
+```
+
 ---
 
 ## 二、激活函数演进：导数大小的战争

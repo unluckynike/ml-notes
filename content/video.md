@@ -15,6 +15,20 @@
 
 演示里「逐帧独立 vs 时空联合」的闪烁对比，就是第 2 步存在意义的可视化。
 
+**时空 token 数的账**——分辨率×时长线性摊到注意力上：
+
+```python
+import numpy as np
+def video_tokens(H, W, T, patch=16, t_patch=1):
+    n_spatial = (H // patch) * (W // patch)
+    return n_spatial * (T // t_patch)
+
+for name, hw, t in [('480p 短片', (854, 480), 64), ('1080p 长片', (1920, 1080), 240)]:
+    n = video_tokens(hw[0], hw[1], t)
+    print(f'{name}: {n} 个 token，注意力 O(n²) = {n**2:.2e}')
+# 视频生成的难点不在「会动」，在 token 数量爆炸——时空压缩是所有方案的主战场
+```
+
 ---
 
 ## 二、Sora 路线：DiT + 时空 patch

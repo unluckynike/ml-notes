@@ -5,6 +5,27 @@
 > [!KEY] 一句话抓住本质
 > 世界模型 = 学到的环境动力学 $f_\theta(s,a)$，价值在于**把试错从现实搬到想象**（数据效率、零风险）；风险在于 rollout 每步误差复合放大，K 步之后的想象可能是幻觉——「想象多远敢信多远」是全部工程的中心。
 
+**想象式规划**——世界模型里 rollout 20 步，代替真实交互：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+true_dyn = lambda s, a: s + 0.1 * a + 0.05 * rng.normal()   # 真环境
+model_err = 0.02
+def imagined(s, a, horizon=20):
+    s_hat, traj = s, []
+    for _ in range(horizon):                     # 在「脑子」里跑
+        s_hat = s_hat + 0.1 * a + model_err * rng.normal()
+        traj.append(s_hat)
+    return traj
+
+s0, a, horizon = 0.0, 1.0, 20
+traj = imagined(s0, a, horizon)
+err = abs(traj[-1] - (s0 + 0.1 * a * horizon))   # 对照：无噪声真轨迹
+print(f'{horizon} 步想象终点误差: {float(err):.3f} | 模型误差/步: {model_err}')
+# 每步 0.02 的模型误差 × 20 步累积——模型质量决定想象能滚多远
+```
+
 ---
 
 ## 一、model-based RL 的账

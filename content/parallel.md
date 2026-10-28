@@ -5,6 +5,20 @@
 > [!KEY] 一句话抓住本质
 > 训练一个参数的显存成本 ≈ 2 字节（fp16 权重）+ 2（梯度）+ 8~12（Adam 状态 m,v 及主权重）≈ **12~16 字节/参数**——70B 模型单是状态就要 1TB+，百卡才放得下。并行的本质 = 把这本账**沿不同维度切开**：数据维（DP）、层维（PP）、矩阵维（TP）、冗余维（ZeRO）。
 
+**ZeRO 三级的显存账**——fp32 混合精度下每个参数 16 字节冗余：
+
+```python
+import numpy as np
+P = 7e9                                          # 7B 模型
+fp16_param, fp32_master, adam_m, adam_v = 2, 4, 4, 4   # 字节/参数
+base = P * fp16_param / 1e9
+full = P * (fp16_param + fp32_master + adam_m + adam_v) / 1e9
+print(f'仅权重 fp16: {base:.0f} GB | 训练态全量: {full:.0f} GB')
+for n_gpu, name in [(8, 'ZeRO-1(切优化器)'), (8, 'ZeRO-2(+切梯度)'), (8, 'ZeRO-3(+切参数)')]:
+    cut = {'ZeRO-1(切优化器)': 8, 'ZeRO-2(+切梯度)': 12, 'ZeRO-3(+切参数)': 16}[name] / n_gpu
+    print(f'{name}: 每卡状态 ≈ {P * cut / 1e9:.1f} GB')
+```
+
 ---
 
 ## 一、ZeRO 三级：切冗余的显存账

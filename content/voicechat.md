@@ -5,6 +5,20 @@
 > [!KEY] 一句话抓住本质
 > 级联管线的延迟是**五段之和**（VAD→ASR→LLM→TTS→播放），优化是分段战争；全双工端到端把五段压成一段流，但迎来三难：**回声消除、轮替管理、打断处理**——从「轮次制」到「双工制」，交互范式变了，工程问题也全换了。
 
+**端到端延迟预算**——每一段都必须卡死，否则对话感崩塌：
+
+```python
+import numpy as np
+stages = {'VAD 截断': 100, 'ASR 尾点': 300, 'LLM 首token': 400,
+          'TTS 首 chunk': 200, '播放缓冲': 100}
+total = sum(stages.values())
+budget = 800                                     # 对话感的工程红线（ms）
+for k, v in stages.items():
+    bar = '█' * (v // 25)
+    print(f'{k:12s} {v:4d}ms {bar}')
+print(f'合计 {total}ms vs 预算 {budget}ms →', '超了，砍 LLM 首token（换小模型/投机解码）' if total > budget else 'OK')
+```
+
 ---
 
 ## 一、级联五段：每段的延迟账

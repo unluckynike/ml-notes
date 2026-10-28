@@ -21,6 +21,19 @@
 
 **④ 引用生成**：见下节。
 
+**AI 搜索管线伪代码**——每个引用都要能指回原文的具体段落：
+
+```python
+def ai_search(query):
+    q = rewrite(query)                           # 意图澄清 + 拆分
+    docs = hybrid_retrieve(q, k=50)              # BM25 + 向量召回
+    passages = rerank(q, docs, top=8)            # 交叉编码器精排
+    answer = llm_generate(q, passages,
+                          rule="每个论断标注 [1][2] 引用编号")
+    aligned = verify_citations(answer, passages) # 引用与原文对齐校验
+    return answer if aligned else llm_generate(q, passages, stricter=True)
+```
+
 ---
 
 ## 二、引用生成与对齐：可信度的技术实现
