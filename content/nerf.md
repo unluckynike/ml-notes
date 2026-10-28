@@ -15,6 +15,24 @@ $$\gamma(p) = \left[\sin(2^0\pi p), \cos(2^0\pi p), \ldots, \sin(2^{L-1}\pi p), 
 
 这条思想随后统治了整个领域：Transformer 的正弦位置编码、扩散模型的时间嵌入、RoPE 的旋转频率设计（见其深读）——**「先编码再输入」是多周期信号进 MLP 的标准姿势**。
 
+**体渲染一行公式跑起来**——沿光线采样，α 合成颜色与不透明度：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+ts = np.linspace(0.5, 4.0, 64)                   # 光线上的 64 个采样点
+sigma = np.exp(-((ts - 2.0) / 0.4)**2)           # 一团「雾」：中间密度大
+rgb = np.tile([1.0, 0.4, 0.2], (len(ts), 1))     # 每个点的颜色（此处简化为常数）
+
+delta = np.diff(ts, prepend=ts[0])
+alpha = 1 - np.exp(-sigma * delta)               # 每段的不透明度
+T = np.r_[1.0, np.cumprod(1 - alpha)[:-1]]       # 透射率：走到这里还没被挡住的比例
+weight = T * alpha
+C = (weight[:, None] * rgb).sum(0)               # 体渲染公式：C = Σ T_i α_i c_i
+print(C.round(3), '| 深度:', round(float((weight * ts).sum() / weight.sum()), 2))
+# 颜色偏红、深度 ≈2.0——全可微，所以能从照片反传到 MLP 的密度与颜色
+```
+
 ---
 
 ## 二、体渲染：可微的「照片生成器」

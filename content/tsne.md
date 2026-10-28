@@ -38,6 +38,21 @@ $$\text{Perp}(P_i) = 2^{H(P_i)},\qquad H(P_i) = -\sum_j p_{j|i}\log_2 p_{j|i}$$
 
 实践参数速查：`learning_rate` 取 n/12 附近（sklearn 的 'auto' 已自动）；`early_exaggeration` 阶段先把簇推开再精修；迭代至少 1000 步再看；**init='pca'** 比 random 收敛更快更稳。
 
+**t-SNE 的高维侧一步**——把距离变成「邻居概率」，perplexity 调带宽：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+X = rng.normal(size=(50, 10))
+d2 = ((X[:, None] - X[None]) ** 2).sum(-1)
+np.fill_diagonal(d2, np.inf)
+beta = 1.0                                       # 1/(2σ_i²)：perplexity 二分搜索的目标
+P = np.exp(-d2 * beta); P /= P.sum(1, keepdims=True)
+print('每行熵 ≈', round(float(-(P * np.where(P>0, np.log(P), 0)).sum(1).mean()), 2),
+      '→ perplexity ≈', round(float(np.exp(-(P * np.where(P>0, np.log(P), 0)).sum(1).mean())), 1))
+# perplexity = 2^熵：beta 的二分搜索就是为了让每个点的「有效邻居数」都等于设定值
+```
+
 ---
 
 ## 三、正确解读清单（最重要的一节）

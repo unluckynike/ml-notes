@@ -33,6 +33,22 @@ $$x_t = \mu + \epsilon_t + \theta_1\epsilon_{t-1} + \cdots + \theta_q\epsilon_{t
 
 **两者等价性**：可逆的 AR(∞) 与 MA(∞) 可以互相表示——AR 与 MA 是同一记忆机制的两种参数化（AR 参数少时更省，反之用 MA）。
 
+**AR(2) 的生成与预测**——自回归就是「用过去的自己预测自己」：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+n = 200
+x = np.zeros(n)
+for t in range(2, n):                            # x_t = 0.6x_{t-1} − 0.2x_{t-2} + ε
+    x[t] = 0.6 * x[t-1] - 0.2 * x[t-2] + rng.normal()
+
+X = np.column_stack([x[1:-1], x[:-2]])           # 设计矩阵：滞后 1 与滞后 2
+phi = np.linalg.lstsq(X, x[2:], rcond=None)[0]   # OLS 拟合 AR 系数
+print(phi.round(3))                              # ≈[0.6, -0.2]：AR 拟合就是线性回归
+print('下一期预测:', round(float(phi @ np.array([x[-1], x[-2]])), 3))
+```
+
 ---
 
 ## 三、定阶：ACF 与 PACF 的「指纹表」

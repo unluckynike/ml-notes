@@ -21,6 +21,29 @@ $$\text{E}\left[(y - \hat{f})^2\right] = \left(f - \text{E}[\hat{f}]\right)^2 + 
 - **方差**：换个训练集模型变多少——「模型对样本噪声太敏感」；
 - **噪声**：$\sigma^2$ 是地板——任何模型不可能低于它（在该损失下）。
 
+**亲手制造过拟合**——同一个网络，噪声样本一多，val 曲线就分叉：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+n = 40
+x = np.linspace(-1, 1, n)
+y = np.sin(3 * x) + rng.normal(scale=0.2, size=n)      # 带噪声的观测
+
+def fit_predict(deg):
+    coef = np.polyfit(x, y, deg)                       # 多项式阶数 = 容量旋钮
+    train_err = np.mean((np.polyval(coef, x) - y)**2)
+    x_val = np.linspace(-1, 1, 200)
+    y_val = np.sin(3 * x_val)                          # 无噪声真值
+    val_err = np.mean((np.polyval(coef, x_val) - y_val)**2)
+    return train_err, val_err
+
+for deg in (1, 5, 15, 30):
+    tr, va = fit_predict(deg)
+    print(f'deg={deg:2d}  train={tr:.4f}  val={va:.4f}')
+# deg 越大 train 单调降、val 先降后升——教科书式的 U 形
+```
+
 ---
 
 ## 二、诊断：对着两条曲线读数

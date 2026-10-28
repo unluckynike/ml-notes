@@ -15,6 +15,21 @@
 
 实证后果：双塔对「精确短语/否定/长尾实体」弱——这正是 BM25（字面精确）还能留在混合检索里的理由（见信息检索深读）。
 
+
+**双塔检索的最小实现**——查询与文档各过一座塔，余弦相似度一次矩阵乘出全库：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+docs = rng.normal(size=(1000, 32))               # 离线建好的文档向量库
+docs /= np.linalg.norm(docs, axis=1, keepdims=True)
+q = rng.normal(size=(5, 32)); q /= np.linalg.norm(q, axis=1, keepdims=True)
+
+sims = q @ docs.T                                # (5, 1000)：一次 GEMM
+topk = np.argsort(-sims, axis=1)[:, :10]         # 每个查询取 top-10
+print(topk.shape, round(float(sims.max()), 3))
+# 双塔的速度来自「交互被压成一次内积」；代价：查询词与文档词之间没有任何逐词交互
+```
 ## 二、ColBERT 的折中：延迟交互
 
 $$\text{score}(q, d) = \sum_{i\in q}\max_{j\in d}\; \langle E_q(q_i), E_d(d_j)\rangle$$

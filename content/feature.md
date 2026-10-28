@@ -14,6 +14,24 @@
 - **标准化/归一化**：z-score（对线性/NN/聚类必需，量纲问题）；min-max（保形状）；树模型免疫——**「要不要标准化」是模型的属性，不是数据的属性**；
 - **比率与差分**：领域知识的直接注入（负债/收入 比 收入本身更有解释力；环比/同比是时序的血液）。
 
+**目标编码与其泄漏陷阱**——用标签均值编码高基数类别，必须留出验证：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+n = 500
+cat = rng.integers(0, 100, n)                    # 高基数：100 个类别
+y = (rng.random(n) < 0.3 + 0.4 * (cat % 2)).astype(int)   # 类别奇偶携带信号
+
+global_mean = y.mean()
+smooth = (y.sum()) / (n + 10)                    # 平滑版本（m=10 先验计数）
+enc = {c: (y[cat == c].sum() + 10 * smooth) / ((cat == c).sum() + 10)
+       for c in np.unique(cat)}                  # 贝叶斯平滑的目标编码
+X_enc = np.array([enc[c] for c in cat])
+print('编码与标签的相关:', round(float(np.corrcoef(X_enc, y)[0, 1]), 3))
+# 直接在全量数据上算编码 = 标签泄漏：交叉验证必须「按折计算编码」
+```
+
 ---
 
 ## 二、类别编码：高基数难题

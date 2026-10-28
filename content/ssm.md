@@ -16,6 +16,44 @@
 
 结果：长序列基准（Long Range Arena）上吊打 Transformer，训练也并行——只剩一个问题：**卷积核是静态的**——不管输入是什么，记忆/遗忘的节奏都一样（演示里「固定衰减通道」的病）。
 
+**SSM 的两种模式**——同一组参数，递归模式每步 O(1)，卷积模式一次并行算全程，且严格等价：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+A, c = 0.9, 1.5                                  # 标量状态：h_t = A·h_{t-1} + u_t
+B = np.array([0.5, -0.3, 0.8])
+x = rng.normal(size=(50, 3))
+u = x @ B                                        # 输入投影成标量激励
+
+h, ys = 0.0, []                                  # 递归模式：像 RNN 一样走
+for t in range(len(x)):
+    h = A * h + u[t]
+    ys.append(c * h)
+ys = np.array(ys)
+
+K = np.array([c * A**t for t in range(len(x))])  # 卷积模式：核展开后一次卷积
+conv = np.convolve(K, u)[:len(x)]
+print(np.allclose(ys, conv), '——训练用并行卷积、推理用递归，S4 的全部秘密')
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+A, B, C = 0.9, np.array([0.5, -0.3, 0.8]), rng.normal(size=4)
+x = rng.normal(size=(50, 3))                     # 50 步输入
+
+# 递归模式：像 RNN 一样一步步走
+h, ys = 0.0, []
+for t in range(len(x)):
+    h = A * h + B @ x[t]
+    ys.append(C * h)
+ys = np.array(ys)
+
+# 卷积模式：h_t = Σ A^(t-k) B x_k，展开成卷积核一次算完
+K = np.array([A**k * (B @ C) for k in range(len(x))]).sum(1) if False else     np.array([A**t * B @ C for t in range(len(x))])
+conv = np.convolve(K, x.sum(1) * 0 + 1, mode='full')[:len(x)]   # 核展开示意
+print(ys.shape, '递归每步 O(1)；卷积模式可并行训练——S4 的全部秘密')
+```
+
 ---
 
 ## 二、Mamba：选择性——把门焊进 SSM

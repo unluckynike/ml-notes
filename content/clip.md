@@ -20,6 +20,25 @@ $$L_i^{\text{I}\to\text{T}} = -\log\frac{e^{S_{ii}}}{\sum_{j=1}^{N}e^{S_{ij}}}$$
 - **对称双向**：图→文与文→图同时训，两个塔都被约束（检索两个方向都好使）；
 - **负样本来自 batch**：N=32768 的 batch 提供 3 万+ 负样本——**CLIP 的本质是用超大批量硬喂出来的**，这也是复现它最贵的地方。
 
+**对比矩阵与零样本分类**——CLIP 的核心就是把 N×N 的相似度矩阵当 N 分类问题：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+N, D = 8, 16
+img = rng.normal(size=(N, D)); txt = rng.normal(size=(N, D))     # 未训练：纯随机
+logits = img @ txt.T * 10                                        # 温度 τ=0.1 → ×10
+labels = np.arange(N)
+loss_i = -np.log(np.exp(logits[labels, labels]) / np.exp(logits).sum(1))   # 图→文
+loss_t = -np.log(np.exp(logits[labels, labels]) / np.exp(logits).sum(0))   # 文→图
+print('未训练对角损失:', round(float((loss_i + loss_t).mean() / 2), 1),
+      '| 训练目标下限 log N:', round(float(np.log(N)), 2))
+
+def zeroshot(img_emb, class_texts):
+    sims = img_emb @ class_texts.T
+    return sims.argmax(1)                                        # 「提示词即分类器」
+```
+
 ---
 
 ## 二、温度 τ：一个被低估的参数

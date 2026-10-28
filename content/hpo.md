@@ -22,6 +22,20 @@ $$\text{EI}(x) = \text{E}\left[\max(f(x) - f_{\text{best}},\; 0)\right]$$
 
 EI 恰好把「好 + 不确定」组合成单值——本站演示画的就是这条橙线（代理均值、不确定带、EI 曲线三者联动）。
 
+**随机搜索 vs 网格**——同样 12 次预算，随机搜索覆盖更多「每个维度」的取值：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+grid = [(lr, wd) for lr in [1e-4, 1e-3, 1e-2] for wd in [0.0, 1e-4, 1e-2]]   # 9 点网格
+random12 = [(float(10**rng.uniform(-4, -2)), float(10**rng.uniform(-5, -1)))
+            for _ in range(12)]
+grid_lrs = set(lr for lr, _ in grid); grid_wds = set(wd for _, wd in grid)
+r_lrs = set(round(l, 6) for l, _ in random12)
+print('网格: lr 唯一值', len(grid_lrs), '| 随机: lr 唯一值', len(r_lrs))
+# 关键差异：网格在没被探索的维度上「同一维度重复打点」，随机搜索天然覆盖
+```
+
 ---
 
 ## 二、与网格/随机的对比

@@ -18,6 +18,41 @@
 
 「亚线性遗憾」是 bandit 理论的黄金标准：策略越跑越准，学费越交越少。
 
+**UCB 与 Thompson 各二十行**——同一台老虎机，两种「乐观」：
+
+```python
+import numpy as np
+def run_bandit(true_p, steps=3000, seed=0):
+    rng = np.random.default_rng(seed)
+    K = len(true_p)
+    n, mean = np.zeros(K), np.zeros(K)
+    regret, best = 0.0, max(true_p)
+    for t in range(1, steps + 1):
+        if t <= K: k = t - 1                                     # 每臂先试一次
+        else:
+            ucb = mean + np.sqrt(2 * np.log(t) / n)              # 乐观上限
+            k = int(ucb.argmax())
+        r = float(rng.random() < true_p[k])
+        n[k] += 1; mean[k] += (r - mean[k]) / n[k]
+        regret += best - true_p[k]
+    return regret
+
+def run_thompson(true_p, steps=3000, seed=0):
+    rng = np.random.default_rng(seed)
+    alpha = np.ones(len(true_p)); beta = np.ones(len(true_p))
+    regret, best = 0.0, max(true_p)
+    for t in range(steps):
+        k = int((rng.beta(alpha, beta)).argmax())                # 从后验采样再选
+        r = float(rng.random() < true_p[k])
+        alpha[k] += r; beta[k] += 1 - r
+        regret += best - true_p[k]
+    return regret
+
+p = [0.3, 0.5, 0.8]
+print('UCB 遗憾:', round(run_bandit(p), 1), '| Thompson 遗憾:', round(run_thompson(p), 1),
+      '| 均匀随机基线:', round(sum(max(p) - x for x in p) / len(p) * 3000, 1))
+```
+
 ---
 
 ## 二、UCB：乐观面对不确定性

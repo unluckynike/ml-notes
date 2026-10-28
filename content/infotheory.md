@@ -22,6 +22,26 @@ Shannon 的洞察：**编码长度可以与概率挂钩**——概率 p 的事�
 > [!NOTE] 机器学习就是学编码
 > 语言模型 = 学习「文本的分布」= 学习给文本编码（每个 token 的交叉熵）；训练后模型的压缩率（bits per character）与能力强相关——**「压缩即智能」假说**（Hutter）的信息论版本。这也是为什么 GPT 可以无损压缩文本（nanogpt 压缩实验）。
 
+**熵与 KL 的数值实验**——验证「均匀分布熵最大」「KL 非负且不对称」：
+
+```python
+import numpy as np
+def H(p):                                        # 香农熵（比特）
+    p = np.asarray(p); p = p[p > 0]
+    return float(-(p * np.log2(p)).sum())
+
+print(round(H([0.5,0.5]),2), round(H([0.9,0.1]),2), round(H([0.99,0.01]),2))  # 1.0→0.47→0.08
+print(round(H([0.25]*4),2), round(H([0.5, 0.25, 0.25, 0.0]),2))  # 均匀 = log2(K) 上限
+
+def KL(p, q):
+    p, q = np.asarray(p), np.asarray(q)
+    mask = p > 0
+    return float((p[mask] * np.log2(p[mask] / q[mask])).sum())
+
+print(round(KL([0.5,0.5],[0.9,0.1]), 3), round(KL([0.9,0.1],[0.5,0.5]), 3))
+# 两个方向的 KL 不相等——「正向追均值，反向保模式」（正文第二节）
+```
+
 ---
 
 ## 二、KL 的方向性：正向 vs 反向的行为差异

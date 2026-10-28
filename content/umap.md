@@ -30,6 +30,47 @@ $$C = \sum_{e \in E} w_h(e)\log\frac{w_h(e)}{w_l(e)} + \sum_{e \notin E} (1 - w_
 - t-SNE 用 t 分布的重尾解决拥挤；UMAP 直接把排斥项做成**负采样**（随机抽非边算排斥）——计算从 O(n²) 降到近似 O(n·1.1)；
 - **初始嵌入**用谱方法（图的拉普拉斯特征向量）而不是随机——起点就有全局结构，收敛快且稳。
 
+**UMAP 的骨架**——高维侧「k 近邻模糊图」，低维侧吸引/排斥的 SGD 布局：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+X = rng.normal(size=(60, 8))
+d2 = ((X[:, None] - X[None]) ** 2).sum(-1)
+np.fill_diagonal(d2, np.inf)
+k = 10
+rho = np.sort(d2, axis=1)[:, k - 1]              # 第 k 近的距离（局部基准）
+P = np.exp(-(d2 - rho[:, None]) * 2.0) * (d2 < rho[:, None])   # 只连 k 近邻
+W = P + P.T                                      # 模糊并集（对称化）
+W /= W.sum()
+Y = rng.normal(size=(60, 2)) * 0.1
+for it in range(300):                            # 低维侧：有边吸引、无边排斥
+    i, j = rng.integers(0, 60, 2)
+    if W[i, j] > 0:
+        Y[i] -= 0.05 * W[i, j] * (Y[i] - Y[j])
+    else:
+        Y[i] += 0.02 * (Y[i] - Y[j]) / (0.1 + np.linalg.norm(Y[i] - Y[j])**2)
+print('模糊图非零边:', int((W > 0).sum()), '| 布局后平均半径:',
+      round(float(np.linalg.norm(Y, axis=1).mean()), 2))
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+X = rng.normal(size=(60, 8))
+d2 = ((X[:, None] - X[None]) ** 2).sum(-1)
+k = 10
+rho = np.sort(d2, axis=1)[:, k]                  # 到第 k 个邻居的距离（局部基准）
+P = np.exp(-(d2 - rho[:, None]) / 1.0) * (d2 > rho[:, None])   # 局部连通强度
+P_sym = P + P.T; P_sym /= P_sym.sum()            # 模糊并集（对称化）
+Y = rng.normal(size=(60, 2))
+for it in range(200):                            # 低维侧： SGD 拉/推
+    i, j = rng.integers(0, 60, 2)
+    if P_sym[i, j] > 0:
+        Y[i] -= 0.01 * (Y[i] - Y[j])             # 吸引
+    else:
+        Y[i] += 0.001 * (Y[i] - Y[j]) / (0.1 + np.linalg.norm(Y[i]-Y[j]))  # 排斥
+print(P_sym.round(3)[0][:8], Y.shape)
+```
+
 ---
 
 ## 三、与 t-SNE 的实证差异

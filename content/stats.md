@@ -46,6 +46,18 @@ $$\bar{x} = \frac{1}{n}\sum x_i \;\to\; N\left(\mu,\; \frac{\sigma^2}{n}\right)\
 
 **多重检验陷阱**：同时测 20 个指标，每 个 α=0.05，至少一个假阳性的概率 $1-0.95^{20} \approx 64%$—— Bonferroni（α/指标数）或 FDR 控制是「数据里到处挖显著」的解毒剂。
 
+**bootstrap 置信区间**——不假设正态，直接对「重采样」统计：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+data = rng.exponential(2.0, size=100)            # 指数分布：偏态，正态近似不可靠
+means = [float(rng.choice(data, len(data), replace=True).mean()) for _ in range(5000)]
+ci = np.percentile(means, [2.5, 97.5])
+print('样本均值', round(float(data.mean()), 3), '| bootstrap 95% CI', ci.round(3))
+# 同样的逻辑可以给任何统计量（中位数、AUC、相关系数）配区间——这是它超越公式法的地方
+```
+
 ---
 
 ## 三、相关与因果：统计的最后红线

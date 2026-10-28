@@ -32,6 +32,25 @@ $$P(病|+) = \frac{P(+|病)P(病)}{P(+|病)P(病) + P(+|健康)P(健康)} = \fra
 2. **序列检测放大准确率**：两次独立检测都阳性 → 后验 ≈ 91%（先验被第一轮更新过）——贝叶斯是「证据累积」的数学；
 3. **AI 的类比**：分类器对稀有类别的「高精确率」同样受基础率制约（见模型评估深读的不平衡一节）。
 
+**贝叶斯更新三行**——先验 × 似然 → 后验，然后再归一化：
+
+```python
+import numpy as np
+prior = np.array([0.5, 0.5])                     # [公平骰, 做弊骰]
+def likelihood(data):
+    like = np.array([1.0, 1.0])
+    for face in data:                            # 做弊骰 6 点概率 0.5，其余 0.125
+        like[0] *= 1/6
+        like[1] *= 0.5 if face == 6 else 0.125
+    return like
+
+data = [6, 6, 6, 2, 5]                           # 连出三个 6 之后……
+post = prior * likelihood(data); post /= post.sum()
+print(post.round(3))                             # 做弊骰的后验概率大幅上升
+post2 = post * likelihood([1, 3]) ; post2 /= post2.sum()   # 又掷出两个普通点
+print(post2.round(3))                            # 回落一点——贝叶斯永远在「更新」，不下死刑
+```
+
 ---
 
 ## 三、分布族选择手册：按「生成机制」想

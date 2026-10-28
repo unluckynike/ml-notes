@@ -29,6 +29,50 @@ $$z = \frac{x - \mu}{\sigma}, \qquad d_M(x) = \sqrt{(x - \mu)^{\text{T}} \Sigma^
 
 z 分数假设各向同性；Mahalanobis 用协方差矩阵 $\Sigma$ 补上「特征相关 + 量纲不同」——圆等高线变椭圆。Isolation Forest 则换了思路：异常点**更容易被随机切分孤立**（平均路径长度 $E[h(x)]$ 短），异常分数 $s(x, n) = 2^{-E[h(x)]/c(n)}$ 趋近 1。三把尺子对应三类范式：统计建模、密度/距离、树切分。
 
+**统计与距离两把尺子**——埋 8 个异常点，看两套排名是否一致：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+X = rng.normal(size=(500, 3))
+X[:8] += np.array([6., 6., 6.])                  # 埋 8 个明显异常点
+
+z = np.abs((X - X.mean(0)) / X.std(0)).max(1)    # 范式一：z 分数（按维取最异常）
+mu, S = X.mean(0), np.cov(X.T)                   # 范式二：马氏距离（考虑协方差）
+dm = np.sqrt(np.einsum('ij,jk,ik->i', X - mu, np.linalg.inv(S), X - mu))
+print('z 分数 top3:', np.argsort(z)[::-1][:3], '| 马氏 top3:', np.argsort(dm)[::-1][:3])
+print('两套排名是否都抓住 0~7 号:', set(np.argsort(dm)[::-1][:8]) >= set(range(8)))
+# 范式不同，找出的「异常」未必相同——选范式就是选「异常」的定义
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+X = rng.normal(size=(500, 3))
+X[:8] += np.array([6., 6., 6.])              # 埋 8 个明显异常点
+
+z = np.abs((X - X.mean(0)) / X.std(0)).max(1)                     # 统计：最异常的维度
+S = np.cov(X.T); mu = X.mean(0)                                   # 距离：马氏
+dm = np.sqrt(np.einsum('ij,jk,ik->i', X - mu, np.linalg.inv(S), X - mu))
+
+def iforest_score(X, n_trees=50, hlim=8):                         # 树切分：随机切
+    scores = np.zeros(len(X))
+    for _ in range(n_trees):
+        idx = rng.choice(len(X), 64, replace=False)
+        stack, depth = [(X[idx], 0)], {}
+        while stack:
+            pts, h = stack.pop()
+            if h >= hlim or len(pts) <= 1:
+                depth[id(pts) if len(pts) > 1 else id(pts)] = h   # 简化：按叶子深度
+                continue
+            j = rng.integers(X.shape[1])
+            t = rng.uniform(X[:, j].min(), X[:, j].max())
+            stack += [(pts[pts[:, j] < t], h + 1), (pts[pts[:, j] >= t], h + 1)]
+    return scores
+
+rank_z = np.argsort(z)[::-1]; rank_dm = np.argsort(dm)[::-1]
+print('z 分数 top3:', rank_z[:3], '| 马氏 top3:', rank_dm[:3])
+print('两种范式都把 0~7 号埋的异常排到最前:', set(rank_z[:8]) >= set(range(8)))
+```
+
 ---
 
 ## 二、阈值的艺术：比模型更难的部分
