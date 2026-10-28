@@ -1,182 +1,183 @@
-# AI 笔记
+# AI Notes
 
-> **像搭积木一样理解 AI：从统计学到大模型与智能体的交互式知识笔记**
+> **Understanding AI like building blocks: an interactive knowledge base from statistics to LLMs and agents**
 
-[![在线访问](https://img.shields.io/badge/在线访问-GitHub_Pages-00d4ff)](https://unluckynike.github.io/ml-notes/)
-[![主题](https://img.shields.io/badge/主题-125-6c5ce7)](#内容结构)
-[![交互演示](https://img.shields.io/badge/交互演示-125-ff7ac6)](#内容结构)
-[![深度长文](https://img.shields.io/badge/深度长文-125-00e6a0)](#深度长文)
+[![Live Site](https://img.shields.io/badge/Live_Site-GitHub_Pages-00d4ff)](https://unluckynike.github.io/ml-notes/)
+[![Topics](https://img.shields.io/badge/Topics-125-6c5ce7)](#content-structure)
+[![Interactive Demos](https://img.shields.io/badge/Interactive_Demos-125-ff7ac6)](#content-structure)
+[![Deep-Dive Articles](https://img.shields.io/badge/Deep--Dive_Articles-125-00e6a0)](#deep-dive-articles)
 [![CI](https://img.shields.io/github/actions/workflow/status/unluckynike/ml-notes/pages.yml?branch=main&label=CI)](https://github.com/unluckynike/ml-notes/actions)
-[![License](https://img.shields.io/badge/代码-MIT-green)](#license)
+[![License: MIT](https://img.shields.io/badge/Code-MIT-green)](#license)
 
-**125 个主题 × 125 个交互演示 × 125 篇深度长文**。纯静态、零依赖、离线可用。
+**125 topics × 125 in-browser interactive demos × 125 deep-dive articles.** Pure static, zero dependencies, works offline.
+
+Languages / 语言: **English** | [中文](README.zh-CN.md)
 
 ---
 
-## 这不是什么
+## What this is not
 
-市面上大部分 AI 学习材料是这三类：
+Most AI learning material falls into three buckets:
 
-- 面试八股的堆砌 —— 背得住结论，说不清来龙去脉
-- 某个框架的教程 —— 框架明年就换，底层模式才是资产
-- 新闻式的概念罗列 —— 只有名词，没有机理
+- Interview cheat-sheet piles — memorizable conclusions without the reasoning
+- Framework tutorials — the framework dies next year; the underlying patterns are the asset
+- News-style concept roundups — all nouns, no mechanics
 
-这份笔记想回答的是另一类问题：**注意力为什么要除以 √dₖ？XGBoost 的增益公式长什么样、γ 卡在哪？RLHF 的 KL 罚项在惩罚什么？** 每个概念都从「它解决什么问题」推起，而不是从「它是什么」背起。
+These notes answer a different kind of question: **Why does attention divide by √dₖ? What does XGBoost's gain formula look like, and where does γ bite? What is the KL penalty in RLHF actually punishing?** Every concept is derived from "what problem does it solve", not memorized from "what it is".
 
-## 目标读者
+## Who this is for
 
-| 读者类型 | 你会获得什么 |
+| Reader | What you get |
 |---|---|
-| **转行 / 自学的工程师** | 从统计学到智能体的完整路径，不需要科班背景 |
-| **科班学生** | 125 篇含公式推导的深度长文，补上「课本 ↔ 工业界」的断层 |
-| **算法工程师** | 量化、推理优化、路由、评测等工程主题的决策框架 |
-| **产品 / 管理者** | 每个主题的「优缺点 / 适用场景 / 常见误区」，建立判断力 |
+| **Self-taught / career-switching engineers** | A complete path from statistics to agents, no CS degree required |
+| **CS students** | 125 formula-heavy deep dives bridging the "textbook ↔ industry" gap |
+| **ML engineers** | Decision frameworks for quantization, inference, routing, evaluation |
+| **PMs / managers** | Pros/cons, when-to-use and pitfalls for every topic — judgment, not jargon |
 
-### 前置要求
+### Prerequisites
 
-- **必需**：会用浏览器（所有演示都在浏览器里实时计算，不装任何东西）
-- **有帮助**：会一点 Python（长文里的代码片段都是可直接运行的 NumPy）
-- **不需要**：任何框架经验、数学竞赛背景
+- **Required**: a browser (every demo computes live in the page — nothing to install)
+- **Helpful**: a bit of Python (all code snippets in the articles are runnable NumPy)
+- **Not required**: any framework experience or math-competition background
 
-### 可能不适合你，如果：
+### This might not be for you if:
 
-- 你只想知道「该用哪个模型」（看各家的模型卡更直接）
-- 你需要某框架的 API 文档（官方文档更权威）
-- 你要准备选择/填空题（这份笔记按「理解 + 会算」写，不按考点写）
+- You just want "which model should I use" — model cards are more direct
+- You need a specific framework's API docs — official docs are more authoritative
+- You're cramming for a multiple-choice exam — these notes are written for *understanding + calculating*, not test points
 
-## 阅读路径
+## Reading paths
 
-### 系统学习（8~12 周）
-
-```
-路线图 1→8：统计与数学地基 → 优化与泛化 → 回归模型 → 经典分类器
-          → 集成学习 → 无监督学习 → 深度学习 → 进阶与应用
-```
-
-每个主题的节奏：卡片（10 分钟）→ 交互演示（动手 5 分钟）→ 深度长文（30~60 分钟）。
-
-### 快速入门（2~3 天）
+### Systematic study (8–12 weeks)
 
 ```
-线性回归 → 梯度下降 → 神经网络 MLP → 反向传播 → CNN → Transformer → GPT → RAG → 智能体
+Roadmap 1→8: Statistics & Math → Optimization & Generalization → Regression
+            → Classic Classifiers → Ensembles → Unsupervised → Deep Learning → Advanced
 ```
 
-一条从「函数拟合」到「Agent」的最短主线，每步只取一个概念。
+Per-topic rhythm: card (10 min) → interactive demo (5 min hands-on) → deep-dive article (30–60 min).
 
-### 工程实战（1 周）
+### Quick start (2–3 days)
 
 ```
-大模型主题区：quant(量化) → lora(微调) → inference(推理优化) → rag(检索增强)
-            → router(模型路由) → llmeval(评测)
-方法论主题区：mlops → experiment(A/B) → evaluation → conformal(不确定性)
+Linear Regression → Gradient Descent → MLP → Backprop → CNN → Transformer → GPT → RAG → Agents
 ```
 
-## 内容结构
+The shortest path from "function fitting" to "agents" — one concept per step.
 
-**13 个分类 × 125 个主题**：
+### Engineering track (1 week)
 
-| 分类 | 主题数 | 覆盖内容 |
+```
+LLM block: quant → lora → inference → rag → router → llmeval
+Methodology block: mlops → experiment (A/B) → evaluation → conformal (uncertainty)
+```
+
+## Content structure
+
+**13 categories × 125 topics**:
+
+| Category | Topics | Covers |
 |---|---:|---|
-| 统计基础 | 8 | 概率分布、假设检验、贝叶斯 |
-| 基础与优化 | 7 | NumPy、梯度下降、损失函数、正则化 |
-| 监督学习 | 9 | 线性/逻辑回归、SVM、决策树、KNN |
-| 集成学习 | 4 | 随机森林、AdaBoost、XGBoost、LightGBM |
-| 无监督学习 | 7 | K-Means、EM、DBSCAN、PCA、t-SNE |
-| 深度学习 | 14 | MLP、CNN、RNN/LSTM、Transformer、注意力 |
-| 计算机视觉 | 9 | ResNet、YOLO、分割、ViT、CLIP |
-| 生成模型 | 9 | VAE、GAN、扩散、流匹配、NeRF |
-| 强化学习 | 6 | MDP、策略梯度、DQN、多臂老虎机、离线 RL |
-| 大语言模型 | 22 | GPT、BERT、RLHF、RAG、量化、推理、评测 |
-| 智能体 | 7 | ReAct、多智能体、MCP、Computer Use |
-| 应用主题 | 9 | 语音、OCR、视频、世界模型、具身智能 |
-| 方法论 | 14 | 实验设计、MLOps、公平性、AI 法规、可解释性 |
+| Statistics | 8 | Probability, hypothesis testing, Bayesian thinking |
+| Foundations & Optimization | 7 | NumPy, gradient descent, losses, regularization |
+| Supervised Learning | 9 | Linear/logistic regression, SVM, trees, KNN |
+| Ensemble Learning | 4 | Random forests, AdaBoost, XGBoost, LightGBM |
+| Unsupervised Learning | 7 | K-Means, EM, DBSCAN, PCA, t-SNE |
+| Deep Learning | 14 | MLP, CNN, RNN/LSTM, Transformer, attention |
+| Computer Vision | 9 | ResNet, YOLO, segmentation, ViT, CLIP |
+| Generative Models | 9 | VAE, GAN, diffusion, flow matching, NeRF |
+| Reinforcement Learning | 6 | MDP, policy gradient, DQN, bandits, offline RL |
+| Large Language Models | 22 | GPT, BERT, RLHF, RAG, quantization, inference, eval |
+| Agents | 7 | ReAct, multi-agent, MCP, computer use |
+| Applied Topics | 9 | Speech, OCR, video, world models, embodied AI |
+| Methodology & Governance | 14 | Experiments, MLOps, fairness, AI regulation, interpretability |
 
-**每个主题都是三件套**：
+**Every topic ships as a trio:**
 
-1. **九标签卡片** —— 简介 / 核心思想（含公式）/ 直观例子 / 优缺点 / 发展历程 / 适用场景 / 怎么上手 / 演示 / 深度阅读
-2. **交互演示** —— 每个主题一个浏览器内实时计算的 Canvas 实验：注意力热图、K-Means 迭代、扩散去噪、门控机制对比、井字棋 MCTS……
-3. **深度长文** —— `content/<主题id>.md`，统一结构：直觉 → 公式推导 → 可运行代码 → 常见误区 → 要点总结 → 延伸阅读
+1. **Nine-tab card** — intro / core idea (with formula) / intuition / pros & cons / history / when to use / how to start / demo / deep dive
+2. **Interactive demo** — one Canvas experiment per topic, computed live in the browser: attention heatmaps, K-Means iterations, diffusion denoising, gating mechanics, tic-tac-toe MCTS…
+3. **Deep-dive article** — `content/<topic>.md`, uniform structure: intuition → derivation → runnable code → common pitfalls → key takeaways → further reading
 
-站点还内置**力导向知识图谱**（125 节点 / 171 条前置-相关关系，可拖拽缩放）、全文搜索、13 阶段学习路线图、明暗主题与打印样式。
+The site also includes a **force-directed knowledge graph** (125 nodes / 171 prerequisite-relation edges, draggable & zoomable), full-text search, a 13-stage roadmap, dark/light themes, and print styles.
 
-## 关于时效性
+## On timeliness
 
-AI 领域变化极快（最后更新：2026-10）。
+AI moves fast (last updated: 2026-10).
 
-**核心原理相对稳定**（反向传播、注意力机制、正则化的数学不会变）；**具体数字、模型名、框架 API 会过时**。遇到与最新文档冲突的内容，以官方文档为准，并欢迎提 Issue。
+**Core principles are stable** — the math of backprop, attention and regularization won't change. **Specific numbers, model names and framework APIs will age.** When something conflicts with the latest docs, trust the docs — and please open an Issue.
 
-## 在线浏览与本地运行
+## Online & local
 
-**在线**：<https://unluckynike.github.io/ml-notes/>
+**Online**: <https://unluckynike.github.io/ml-notes/>
 
-**本地**：无需构建、无需安装依赖：
+**Locally** — no build, no install:
 
 ```bash
 git clone https://github.com/unluckynike/ml-notes.git
 cd ml-notes
-python3 -m http.server 8000     # 或直接双击 index.html
+python3 -m http.server 8000     # or just open index.html
 ```
 
-## 目录结构
+## Repository layout
 
 ```
 .
-├── index.html              # 页面骨架（唯一入口）
-├── css/style.css           # 设计系统：主题变量、卡片、知识图谱、响应式
+├── index.html              # Single entry page
+├── css/style.css           # Design system: theme variables, cards, graph, responsive
 ├── js/
-│   ├── content.js          # ★ 内容数据：CATEGORIES / ROADMAP / TOPICS / GRAPH_EDGES
-│   ├── demos.js            # ★ 交互演示：125 个 canvas 实时计算实验
-│   ├── markdown.js         #   迷你 Markdown/LaTeX 渲染器（零依赖）
-│   └── app.js              # 渲染与交互：标签页、搜索、图谱、导航
-├── content/                # ★ 125 篇深度长文（纯 Markdown，含可运行代码片段）
-├── tools/check.mjs         # 自检：id 一致性、公式渲染、演示引用、长度门禁
-└── .github/workflows/pages.yml   # CI 自检 + 自动部署 GitHub Pages
+│   ├── content.js          # ★ Content data: CATEGORIES / ROADMAP / TOPICS / GRAPH_EDGES
+│   ├── demos.js            # ★ 125 live-computed Canvas demos
+│   ├── markdown.js         #   Mini Markdown/LaTeX renderer (zero-dependency)
+│   └── app.js              # Rendering & interaction: tabs, search, graph, navigation
+├── content/                # ★ 125 deep-dive articles (plain Markdown, runnable code)
+├── tools/check.mjs         # CI self-check: id consistency, formula rendering, demo refs, length gate
+└── .github/workflows/pages.yml   # CI check + auto-deploy to GitHub Pages
 ```
 
-**内容与代码分离**：改内容只碰 `content/*.md` 和 `js/content.js`，不碰渲染逻辑。
+**Content and code are separated**: editing content only touches `content/*.md` and `js/content.js`, never the rendering logic.
 
-## 深度长文（125 篇 · 全覆盖）
+## Deep-dive articles (125 · full coverage)
 
-统一结构：**直觉 → 公式推导 → 可运行代码 → 常见误区 → 要点总结 → 延伸阅读**。所有代码片段均经 NumPy 实测可运行。代表性篇目：
+Uniform structure: **intuition → derivation → runnable code → common pitfalls → key takeaways → further reading**. Every code snippet is verified to run with NumPy. Representative pieces:
 
-| 长文 | 亮点 |
+| Article | Highlights |
 |---|---|
-| transformer.md | QKV/√dₖ 缩放推导、KV cache 与 MQA |
-| backprop.md | 手推两层网络全梯度、数值梯度检查 |
-| svm.md | 间隔/对偶/核技巧、KKT 与支持向量 |
-| xgboost.md | 二阶泰勒、叶子权重与增益闭式解 |
-| vae.md / gan.md | ELBO 双推导 / 最优判别器与 JS 散度 |
-| rlhf.md | Bradley-Terry、PPO、DPO 闭式推导 |
-| conformal.md | 覆盖保证的名次论证（有限样本） |
-| parallel.md | ZeRO 三级显存账、3D 并行组合逻辑 |
-| mcts.md | 四步循环与 AlphaZero 跃迁 |
-| interp.md | 叠加、SAE 与因果验证 |
-| bandit.md | 遗憾、UCB 与 Thompson 采样 |
-| watermark.md | 绿名单数学与攻防 |
+| transformer.md | QKV / √dₖ scaling derivation, KV cache & MQA |
+| backprop.md | Full two-layer gradient by hand, numerical grad check |
+| svm.md | Margins, duality, kernel trick, KKT & support vectors |
+| xgboost.md | Second-order Taylor, closed-form leaf weights & gain |
+| vae.md / gan.md | ELBO two ways / optimal discriminator & JS divergence |
+| rlhf.md | Bradley–Terry, PPO, closed-form DPO |
+| conformal.md | Rank argument for finite-sample coverage |
+| parallel.md | ZeRO-1/2/3 memory math, 3D-parallelism logic |
+| mcts.md | The four-step loop and the AlphaZero leap |
+| interp.md | Superposition, SAEs, causal validation |
+| bandit.md | Regret, UCB, Thompson sampling |
+| watermark.md | Green-list math and the attack surface |
 
-完整清单在站内「延伸阅读」与各主题的深度阅读标签页。
+The full list lives on the site, in the Further Reading block and every topic's Deep Dive tab.
 
 ## Citation
 
-如果你在研究、写作或工作中用到了这份笔记，欢迎引用：
+If these notes help your research, writing or work, feel free to cite:
 
 ```bibtex
 @misc{halensea2026ainotes,
   author = {Halensea},
-  title  = {AI 笔记：交互式人工智能全景知识笔记},
+  title  = {AI Notes: An Interactive Panorama of Artificial Intelligence},
   year   = {2026},
   url    = {https://unluckynike.github.io/ml-notes/},
-  note   = {125 个主题 × 125 个交互演示 × 125 篇深度长文}
+  note   = {125 topics × 125 interactive demos × 125 deep-dive articles}
 }
 ```
 
-APA 格式：
+APA format:
 
-> Halensea. (2026). *AI 笔记：交互式人工智能全景知识笔记*. <https://unluckynike.github.io/ml-notes/>
+> Halensea. (2026). *AI Notes: An Interactive Panorama of Artificial Intelligence*. <https://unluckynike.github.io/ml-notes/>
 
 ## License
 
-- **站点源代码**（HTML/CSS/JS/工具脚本）：[MIT](LICENSE)
-- **笔记内容**（125 篇长文与主题卡）：[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) —— 可分享与改编，需署名、非商业、同方式共享
+- **Site source code** (HTML/CSS/JS/tools): [MIT](LICENSE)
+- **Note content** (125 articles & topic cards): [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) — share and adapt freely with attribution, non-commercial, same-license
 
 > *"Learning is not watching someone else's demo — it's turning the knobs yourself."*

@@ -1,6 +1,6 @@
 cff-version: 1.2.0
-title: AI 笔记：交互式人工智能全景知识笔记
-message: 如果你在研究或工作中使用了这份笔记，欢迎引用。
+title: "AI Notes: An Interactive Panorama of Artificial Intelligence"
+message: If you use these notes in your research or work, please cite it.
 type: generic
 authors:
   - alias: Halensea
@@ -10,9 +10,11 @@ date-released: "2026-10-27"
 url: "https://unluckynike.github.io/ml-notes/"
 repository-code: "https://github.com/unluckynike/ml-notes"
 abstract: >-
-  一份可交互的人工智能全景知识笔记：125 个主题 × 125 个浏览器内实时计算的
-  交互演示 × 125 篇含公式推导与可运行代码的深度长文，覆盖统计学、机器学习、
-  深度学习、计算机视觉、生成模型、大语言模型、智能体与 AI 治理。
+  An interactive knowledge base covering the full panorama of AI:
+  125 topics × 125 in-browser interactive demos × 125 deep-dive articles
+  with derivations and runnable code — from statistics and classical
+  machine learning to deep learning, computer vision, generative models,
+  large language models, agents and AI governance.
 keywords:
   - machine learning
   - deep learning
