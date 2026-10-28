@@ -43,6 +43,26 @@ $$I = \frac{2MNK}{(MN + NK + MK) \cdot s}$$
 
 （$s$ 是 dtype 字节数。）$N$ 大时 $I$ 随规模线性增长——矩阵乘是**计算受限**，SIMD/多核越帮越忙；而 $N=1$（矩阵乘向量）的 $I$ 是常数且很小——**内存带宽受限**，加多少核都没用。广播慢的根源同款：`a[:, None] + b` 没有可复用的乘积结构，字节数支配一切。这条公式同时解释了：为什么 batch 小时 GPU 利用率低、为什么 fp16/int8 量化能提速（$s$ 变小直接抬 $I$ 上限之外的字节瓶颈）。
 
+**循环 vs 向量化实测**——同一件事两种写法，差三个数量级：
+
+```python
+import numpy as np
+import time
+x = np.random.rand(1_000_000)
+
+t0 = time.perf_counter()
+total = 0.0
+for v in x: total += v * v                       # 纯 Python 循环
+t1 = time.perf_counter()
+loop_s = t1 - t0
+
+t0 = time.perf_counter()
+vec = float(np.dot(x, x))                        # 向量化：一次 BLAS 调用
+t1 = time.perf_counter()
+print(f'循环 {loop_s*1000:.0f}ms vs 向量化 {(t1-t0)*1000:.2f}ms')
+# 差距来源：解释器开销 + 缓存局部性 + SIMD——不是「numpy 魔法」
+```
+
 ---
 
 ## 三、性能陷阱清单

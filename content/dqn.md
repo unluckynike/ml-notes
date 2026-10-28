@@ -23,6 +23,31 @@ $$L(\theta) = \text{E}_{(s,a,r,s')}\left[\left(y - Q_\theta(s,a)\right)^2\right]
 
 **关键性质·off-policy**：max 目标不依赖行为策略（只依赖转移），所以可以用任何策略（比如 ε-greedy 探索）采的数据来学最优 Q——**样本效率高**，这是对比策略梯度（必须 on-policy）的核心优势。
 
+**带目标网络的 Q 学习**——致命三要素里最关键的「固定目标」：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+gamma, alpha = 0.95, 0.05
+nS = 6
+Q = rng.normal(size=(nS, 2))                     # 主网络
+Q_target = Q.copy()                              # 目标网络：定期才同步
+
+def step(s, a):
+    return min(s + 1, nS - 1), 1.0 if s + 1 == nS - 1 else 0.0   # 走到终点给奖励
+
+for ep in range(300):
+    s = 0
+    for t in range(30):
+        a = int(rng.random() < 0.5) if rng.random() < 0.1 else int(Q[s].argmax())
+        s2, r = step(s, a)
+        y = r + gamma * Q_target[s2].max()       # 用目标网络算 TD 目标
+        Q[s, a] += alpha * (y - Q[s, a])
+        s = s2
+    if ep % 25 == 0: Q_target = Q.copy()         # 周期同步——这就是「固定目标」
+print('学到的价值 V(0):', round(float(Q[0].max()), 2))
+```
+
 ---
 
 ## 二、致命三要素：为什么朴素 DQN 会发散

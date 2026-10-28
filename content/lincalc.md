@@ -17,6 +17,23 @@ $$h = \sigma(Wx + b)$$
 
 **形状速记**（面试常考）：$(m \times n) \cdot (n \times p) = m \times p$——内维必须相等；batch 维不动、特征维变换。Transformer 里的 QK^T：$(n \times d)(d \times n) = n \times n$（token 间的注意力矩阵）。
 
+**变换的复合**——两次旋转合并成一次矩阵乘，GPU 的并行性正来自此：
+
+```python
+import numpy as np
+def rot(theta):
+    c, s = np.cos(theta), np.sin(theta)
+    return np.array([[c, -s], [s, c]])
+
+v = np.array([1.0, 0.0])
+step = rot(0.5) @ v                              # 转 0.5 rad
+comp = rot(2.0) @ v                              # 直接转 2.0
+ten = rot(0.5)
+for _ in range(2): ten = ten @ ten               # 两次平方 = 4 次 0.5 转 = 2.0 rad
+print(np.abs(ten @ v - comp).max() < 1e-10)      # 复合 = 矩阵乘，可预先合并
+# 神经网络的一层就是「矩阵乘 + 非线性」：线性部分全部可预融合、可并行
+```
+
 ---
 
 ## 二、特征分解与 SVD：找「空间的主轴」

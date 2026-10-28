@@ -20,6 +20,22 @@ $$n/\text{组} \approx \frac{16 \cdot \bar{p}(1-\bar{p})}{\delta^2}$$
 
 **功效不足的隐性代价**：不是「测不出」而是「测出的显著结果更可能是高估」（victory bias：只有碰巧超大的效应才能在低功效下显著——**small study effect**）。看论文里小样本+大效应的组合要警惕。
 
+**功效分析一行公式**——样本量由「效应大小、显著性、功效」三者锁死：
+
+```python
+import numpy as np
+from scipy import stats
+def sample_size(p0, mde, alpha=0.05, power=0.8):
+    p1 = p0 + mde
+    z_a, z_b = stats.norm.ppf(1 - alpha/2), stats.norm.ppf(power)
+    var = p0*(1-p0) + p1*(1-p1)
+    return int(np.ceil(((z_a + z_b)**2 * var) / mde**2))
+
+print('基线 5%，检出 8%（+3pp）：每组需', sample_size(0.05, 0.03), '人')
+print('基线 5%，检出 6%（+1pp）：每组需', sample_size(0.05, 0.01), '人')
+# 效应缩小 3 倍 → 样本量涨 9 倍——「小效应想显著」是 A/B 的头号成本黑洞
+```
+
 ---
 
 ## 二、序贯检验：合法地「边跑边看」

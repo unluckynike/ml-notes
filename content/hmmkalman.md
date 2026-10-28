@@ -23,6 +23,28 @@
 | HMM 前向 | 离散表格 | 有限状态 |
 | 粒子滤波 | 加权样本集 | 任意非线性/非高斯 |
 
+**卡尔曼一步**——预测-更新的最小实现，增益 K 是「信模型还是信观测」的自动权衡：
+
+```python
+import numpy as np
+F, H, Q, R = 1.0, 1.0, 0.01, 1.0                 # 匀速模型 + 噪声
+x, P = 0.0, 1.0                                  # 状态与协方差
+rng = np.random.default_rng(0)
+truth, obs, est = [], [], []
+z_true = 0.0
+for t in range(30):
+    z_true += 0.2                                # 真实：匀速漂移
+    z = z_true + rng.normal(scale=np.sqrt(R))    # 带噪观测
+    x = F * x + 0.2; P = F * P * F + Q           # 预测（匀速模型：速度已知）
+    K = P * H / (H * P * H + R)                  # 卡尔曼增益
+    x = x + K * (z - H * x); P = (1 - K) * P     # 更新
+    est.append(x); obs.append(z); truth.append(z_true)
+err_kf = np.abs(np.array(est) - truth).mean()
+err_raw = np.abs(np.array(obs) - truth).mean()
+print('卡尔曼误差', round(float(err_kf), 3), '< 原始观测误差', round(float(err_raw), 3))
+# 模型对（速度已知）时滤波显著降噪；模型错（漏掉速度项）时滤波反而更差
+```
+
 ---
 
 ## 二、卡尔曼的数学：为什么是「最优」的

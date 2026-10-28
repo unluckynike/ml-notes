@@ -13,6 +13,23 @@
 
 数学：外推误差 = Q 在数据支撑外与真实值的偏差；贪心 argmax 会**系统性选择正偏差最大的动作**（winner's curse）。误差随训练轮次自我强化（self-accumulation）。
 
+**分布偏移的数值实验**——数据只覆盖 a∈[0,2]，模型在覆盖外严重失真：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+def true_value(a): return -0.1 * (a - 5)**2 + 2.5   # 峰值在 a=5
+
+actions = rng.uniform(0, 2, 200)                 # 数据只覆盖 a∈[0,2]
+rewards = true_value(actions) + rng.normal(scale=0.2, size=200)
+# 用二次函数拟合（模型族恰好正确），再看 a=5 处的外推
+coef = np.polyfit(actions, rewards, 2)
+pred5 = np.polyval(coef, 5)
+print('外推 V(a=5):', round(float(pred5), 2), '| 真值:', round(true_value(5), 2))
+print('数据覆盖内 V(a=1):', round(float(np.polyval(coef, 1)), 2), '| 真值:', round(true_value(1), 2))
+# 覆盖内准，覆盖外飘——保守估计（CQL）就是冲这个来的
+```
+
 ---
 
 ## 二、方法谱系：四条技术路线

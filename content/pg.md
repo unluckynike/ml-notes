@@ -21,6 +21,42 @@ $$\nabla J(\theta) = \text{E}\left[\sum_{t} R(\tau)\,\nabla\log\pi_\theta(a_t|s_
 
 这就是 **REINFORCE**（Williams, 1992）。采样若干轨迹，按 $R\,\nabla\log\pi$ 的样本均值更新——**期望正确、方差巨大**。
 
+**REINFORCE 二十行**——回报当权重，乘以「得分函数」∇log π 的梯度：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+theta = np.zeros((2, 2))                         # 线性策略：两动作 × 两状态维
+def softmax(z):
+    e = np.exp(z - z.max()); return e / e.sum()
+
+for ep in range(2000):
+    s = rng.normal(size=2)
+    p = softmax(theta @ s)                       # 动作分布
+    a = int(rng.random() < p[1])                 # 采样动作
+    r = 1.0 if (s[0] > 0) == bool(a) else 0.0    # 奖励：与 s[0] 同向才对
+    grad = np.outer((np.arange(2) == a) - p, s)  # ∇logπ = (onehot(a) − p) ⊗ s
+    theta += 0.05 * r * grad                     # REINFORCE 更新
+p_good = softmax(theta @ np.array([1.0, 0.0]))
+print('正方向状态的策略分布:', p_good.round(2), '（应强烈偏好动作 1）')
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+theta = np.zeros(2)                              # 线性策略参数
+def softmax(z):
+    e = np.exp(z - z.max()); return e / e.sum()
+
+for ep in range(1000):
+    s = rng.normal(size=2)
+    p = softmax(s @ theta)
+    a = rng.random() < p[1]                      # 采样动作
+    r = 1.0 if (s[0] > 0) == bool(a) else 0.0    # 奖励：与 s[0] 同向才对
+    # ∇log π(a|s) 对线性策略 = onehot(a) − p
+    grad = (np.array([1.0 - p[1], -p[0]]) if a else np.array([-p[1], 1.0 - p[0]])) * s
+    theta += 0.01 * r * grad                     # REINFORCE：回报 × 得分函数
+print('策略偏好方向:', (theta / np.linalg.norm(theta)).round(2), '（应 ≈ [1, 0]）')
+```
+
 ---
 
 ## 二、方差三连降：这半部「工程史」

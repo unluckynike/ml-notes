@@ -21,6 +21,28 @@ $$p(y;\theta,\phi) = \exp\left(\frac{y\theta - b(\theta)}{a(\phi)} + c(y,\phi)\r
 
 **链接函数的工作**：把 η∈(−∞,∞) 的直线输出「掰弯」到分布的合法支撑上——概率进 (0,1)、计数进 (0,∞)、正偏数据用 Gamma 的正支撑。**保均值的解释性**：g(μ)=η 是对均值建模，逆变换后系数有明确含义（泊松里 $e^{\beta_j}$ = 特征每加一单位、均值乘的因子——乘性效应）。
 
+**泊松回归的 IRLS 两轮**——线性预测 η=Xβ 经 log 链接到均值 λ：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+n = 500
+x = rng.normal(size=n)
+X = np.column_stack([np.ones(n), x])
+beta_true = np.array([0.5, 0.8])
+lam_true = np.exp(X @ beta_true)
+y = rng.poisson(lam_true)                        # 计数数据
+
+beta = np.zeros(2)
+for it in range(8):                              # IRLS：牛顿法用在 GLM 上
+    eta = X @ beta
+    mu = np.exp(eta)
+    z = eta + (y - mu) / mu                      # 工作响应
+    Wd = mu                                      # 泊松的方差函数 = 均值
+    beta = np.linalg.solve((X * Wd[:, None]).T @ X, (X * Wd[:, None]).T @ z)
+print(beta.round(3), '| 真值', beta_true)
+```
+
 ---
 
 ## 二、估计：IRLS 一行流程

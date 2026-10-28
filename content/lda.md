@@ -31,6 +31,48 @@ $$P(z_i = k) \propto \frac{n_{w_i}^{k} + \beta}{n^k + V\beta}\cdot\frac{n_{d_i}^
 
 **评估**：困惑度（held-out 似然）看语言建模质量；人类评估主题词表的一致性（word intrusion）更贴近「主题是否有意义」。**K 的选择**：困惑度曲线 + 主题粒度的业务判断（K 太大主题碎片化）。
 
+**吉布斯采样一步 LDA**——「按其他词的主题分配」重采每个词的主题：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+K, V, M = 2, 4, 3
+docs = [rng.integers(0, V, 8) for _ in range(M)]
+z = [rng.integers(0, K, len(d)) for d in docs]   # 随机初始化主题分配
+n_kw = np.zeros((K, V)); n_k = np.zeros(K)
+for di in range(M):
+    for w, t in zip(docs[di], z[di]):
+        n_kw[t, w] += 1; n_k[t] += 1
+
+d, i = 0, 3                                      # 重采样文档 0 的第 3 个词
+w = int(docs[d][i]); t_old = int(z[d][i])
+n_kw[t_old, w] -= 1; n_k[t_old] -= 1             # 留一：先拿掉自己
+p = (n_kw[:, w] + 0.1) / (n_k + 0.1 * V)         # 条件分布（含平滑）
+t_new = int(rng.choice(K, p=p / p.sum()))
+z[d][i] = t_new
+print('词', w, ': 主题', t_old, '→', t_new, '| 条件分布', p.round(2))
+# 重复几万次这个「留一重采」，主题-词矩阵就浮现出来
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+K, V = 2, 4
+docs = [rng.integers(0, V, 8) for _ in range(3)]
+z = [rng.integers(0, K, len(d)) for d in docs]   # 随机初始化主题分配
+n_kw = np.zeros((K, V)); n_k = np.zeros(K)
+for d in docs:
+    for w, t in zip(d, z[list(docs.index(d)) if False else 0] if False else z[docs.index(d)]):
+        n_kw[t, w] += 1; n_k[t] += 1
+
+d, i = 0, 3                                      # 重采样文档 0 的第 3 个词
+w = docs[d][i]; t_old = z[d][i]
+n_kw[t_old, w] -= 1; n_k[t_old] -= 1
+p = (n_kw[:, w] + 0.1) / (n_k + 0.1 * V)         # 条件分布（含平滑）
+t_new = int(rng.choice(K, p=p / p.sum()))
+z[d][i] = t_new
+print('词', w, ': 主题', t_old, '→', t_new, '| p =', p.round(2))
+# 重复几万次这个「留一重采」，主题-词矩阵就浮现出来
+```
+
 ---
 
 ## 三、谱系与现代对照

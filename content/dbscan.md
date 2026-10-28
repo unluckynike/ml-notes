@@ -35,6 +35,34 @@ $$|N_\epsilon(p)| = |\{q \in D \mid \text{dist}(p, q) \le \epsilon\}| \;\ge\; \t
 
 三条全部只依赖「数邻居」这一个动作：DBSCAN 没有目标函数、没有迭代，本质上是一次**图遍历**。
 
+**三十行 DBSCAN**——数邻居 → 扩簇，没有目标函数，本质是图遍历：
+
+```python
+import numpy as np
+def dbscan(X, eps, min_pts):
+    n = len(X); labels = np.full(n, -1)          # -1 = 噪声
+    d2 = ((X[:, None] - X[None]) ** 2).sum(-1)
+    neigh = d2 <= eps**2
+    core = neigh.sum(1) >= min_pts               # 核心点判据
+    c = 0
+    for i in range(n):
+        if labels[i] != -1 or not core[i]: continue
+        labels[i] = c
+        queue = [j for j in np.where(neigh[i])[0] if j != i]
+        while queue:                             # BFS 扩簇
+            j = queue.pop()
+            if labels[j] == -1:
+                labels[j] = c
+                if core[j]: queue += [q for q in np.where(neigh[j])[0] if labels[q] == -1]
+        c += 1
+    return labels
+
+rng = np.random.default_rng(0)
+X = np.vstack([rng.normal(c, 0.3, size=(60, 2)) for c in [(0, 0), (4, 0)]])
+lab = dbscan(X, eps=0.8, min_pts=5)
+print('簇数:', len(set(lab) - {-1}), '| 噪声点:', int((lab == -1).sum()))
+```
+
 ---
 
 ## 二、ε 与 MinPts 的选择

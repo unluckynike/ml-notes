@@ -20,6 +20,23 @@
 > [!WARN] 一句话判据
 > 「该控制什么」由**因果图**决定，不是由 R² 决定。盲目的「控制一切」会制造对撞偏差；「什么都不控制」会带着混淆。先画图，再选控制集。
 
+**混淆结构的数值实验**——不调整时偏差 10 倍，条件调整后恢复真值：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+n = 20000
+X = rng.normal(size=n)                 # 混淆变量：同时影响 T 和 Y
+T = 0.5 * X + rng.normal(size=n)       # 处理（受 X 影响）
+Y = 2.0 * T + 3.0 * X + rng.normal(size=n)   # 真实因果效应 β=2
+
+beta_naive = np.cov(T, Y)[0, 1] / np.var(T)          # 天真回归：把 X 的贡献算进 T
+# 条件调整：把 X 放进回归
+XT = np.column_stack([T, X])
+beta_adj = np.linalg.lstsq(XT, Y, rcond=None)[0][0]
+print('天真:', round(float(beta_naive), 2), '| 调整后:', round(float(beta_adj), 2), '| 真值: 2.0')
+```
+
 ---
 
 ## 二、修法一：随机对照实验（RCT）——金标准

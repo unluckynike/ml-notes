@@ -14,6 +14,21 @@
 
 推论：**同样的卡，prefill 吞吐高、decode 慢**；首 token 延迟（TTFT）由 prefill 决定，之后每 token 延迟（TPOT）由带宽决定。生产系统的 prefill/decode 常分开放（disaggregated serving）。
 
+**KV Cache 的显存账**——缓存让每步 decode 只算一个新 token：
+
+```python
+import numpy as np
+def decode_cost(n_layers, n_heads, d_head, seq, batch, bytes_per=2):
+    """fp16：K 和 V 各缓存一份"""
+    per_token = 2 * n_layers * n_heads * d_head * bytes_per   # K+V，×2
+    total = per_token * seq * batch
+    return total / 1e9
+
+gb = decode_cost(n_layers=80, n_heads=64, d_head=128, seq=4096, batch=16)
+print(f'70B 模型 batch=16、4096 上下文的 KV Cache: {gb:.1f} GB')
+print('对比权重本身: 70', 'GB (fp8) — Cache 占比可观，这就是 GQA 存在的理由')
+```
+
 ---
 
 ## 二、KV Cache：显存账本

@@ -23,6 +23,26 @@
 - **服务器动量/聚合加权**：按数据质量而非纯数量加权；
 - **个性化联邦**：根本承认「一个全局模型不够」——全局底座 + 本地头（per-FedAvg、pFedMe），与「LoRA 本地微调」的现代化组合。
 
+**FedAvg 的漂移实验**——两个客户端数据异构，平均后各自「被拽回」：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+def local_train(w, data_grad, steps=5, lr=0.1):
+    for _ in range(steps):
+        w = w - lr * data_grad                   # 各自往自己的数据方向走
+    return w
+
+w = np.zeros(2)
+gA = np.array([1.0, 0.1]); gB = np.array([-0.2, 1.0])   # 两个客户端的梯度方向差异大
+for rnd in range(5):
+    wA = local_train(w.copy(), gA)               # 各自本地训练 5 步
+    wB = local_train(w.copy(), gB)
+    w = (wA + wB) / 2                            # FedAvg：参数平均
+    print('round', rnd, 'w =', w.round(2))
+# 平均更新 = 两客户端梯度的折中——本地多步后，这个折中被放大成「客户端漂移」
+```
+
 ---
 
 ## 二、「联邦 ≠ 隐私」：三层安全账

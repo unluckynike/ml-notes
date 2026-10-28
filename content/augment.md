@@ -28,6 +28,20 @@ $$\tilde{x} = \lambda x_i + (1-\lambda) x_j, \qquad \tilde{y} = \lambda y_i + (1
 
 $\alpha \to 0$ 退回原样本对，$\alpha \to \infty$ 退回五五开——$\alpha \in [0.2, 0.4]$ 是常用甜点。CutMix 把「插值输入」换成「贴块」：保留空间局部性，标签按面积比例分配。两者的共同本质：**在输入空间与标签空间同时施加线性先验**，逼模型放弃过自信、学会在类间「缓坡过渡」。
 
+**四种 CV 增广的 NumPy 速写**——每一种背后都是一条视觉先验：
+
+```python
+import numpy as np
+img = np.random.default_rng(0).normal(size=(28, 28, 3))
+
+flip    = img[:, ::-1, :]                          # 水平翻转：左右对称先验
+crop    = img[2:26, 2:26, :]                       # 随机裁剪：物体位置不变先验
+noise   = img + 0.1 * np.random.normal(size=img.shape)   # 高斯噪声：成像噪声先验
+jitter  = img * np.array([1.1, 0.9, 1.05])         # 颜色抖动：光照不变先验
+print(flip.shape, crop.shape, jitter.round(2)[0, 0])
+# 注意垂直翻转不在列：文字/天空地面的先验被破坏——增广必须是「保标签的变换」
+```
+
 ---
 
 ## 二、NLP 与其他模态为什么难
