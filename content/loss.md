@@ -35,6 +35,20 @@ $$-\log p(y|x) = \frac{(y - \hat{y})^2}{2\sigma^2} + \text{const} \;\Rightarrow\
 - **Focal Loss** = $(1-\hat{p}_y)^{\gamma}\times$CE：把「模型已经很自信且对」的样本损失指数压低，聚焦难样本（检测领域的支柱，见 YOLO 深读）；
 - **标签平滑**：目标从 one-hot 改为 [1−ε, ε/K,...]——抑制过度自信、提升校准（与校准主题呼应），本质是给 KL 目标混入均匀分布。
 
+**Focal Loss 的杀手锏**——同一个 sigmoid，γ 一加，易样本的损失被再压一层：
+
+```python
+import numpy as np
+def ce(y, p): return -float(np.log(p if y else 1 - p))
+def focal(y, p, gamma=2.0):
+    pt = p if y else 1 - p
+    return -((1 - pt) ** gamma) * np.log(pt)
+
+p = np.linspace(0.05, 0.95, 4)
+print([round(ce(1, q), 2) for q in p])
+print([round(focal(1, q, 2), 2) for q in p])   # p 越高（越容易）压得越狠——梯度聚焦难样本
+```
+
 ---
 
 ## 三、选损失的工程清单

@@ -15,6 +15,16 @@
 2. **机会平等（equal opportunity）**：$P(\hat{y}=1 \mid y=1, g=A) = P(\hat{y}=1 \mid y=1, g=B)$——**真实合格者的通过率（TPR）相同**；
 3. **校准（calibration）**：给定相同分数，各群体的实际正例率一致——**分数的含义跨群体统一**。
 
+
+**三种公平的数学定义**——同一场考试的三种及格线：
+
+$$\text{统计均等 DP：} \quad P(\hat{Y}=1 \mid A=a) = P(\hat{Y}=1 \mid A=b)$$
+
+$$\text{机会均等 EO：} \quad P(\hat{Y}=1 \mid Y=1, A=a) = P(\hat{Y}=1 \mid Y=1, A=b)$$
+
+$$\text{校准 Calibration：} \quad P(Y=1 \mid \hat{Y}=p, A=a) = P(Y=1 \mid \hat{Y}=p, A=b)$$
+
+（$A$ 是敏感属性。）Kleinberg 等人 2016 年证明：当基础率不同时，**校准与机会均等除平凡情形外不可兼得**——这不是算法没调好，而是「公平」一词内部就有多个互斥的数学定义。所以公平性工作永远从「选哪个定义」开始，那是价值判断，不是技术判断。
 ## 二、不可能定理的证明直觉
 
 Kleinberg 等（2016）与 Chouldechova（2017）独立证明：**基础率不同**（$P(y=1|g=A) \neq P(y=1|g=B)$）时，三者在任何「非完美分类器」上不可兼得。

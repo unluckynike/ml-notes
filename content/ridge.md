@@ -17,6 +17,22 @@ $$\hat{\beta}_{ridge} = (X^{\text{T}}X + \lambda I)^{-1}X^{\text{T}}y$$
 
 **选 λ**：交叉验证扫对数网格（0.001~100）；岭的解关于 λ 连续，CV 曲线平滑好选。
 
+**岭解与有效自由度**——df(λ) = Σ d_j²/(d_j²+λ)，从 p 连续滑向 1：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+X = np.column_stack([np.ones(50), rng.normal(size=(50, 4))])
+w_true = np.array([1., 2., 0., 0., -1.])
+y = X @ w_true + rng.normal(scale=0.3, size=50)
+for lam in (0.0, 1.0, 10.0, 100.0):
+    b = np.linalg.solve(X.T @ X + lam * np.eye(5), X.T @ y)   # 岭解闭式
+    d = np.linalg.svd(X, compute_uv=False)
+    df = float((d**2 / (d**2 + lam)).sum())
+    print(lam, b.round(2), 'df =', round(df, 2))
+# λ=0 时 df=5（全参数）；λ→∞ 时 df→1（只剩截距方向）——正则化是「参数量的连续旋钮」
+```
+
 ---
 
 ## 二、Lasso：稀疏与选择

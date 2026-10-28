@@ -25,6 +25,28 @@ $$\max_\theta \log P(\theta|D) = \log P(D|\theta) + \log P(\theta)$$
 
 **权重衰减的细节**：实现上「L2 加进损失」与「每步 θ←θ−ηλθ（衰减）」在 SGD 下等价，在 **Adam 下不等价**（L2 会被自适应缩放）——所以有 AdamW（见优化器深读）。
 
+**Lasso 坐标下降二十行**——软阈值算子 `sign(ρ)·max(|ρ|−λ, 0)` 就是 L1 的梯度结构：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+X = rng.normal(size=(60, 5)); w_true = np.array([3., 0., 0., -2., 0.])
+y = X @ w_true + rng.normal(scale=0.5, size=60)
+
+def lasso_cd(X, y, lam, iters=300):
+    w = np.zeros(X.shape[1])
+    for _ in range(iters):
+        for j in range(X.shape[1]):
+            r_j = y - X @ w + X[:, j] * w[j]     # 去掉第 j 个特征的残差
+            rho = X[:, j] @ r_j
+            w[j] = np.sign(rho) * max(abs(rho) - lam, 0) / (X[:, j] @ X[:, j])
+    return w
+
+print(lasso_cd(X, y, lam=5.0).round(2))          # λ 大：3 个真 0 全部精确为 0，真系数保留
+print(lasso_cd(X, y, lam=0.5).round(2))          # λ 小：更接近无正则解
+# 换 L2 试试：所有系数同时缩小，但没有一个变成精确 0——这就是「稀疏 vs 收缩」
+```
+
 ---
 
 ## 二、Dropout：训练时随机关闭神经元

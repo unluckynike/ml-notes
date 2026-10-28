@@ -26,6 +26,64 @@ $$w_i^{t+1} \propto w_i^t \cdot e^{-\alpha_t y_i h_t(x_i)}$$
 
 最终模型 $H(x) = \text{sign}\left(\sum_t \alpha_t h_t(x)\right)$。
 
+**AdaBoost 三十行**——OR 任务上单桩只能抓 73%，指数加权重分配让一串桩补完剩下的：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+X = rng.normal(size=(100, 2))
+y = ((X[:, 0] > 0.2) | (X[:, 1] > 0.2)).astype(int) * 2 - 1   # OR，标签 ±1
+
+def stump(X, y, w):
+    best = (None, 1.0)
+    for j in range(X.shape[1]):
+        for thr in np.unique(X[:, j]):
+            pred = np.where(X[:, j] > thr, 1, -1)
+            e = float((w * (pred != y)).mean())
+            if e < best[1]: best = ((j, thr, pred), e)
+    return best
+
+def adaboost(X, y, T=15):
+    n = len(y); w = np.full(n, 1/n); F = np.zeros(n)
+    for t in range(T):
+        (j, thr, pred), e = stump(X, y, w)
+        if e > 0.5: e, pred = 1 - e, -pred           # 反向桩：比随机差就翻转
+        if e <= 0: break
+        a = 0.5 * np.log((1 - e) / max(e, 1e-12))    # 该轮说话权
+        F += a * pred
+        w *= np.exp(-a * y * pred); w /= w.sum()     # 错的变重、对的变轻
+    return np.sign(F)
+
+print('单桩', float(np.mean(np.where(X[:, 0] > 0.2, 1, -1) == y)).__round__(2),
+      '→ boost', float(np.mean(adaboost(X, y) == y)).__round__(2))   # 0.73 → 1.0
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+X = rng.normal(size=(100, 2))
+y = ((X[:, 0] > 0.2) ^ (X[:, 1] > 0.2)).astype(int) * 2 - 1   # XOR，标签 ±1
+
+def stump(X, y, w):
+    best = (None, 1.0)
+    for j in range(X.shape[1]):
+        for thr in np.unique(X[:, j]):
+            pred = np.where(X[:, j] > thr, 1, -1)
+            e = float((w * (pred != y)).mean())
+            if e < best[1]: best = ((j, thr, pred), e)
+    return best
+
+def adaboost(X, y, T=15):
+    n = len(y); w = np.full(n, 1/n); F = np.zeros(n)
+    for t in range(T):
+        (j, thr, pred), e = stump(X, y, w)
+        if e >= 0.5: break
+        a = 0.5 * np.log((1 - e) / max(e, 1e-12))   # 该轮说话权
+        F += a * pred
+        w *= np.exp(-a * y * pred); w /= w.sum()    # 错的变重、对的变轻
+    return np.sign(F)
+
+print(float(np.mean(adaboost(X, y) == y)))          # 单桩必败的任务，boost 后 ≈1.0
+```
+
 ---
 
 ## 二、训练误差的指数下降（boosting 的合法性）

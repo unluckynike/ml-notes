@@ -19,6 +19,20 @@ $$z_0 = [x_{\text{cls}};\; x_p^1 E;\; x_p^2 E;\; \ldots;\; x_p^N E] + E_{\text{p
 
 **归纳偏置清单（ViT 丢了什么）**：卷积的局部性、平移等变、层级组合——ViT 只保留「patch 内局部性」（切片那一步）和「序即位置」（位置嵌入）。**其余先验全部交给数据学**。
 
+**patch 化十行**——ViT 唯一的视觉先验就这一步，其余全是 Transformer：
+
+```python
+import numpy as np
+def patchify(img, p=4):
+    H, W, C = img.shape
+    patches = img.reshape(H//p, p, W//p, p, C).transpose(0, 2, 1, 3, 4)
+    return patches.reshape(-1, p*p*C)
+
+img = np.random.default_rng(0).normal(size=(32, 32, 3))
+print(patchify(img, 4).shape)                  # (64, 48)：32² 图像 → 64 个 token
+# 224² + patch 16 → 196 个 token；分辨率翻倍 → token ×4 → 注意力计算量 ×16
+```
+
 ---
 
 ## 二、数据饥渴：JFT-300M 的故事

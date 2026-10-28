@@ -33,6 +33,25 @@ $$s_t = \beta_2 s_{t-1} + (1-\beta_2)g_t^2$$
 
 有记忆也有遗忘，「历史大梯度」不再永久惩罚当前。除以 $\sqrt{s_t}$ 后，有效步长 ≈ 梯度的**信噪比**——量纲自动归一（这也是它对 lr 不那么敏感、稀疏特征友好的原因）。
 
+**Adam 十五行**——一阶矩带动量，二阶矩配步长，偏差修正保证前几步不「步子太大」：
+
+```python
+import numpy as np
+def adam(grad_fn, x0, lr=0.1, b1=0.9, b2=0.999, eps=1e-8, steps=300):
+    x = x0.copy(); m = np.zeros_like(x); v = np.zeros_like(x)
+    for t in range(1, steps + 1):
+        g = grad_fn(x)
+        m = b1 * m + (1 - b1) * g                   # 一阶矩：动量
+        v = b2 * v + (1 - b2) * g * g               # 二阶矩：逐维自适应
+        m_hat = m / (1 - b1**t)                     # 偏差修正
+        v_hat = v / (1 - b2**t)
+        x -= lr * m_hat / (np.sqrt(v_hat) + eps)
+    return x
+
+print(adam(lambda w: 2 * (w - 3.0), np.array([0.0, 10.0])).round(3))
+# 两维初值差 10 倍，但都精确到 3——梯度尺度被二阶矩归一了
+```
+
 ---
 
 ## 三、Adam：组合拳与偏差修正

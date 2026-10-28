@@ -27,6 +27,18 @@ $$\text{Var}\left(\frac{1}{M}\sum_{m=1}^{M}f_m\right) = \frac{1+(M-1)\rho}{M}\,\
 > [!NOTE] Bagging vs Boosting 一句话分工
 > Bagging（随机森林）：平均**低偏差高方差**的深树 → 降方差，可并行，不易过拟合。Boosting（GBDT/XGBoost）：串行叠加**高偏差低方差**的浅树 → 降偏差，对参数敏感。深树配平均、浅树配串行，是两种纠错方向。
 
+**OOB 比例的一行推导**——bootstrap 抽 n 次不放回某点的概率是 (1−1/n)^n ≈ e^{−1}：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+n = 200
+idx = rng.integers(0, n, n)                  # bootstrap 重采样
+oob = ~np.isin(np.arange(n), idx)            # 从未被抽到 = OOB
+print(int(oob.sum()), round(float(oob.mean()), 3))
+# ≈36.8%：每棵树天生自带约 1/3 的「免费验证集」——随机森林不需要单独切验证集
+```
+
 ---
 
 ## 二、OOB：白拿的验证集

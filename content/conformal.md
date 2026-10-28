@@ -14,6 +14,20 @@
 3. $q$ = $s$ 的 $\lceil(1-\alpha)(n+1)\rceil / n$ 经验分位数（升序第 $\lceil(1-\alpha)(n+1)\rceil$ 个）；
 4. 新样本区间 $[\hat{f}(x) - q,\; \hat{f}(x) + q]$。
 
+**split conformal 十行**——校准集分数取分位数，测试集覆盖率保证 1−α：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+n_cal, n_test, alpha = 1000, 5000, 0.1
+y_cal, y_test = rng.normal(size=n_cal), rng.normal(size=n_test)
+# score = |y − ŷ|，这里假设 ŷ=0（完美模型）
+k = int(np.ceil((n_cal + 1) * (1 - alpha)))
+q = np.sort(np.abs(y_cal))[k - 1]              # 第 ⌈(n+1)(1−α)⌉ 小的分数
+cover = float(np.mean(np.abs(y_test) <= q))
+print(round(float(q), 3), cover)               # 半宽 ≈1.55；平均覆盖率 ≈0.9（分布无关保证）
+```
+
 ---
 
 ## 二、证明：一行名次论证

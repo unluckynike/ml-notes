@@ -23,6 +23,21 @@ df 是含该词的文档数。「的」出现在几乎每个文档 → idf≈0�
 
 三个参数的经验值（k₁≈1.2~2，b≈0.75）三十年几乎没动——**鲁棒到「不需要调」是它长盛的原因**。
 
+**BM25 打分十行**——IDF 拉开词的稀有度，tf 饱和与长度归一防「长文档霸榜」：
+
+```python
+import numpy as np, math
+def bm25(tf, df, N, dl, avgdl, k1=1.5, b=0.75):
+    idf = math.log((N - df + 0.5) / (df + 0.5) + 1)
+    tfn = tf * (k1 + 1) / (tf + k1 * (1 - b + b * dl / avgdl))
+    return idf * tfn
+
+N, avgdl = 10000, 200
+print(round(bm25(5, 5000, N, 200, avgdl), 3),  # 常见词：IDF 低（≈0.69），得分有限
+      round(bm25(5, 10,   N, 200, avgdl), 2),  # 罕见词：IDF 高，得分高
+      round(bm25(5, 10,   N, 50,  avgdl), 2))  # 同频次命中的短文档：再加分
+```
+
 ---
 
 ## 二、倒排索引：工程细节

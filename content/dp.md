@@ -19,6 +19,19 @@ $$\text{P}[M(D) \in S] \le e^{\epsilon}\cdot\text{P}[M(D') \in S] + \delta \qqua
 
 **ε 的量级感**：ε=0.1 极强（几乎无信息）、ε=1 强、ε=8 弱（业界常超）；δ 常取 1e-5~1e-7。**隐私预算是政策决定，不是工程决定**。
 
+**Laplace 机制**——对计数型查询加 Laplace(0, 1/ε) 噪声，就拿到 (ε, 0)-DP：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+def noisy_sum(true_sum, eps):
+    sens = 1.0                                 # 相邻数据集（差一个人）最多改变和 1
+    return true_sum + rng.laplace(0, sens / eps)
+
+print(round(float(noisy_sum(37, 1.0)), 1),     # ε=1：噪声 std ≈ √2 ≈ 1.41
+      round(float(noisy_sum(37, 0.1)), 1))     # ε=0.1：噪声大 10 倍——隐私是消耗品
+```
+
 ---
 
 ## 二、两大机制

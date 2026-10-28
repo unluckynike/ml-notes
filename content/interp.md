@@ -24,6 +24,31 @@ $$a = \sum_i f_i \, d_i \quad (f_i \text{ 是概念激活，} d_i \text{ 是近�
 
 后果：单个神经元的权重是**多个概念方向的和**——可视化出来是「杂物抽屉」（比如同时响应日语字符与 code fence）。Polysemanticity（多语义性）不是 bug，是容量策略。
 
+
+**叠加的干扰实验**——把每个特征等强度写进 2 维残差流，读出时必然互相串扰：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+d = 2
+for n_feat in (4, 24):
+    W = rng.normal(size=(d, n_feat))
+    W = W / np.linalg.norm(W, axis=0, keepdims=True)   # 等强度写入
+    x = np.zeros(n_feat); x[0] = 1.0
+    readout = W.T @ (W @ x)                    # 线性读出
+    inter = float(np.abs(np.delete(readout, 0)).max())
+    print('特征数', n_feat, '| 信号', round(float(readout[0]), 2), '| 最大串扰', round(inter, 2))
+# 串扰与信号同量级——「叠加」是表示容量换串扰的交易，SAE 做的就是解压这个混合
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+d_model, n_feat = 2, 5
+W = rng.normal(size=(d_model, n_feat)) * np.sqrt(n_feat) * 0.5
+x = np.zeros(n_feat); x[0] = 1.0               # 只激活特征 0
+r = W @ x
+print((W.T @ r).round(3))                      # 特征 0 被读出，其余 4 个也被误读出小值
+# 特征数 >> 维度时串扰不可避免——这就是「叠加」：模型宁可互相干扰也要多存特征
+```
 ## 三、SAE：用稀疏性解压叠加
 
 稀疏自编码器的思路：在模型激活上训练一个「过完备 + L1 稀疏」的自编码器——

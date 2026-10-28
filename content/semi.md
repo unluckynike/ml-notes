@@ -29,6 +29,18 @@
 
 **生成式路线**：VAE/扩散 + 分类头联合建模——无标注数据帮助学「数据本身」的分布（与自监督深读的掩码重建同宗：BERT 的 MLM 本质就是最成功的半监督实践）。
 
+**伪标签阈值的一行机制**——FixMatch 只收置信度 > 0.95 的无标签样本：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+probs = rng.dirichlet([0.3] * 4, size=20)      # 20 个无标签样本的预测分布（尖锐）
+conf, pseudo = probs.max(1), probs.argmax(1)
+mask = conf > 0.95
+print(int(mask.sum()), '个被采纳，其余', int((~mask).sum()), '个被丢弃')
+# 阈值的隐性代价：低置信样本全部作废——类不平衡时尾部类被系统性饿死
+```
+
 ---
 
 ## 三、为什么深度学习时代它「隐身」了

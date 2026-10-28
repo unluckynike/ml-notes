@@ -28,6 +28,19 @@ $$h + r \approx t \qquad \text{（头实体向量 + 关系向量 ≈ 尾实体�
 
 与向量检索的衔接：KG 嵌入向量可以进向量库——「结构化的语义检索」，比纯文本嵌入多一层关系约束。
 
+**TransE 的分数函数**——「头实体 + 关系 ≈ 尾实体」，训练就是拉近真三元组、推开负采样：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+E = rng.normal(size=(5, 4))                    # 实体嵌入
+R = rng.normal(size=(3, 4))                    # 关系嵌入
+score = lambda h, r, t: -float(np.linalg.norm(E[h] + R[r] - E[t]))
+
+E[1] = E[0] + R[2]                             # 造一条真三元组 (0, 2, 1)
+print(round(score(0, 2, 1), 3), round(score(0, 2, 3), 3))   # 真的 ≫ 假的
+```
+
 ---
 
 ## 三、KG 与 LLM 的三种结合

@@ -24,6 +24,24 @@
 > [!WARN] 准确率悖论（必考）
 > 欺诈率 0.5% 的数据：全预测「正常」→ 准确率 99.5%，召回 0%。不平衡数据上**准确率是装饰品**；至少看 P/R/F1，最好再看下一节的 AUC 与 PR 曲线。
 
+**混淆矩阵到指标**——注意这组「准确率不低、实际漏检严重」的样本：
+
+```python
+import numpy as np
+def confusion(y, p, thr=0.5):
+    pred = (p > thr).astype(int)
+    tp = int(((pred == 1) & (y == 1)).sum()); fp = int(((pred == 1) & (y == 0)).sum())
+    fn = int(((pred == 0) & (y == 1)).sum()); tn = int(((pred == 0) & (y == 0)).sum())
+    return tp, fp, fn, tn
+
+y = np.array([1, 1, 1, 0, 0, 0, 0, 1, 0, 1])
+p = np.array([0.9, 0.8, 0.7, 0.6, 0.55, 0.54, 0.3, 0.4, 0.2, 0.1])   # 故意错位
+tp, fp, fn, tn = confusion(y, p)
+print(tp, fp, fn, tn, '| 准确率', round((tp+tn)/len(y), 2),
+      '精确率', round(tp/(tp+fp), 2), '召回率', round(tp/(tp+fn), 2))
+# 漏检 2/5 正例——单看准确率发现不了，这正是 PR 曲线存在的理由
+```
+
 ---
 
 ## 二、ROC 与 AUC：给「排序」打分

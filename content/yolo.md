@@ -48,6 +48,28 @@ $$FL(p) = -(1-p)^\gamma\log(p)$$
 
 -anchor 化是重要节点：anchor 是先验框（聚类数据集得到），anchor-free 则让网络直接预测框本身——省去先验设计，配合 Focal/质量标签（用 IoU 当分类监督）后性能不输。
 
+**IoU 与 NMS**——检测的两个地基组件，二十行看穿：
+
+```python
+import numpy as np
+def iou(a, b):
+    ix1, iy1 = max(a[0], b[0]), max(a[1], b[1])
+    ix2, iy2 = min(a[2], b[2]), min(a[3], b[3])
+    inter = max(ix2 - ix1, 0) * max(iy2 - iy1, 0)
+    area = (a[2]-a[0])*(a[3]-a[1]) + (b[2]-b[0])*(b[3]-b[1]) - inter
+    return inter / area
+
+def nms(boxes, scores, thr=0.5):
+    keep, order = [], np.argsort(scores)[::-1]
+    while len(order):
+        i = order[0]; keep.append(int(i))
+        order = np.array([j for j in order[1:] if iou(boxes[i], boxes[j]) < thr])
+    return keep
+
+boxes = np.array([[0,0,10,10],[1,1,11,11],[20,20,30,30]], dtype=float)
+print(nms(boxes, np.array([0.9, 0.8, 0.7])))   # [0, 2]：重叠的 1 号被抑制
+```
+
 ---
 
 ## 四、评估：mAP
