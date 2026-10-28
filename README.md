@@ -131,10 +131,15 @@ python3 -m http.server 8000     # or just open index.html
 │   └── app.js              # Rendering & interaction: tabs, search, graph, navigation
 ├── content/                # ★ 125 deep-dive articles (plain Markdown, runnable code)
 ├── tools/check.mjs         # CI self-check: id consistency, formula rendering, demo refs, length gate
-└── .github/workflows/pages.yml   # CI check + auto-deploy to GitHub Pages
+├── tools/build-pages.mjs   # SEO: renders the 125 articles to static HTML at deploy time
+└── .github/workflows/pages.yml   # CI check + static pages + auto-deploy to GitHub Pages
 ```
 
 **Content and code are separated**: editing content only touches `content/*.md` and `js/content.js`, never the rendering logic.
+
+### SEO static pages
+
+For search engines (especially those that don't run JavaScript), CI pre-renders every article to a static page — `article/<topic>/` with its own `<meta description>`, Open Graph tags and canonical URL — and regenerates `sitemap.xml` (126 URLs). These files are build artifacts only: they exist in the GitHub Pages deployment, never in the repository. Each static page links back to the interactive version at `#topic-<id>/deep`.
 
 ## Deep-dive articles (125 · full coverage)
 

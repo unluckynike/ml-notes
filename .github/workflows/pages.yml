@@ -35,6 +35,13 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+      # SEO：把 125 篇长文预渲染成静态 HTML（article/、css/article.css、sitemap.xml，
+      # 均为 gitignore 的产物，只进入部署 artifact），渲染失败会拦下整个部署
+      - name: 构建静态文章页
+        run: node tools/build-pages.mjs
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:

@@ -132,10 +132,15 @@ python3 -m http.server 8000     # 或直接双击 index.html
 │   └── app.js              # 渲染与交互：标签页、搜索、图谱、导航
 ├── content/                # ★ 125 篇深度长文（纯 Markdown，含可运行代码片段）
 ├── tools/check.mjs         # 自检：id 一致性、公式渲染、演示引用、长度门禁
-└── .github/workflows/pages.yml   # CI 自检 + 自动部署 GitHub Pages
+├── tools/build-pages.mjs   # SEO：部署时把 125 篇长文预渲染成静态 HTML
+└── .github/workflows/pages.yml   # CI 自检 + 静态页构建 + 自动部署 GitHub Pages
 ```
 
 **内容与代码分离**：改内容只碰 `content/*.md` 和 `js/content.js`，不碰渲染逻辑。
+
+### SEO 静态文章页
+
+为了照顾不执行 JS 的搜索引擎，CI 在部署时把每篇长文预渲染成静态页（`article/<主题>/`，各带 `<meta description>`、Open Graph 标签与 canonical），并重新生成 `sitemap.xml`（126 个 URL）。这些文件只是构建产物：只存在于 GitHub Pages 部署里，仓库中不会出现。每个静态页都有「查看交互版」链接，直达主站对应主题的深读标签页。
 
 ## 深度长文（125 篇 · 全覆盖）
 
