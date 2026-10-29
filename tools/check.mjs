@@ -166,9 +166,10 @@ deepRefs.forEach((ids, rel) => {
     }
   }
 
-  // 文内的本地图片/链接是否存在
+  // 文内的本地图片/链接是否存在（先剥掉代码围栏，避免把 experts[e](x) 之类的代码误判成链接）
+  const mdNoFence = md.replace(/```[\s\S]*?```/g, '');
   const links = [];
-  md.replace(/!?\[[^\]]*\]\(([^)\s]+)\)/g, (m, href) => { links.push(href); return m; });
+  mdNoFence.replace(/!?\[[^\]]*\]\(([^)\s]+)\)/g, (m, href) => { links.push(href); return m; });
   links.forEach(href => {
     if (/^(https?:|mailto:|tel:|data:|#)/i.test(href)) return;
     const target = path.resolve(path.dirname(abs), href.split('#')[0]);
