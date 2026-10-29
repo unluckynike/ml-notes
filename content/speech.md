@@ -40,6 +40,29 @@ $B^{-1}(y)$ 是所有能折叠成正确转写 $y$ 的路径集合（含大量重
 
 CTC 的两大局限：**假设帧间条件独立**（声学上下文靠底层网络补）、**输出条件于输入但输入不条件于输出**——「语言模型能力」进不了解码循环。
 
+**CTC 贪心解码十行**——每帧取最可能的 token，折叠重复、删 blank，就是转写：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+tokens = ["<blank>", "h", "e", "l", "o"]
+
+def ctc_greedy(probs):                               # probs:(T, len(tokens)) 每帧一个分布
+    ids = probs.argmax(1)                            # 每帧独立取 argmax
+    out, prev = [], -1
+    for i in ids:                                    # 折叠：连续相同算一个；blank 是分隔符
+        if i != prev and i != 0: out.append(tokens[i])
+        prev = i
+    return "".join(out)
+
+T = 12
+truth = [0, 0, 3, 3, 3, 0, 1, 0, 4, 4, 0, 0]         # 路径：_ _ l l l _ h _ o o _ _
+probs = np.full((T, len(tokens)), 0.1)
+for t, tok in enumerate(truth): probs[t, tok] = 0.8  # 模型输出：正确 token 概率 0.8
+print(ctc_greedy(probs))                             # → "lho"：3 个 l 折成 1 个，blank 吃掉重复
+# 注意：贪心可能错（两段相同字母中间必须有 blank），beam 版解码能再救回几个点
+```
+
 ---
 
 ## 三、后 CTC 时代：三条路线

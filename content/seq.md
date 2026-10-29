@@ -29,6 +29,36 @@ $$P(y_1, \dots, y_T \mid x) = \prod_{t=1}^{T} p(y_t \mid y_{<t}, x), \qquad \hat
 
 精确求 argmax 是 NP 难的（每一步的选择都改变后续所有分布）——beam search 用「只保留 log 分数最高的 B 条前缀」近似。实用系统还要做**长度惩罚**：每个 token 的 log 概率都小于 0，序列越长分数越低，模型会偏爱短输出——所以把分数除以 $T^{\alpha}$（$\alpha \approx 0.6$）再比较。
 
+**beam search 二十行**——每步只保留 log 分数最高的 B 条前缀，近似解出链式 argmax：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+vocab = ["我", "的", "猫", "爱", "鱼", "<eos>"]
+
+def next_token_dist(prefix):                         # 玩具模型：伪分布（真实系统来自模型 softmax）
+    logits = rng.normal(size=len(vocab))
+    logits[vocab.index("<eos>")] -= 2.0 if len(prefix) < 3 else 1.0   # 短句不想停
+    e = np.exp(logits - logits.max()); return e / e.sum()
+
+def beam_search(B=3, max_len=5):
+    beams = [([], 0.0)]                              # (序列, 累计 log 概率)
+    for _ in range(max_len):
+        cand = []
+        for seq, sc in beams:
+            if seq and seq[-1] == "<eos>": cand.append((seq, sc)); continue
+            p = next_token_dist(seq)
+            for v, pv in zip(vocab, p): cand.append((seq + [v], sc + np.log(pv + 1e-12)))
+        beams = sorted(cand, key=lambda x: -x[1])[:B]   # 只留 top-B：指数空间 → 线性
+        if all(s[-1] == "<eos>" for s, _ in beams): break
+    return max(beams, key=lambda x: x[1])
+
+best, score = beam_search()
+print("最优序列:", "".join(best), "| log 分数:", round(score, 2))
+# 对比贪心（B=1）与 B=5：B 越大越接近真 argmax，但计算量线性涨——B 是质量/成本旋钮
+print("贪心(B=1):", "".join(beam_search(B=1)[0]))
+```
+
 ---
 
 ## 二、两大传统的哲学对比

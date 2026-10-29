@@ -29,6 +29,45 @@ Q: <新问题>
 A: <模型会先复述步骤再给答案——每个中间式子都是一次「外置思考」>
 ```
 
+**自一致性的聚合账**——单次采样准确率不高时，多数投票能把它抬上去：
+
+```python
+import numpy as np
+from collections import Counter
+rng = np.random.default_rng(0)
+true_ans, distractors = "24", ["23", "21", "27"]
+
+def sample_chain():                                  # 模拟：正确路径 p=0.55，其余分给干扰项
+    if rng.random() < 0.55: return true_ans
+    return distractors[rng.integers(len(distractors))]
+
+samples = [sample_chain() for _ in range(9)]         # 一致性@9：采 9 条推理链
+votes = Counter(samples)
+print("示例投票:", dict(votes), "→ 选中", votes.most_common(1)[0][0])
+single_acc = np.mean([sample_chain() == true_ans for _ in range(10000)])
+vote_acc = np.mean([Counter(sample_chain() for _ in range(9)).most_common(1)[0][0] == true_ans
+                    for _ in range(10000)])
+print(f"单链准确率 {single_acc:.2f} → 多数投票@9 {vote_acc:.2f}")
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+true_ans, distractors = "24", ["23", "21", "27"]
+
+def sample_chain():                                  # 模拟：正确路径 p=0.55，其余分给干扰项
+    if rng.random() < 0.55: return true_ans
+    return distractors[rng.integers(len(distractors))]
+
+samples = [sample_chain() for _ in range(9)]         # 一致性@9：采 9 条推理链
+votes = Counter(samples)
+majority = votes.most_common(1)[0][0]
+from collections import Counter
+single_acc = np.mean([sample_chain() == true_ans for _ in range(10000)])
+vote_acc = np.mean([Counter(sample_chain() for _ in range(9)).most_common(1)[0][0] == true_ans
+                    for _ in range(10000)])
+print(f"单链准确率 {single_acc:.2f} → 多数投票@9 {vote_acc:.2f}")
+print("示例投票:", dict(votes), "→ 选中", majority)
+```
+
 ---
 
 ## 二、推理时搜索：多路与树

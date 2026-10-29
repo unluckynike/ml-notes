@@ -27,6 +27,27 @@ $$\text{DCG@k} = \sum_{j=1}^{k} \frac{2^{rel_j} - 1}{\log_2 (j + 1)}, \qquad \te
 
 注意矩阵分解的目标里**没有出现排序**：它优化的是评分回归（RMSE），而业务要的是 top-k 排序质量——这就是「排序层」必须单独存在、以及 BPR/WARP 等排序目标函数被发明出来的原因。
 
+**item-item 协同过滤十五行**——「喜欢 A 的人也喜欢 B」就是列向量间的余弦相似度：
+
+```python
+import numpy as np
+rng = np.random.default_rng(0)
+R = (rng.random((200, 50)) < 0.08).astype(float)     # 200 用户 × 50 物品的点击矩阵（稀疏）
+R[:100, 0] = 1; R[:80, 1] = 1                        # 物品 0/1 被同一批人点 → 应该相似
+
+def norm_cols(M):
+    return M / (np.linalg.norm(M, axis=0, keepdims=True) + 1e-9)
+
+Rn = norm_cols(R)
+sim = Rn.T @ Rn                                      # 50×50 物品相似度：一次矩阵乘
+def recommend(item, n=5):
+    return np.argsort(-sim[item])[:n + 1][1:]        # 去掉自己取 top-n
+
+print("与物品 0 最相关的:", recommend(0), "| sim[0,1] =", round(float(sim[0, 1]), 3))
+print("随机物品对平均 sim:", round(float(np.mean(sim[np.triu_indices(50, 1)])), 3))
+# 纯共现信号、零内容特征——协同过滤的全部魔法就这一个矩阵乘
+```
+
 ---
 
 ## 二、排序层：从 LR 到 DIN

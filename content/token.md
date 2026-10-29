@@ -39,6 +39,63 @@ $$\text{Unigram：}\qquad V^* = \argmax_{V,\; |V| = k} \; \sum_{x \in D} \log P(
 
 BPE 每步选语料里**最频繁的相邻对**合并（贪心，不可回退）；Unigram 先建一个超词表，按「删掉哪个 token 对语料似然伤害最小」用 EM 反复裁剪（概率化，可回退）。WordPiece 介于两者之间：判据不是频率而是**似然增益**——选合并后让语料似然提升最多的对，这就是它给「续接标记」打 `##` 前缀的原因。
 
+**BPE 训练二十行**——「数邻居、合并最频繁、重复」，词表就是这么长出来的：
+
+```python
+from collections import Counter
+
+corpus = ["low", "lower", "lowest", "low", "newer", "newer", "wider"]
+words = [list(w) + ["</w>"] for w in corpus]         # 词尾标记：区分 "low" 与 "low" 的前缀
+
+def merge(w, a, b):                                  # 把相邻的 a,b 合成一个新 token
+    out, i = [], 0
+    while i < len(w):
+        if i < len(w) - 1 and w[i] == a and w[i+1] == b: out.append(a + b); i += 2
+        else: out.append(w[i]); i += 1
+    return out
+
+vocab = []
+for step in range(6):                                # 每步：找语料里最频繁的相邻对并合并
+    pairs = Counter(p for w in words for p in zip(w, w[1:]))
+    (a, b), n = pairs.most_common(1)[0]
+    words = [merge(w, a, b) for w in words]
+    vocab.append((a + b, n))
+
+print("学到的合并（新token, 频次）:", vocab[:4])
+print("示例切分:", words[1])                         # l o w e r </w> → 已合并的形态
+```python
+import numpy as np
+from collections import Counter
+
+corpus = ["low", "lower", "lowest", "low", "newer", "newer", "wider"]
+words = [list(w) + ["</w>"] for w in corpus]        # 词尾标记：区分 "low" 与 "low er"
+
+def pair_stats(words):
+    c = Counter()
+    for w in words:
+        for a, b in zip(w, w[1:]): c[(a, b)] += 1
+    return c
+
+vocab = []
+for step in range(6):                                # 每步：合并语料里最频繁的相邻对
+    (a, b), n = pair_stats(words).most_common(1)[0]
+    words = [[f"{a}{b}"] + rest if x == a and rest and rest[0] == b
+             else [x] + rest for x, *rest in
+             ((tok,) + tuple(w[i+1:]) for w in words for i, tok in enumerate(w) if tok == a)
+             ] if False else [merge(w, a, b) for w in words]
+    vocab.append((f"{a}{b}", n))
+
+def merge(w, a, b):
+    out, i = [], 0
+    while i < len(w):
+        if i < len(w) - 1 and w[i] == a and w[i+1] == b: out.append(a + b); i += 2
+        else: out.append(w[i]); i += 1
+    return out
+
+print("学到的合并（新token, 频次）:", vocab[:4])
+print("示例词切分:", words[1])                       # "lower" → ['low', 'e', 'r'... 或已合并的形态]
+```
+
 ---
 
 ## 二、三大变体对照

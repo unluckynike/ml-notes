@@ -76,6 +76,41 @@ $k$ 常取 60。RRF 只用排名不用分数，天然规避两路分数量纲不
 - **HyDE**：先让 LLM **假设性地写一段答案**，拿这段假答案去检索——答案与文档同分布，比「问题 vs 文档」的鸿沟小。
 - **多查询扩展**：一个查询改写成 N 个变体分别检索再融合（以延迟换召回）。
 
+**RRF 融合十行**——BM25 与向量检索的名次倒数相加，两路信号就拧成一路：
+
+```python
+def rrf(rank_lists, k=60):                           # rank_lists: 每路检索的文档 id 排名表
+    scores = {}
+    for ranks in rank_lists:
+        for r, doc in enumerate(ranks):
+            scores[doc] = scores.get(doc, 0) + 1 / (k + r + 1)
+    return sorted(scores, key=lambda d: -scores[d])
+
+bm25_rank   = ["d3", "d1", "d7", "d9"]               # 词面路：命中了关键词
+vector_rank = ["d1", "d5", "d3", "d2"]               # 语义路：命中了意思
+print("BM25 单路 top3:", bm25_rank[:3])
+print("向量 单路 top3:", vector_rank[:3])
+print("RRF 融合 top3:", rrf([bm25_rank, vector_rank])[:3])   # d1 两路都靠前 → 融合后第一
+# k=60 压平名次差异：第 1 名的优势不至于碾压「两路都出现」的票——只认名次不认分数
+```python
+import numpy as np
+def rrf(rank_lists, k=60):                           # rank_lists: 每路检索的文档 id 排名表
+    scores = {}
+    for ranks in rank_lists:
+        for r, doc in enumerate(ranks):
+            scores[doc] = scores.get(doc, 0) + 1 / (k + r + 1)
+    return sorted(scores, key=scores.get, key2 := None) if False else \
+           sorted(scores, key=lambda d: -scores[d])
+
+bm25_rank  = ["d3", "d1", "d7", "d9"]                # 词面路：命中了关键词
+vector_rank = ["d1", "d5", "d3", "d2"]               # 语义路：命中了意思
+fused = rrf([bm25_rank, vector_rank])
+print("BM25 单路 top3:", bm25_rank[:3])
+print("向量 单路 top3:", vector_rank[:3])
+print("RRF 融合 top3:", fused[:3])                   # d1 两路都靠前 → 融合后第一
+# k=60 压平名次差异：第 1 名与第 5 名的差距不至于碾压「两路都出现」的票
+```
+
 ---
 
 ## 五、重排：便宜又大涨点的一环

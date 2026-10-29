@@ -18,6 +18,23 @@
 
 **树是不对称的**：有希望的分支被反复访问（越建越深），无希望的浅尝辄止——计算按「统计证据」自动分配，与均匀穷举的本质区别。
 
+**UCT 选择公式跑起来**——Q/N 拉向利用，√(ln N)/n 拉向探索：
+
+```python
+import numpy as np
+def uct(q, n, parent_n, c=1.4):
+    if n == 0: return float("inf")                   # 没访问过的节点 = 无穷优先
+    return q / n + c * np.sqrt(np.log(parent_n) / n)
+
+# 两个子节点：A 试过 10 次均值 0.6（稳），B 只试过 2 次均值 0.5（未知）
+QA, NA, QB, NB, P = 6.0, 10, 1.0, 2, 12
+print("A 的 UCT:", round(uct(QA, NA, P), 3), "| B 的 UCT:", round(uct(QB, NB, P), 3))
+print("这一轮扩展", "B" if uct(QB, NB, P) > uct(QA, NA, P) else "A", "——不确定性吃到探索奖励")
+for c in (0.2, 1.4, 5.0):                            # c 扫描：小→只利用，大→乱试
+    print(f"c={c}: A={uct(QA, NA, P, c):.2f} B={uct(QB, NB, P, c):.2f}",
+          "→ 选 B" if uct(QB, NB, P, c) > uct(QA, NA, P, c) else "→ 选 A")
+```
+
 ---
 
 ## 二、UCT：把每个节点变成一台老虎机

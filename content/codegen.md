@@ -27,6 +27,36 @@ $$\widehat{\text{pass@}k} = 1 - \prod_{i=0}^{k-1} \frac{n - c - i}{n - i}$$
 
 直觉：分子连乘的是「k 次抽样全避开正确答案」的概率——1 减去它就是至少一次命中的概率。相比朴素的「抽 k 个算命中率」，这个估计量把 c 个正确样本的信息全部用上，方差小得多。HumanEval 用它，后来的 SWE-bench 与各种 sandbox 评测也都沿用。
 
+**FSM 掩码解码十五行**——状态机决定每步「哪些 token 合法」，非法的 logit 压成 -inf：
+
+```python
+import numpy as np
+# 玩具文法：名字 = "def " + 小写词 + "(" + 数字 + ")"
+TRANS = {
+    "start":  {"def": "after_def"},
+    "after_def": {"name": "after_name"},
+    "after_name": {"(": "after_paren"},
+    "after_paren": {"num": "after_num", ")": "done"},
+    "after_num": {")": "done"},
+    "done": {},
+}
+rng = np.random.default_rng(0)
+TEXT = {"def": "def ", "name": "fib", "(": "(", ")": ")", "num": "42"}
+token_logprobs = {"def": -1, "name": -1, "(": -1, ")": -1, "num": -1}  # 模型的原始偏好
+
+state, out = "start", []
+while state != "done":
+    legal = TRANS[state]
+    mask = {t: (token_logprobs[t] + rng.normal(scale=0.1) if t in legal else -np.inf)
+            for t in token_logprobs}
+    pick = max(mask, key=mask.get)                   # 掩码后选（采样则按掩码分布抽）
+    out.append(TEXT[pick])
+    state = legal[pick]
+print("".join(out))                                  # def fib(42) 或 def fib()——语法永远合法
+# 没有掩码时模型会输出 def fib(:  之类的破损前缀——掩码让语法错误在结构上不可能
+# 没有掩码时模型会输出 def fib(:  之类的破损前缀——掩码让语法错误在结构上不可能
+```
+
 ---
 
 ## 二、执行反馈循环：语义正确性的引擎
