@@ -132,6 +132,11 @@ a { color: var(--accent-2); text-decoration: none; }
 .brand__text { display: flex; flex-direction: column; line-height: 1.25; }
 .brand__text strong { font-size: 17px; letter-spacing: .5px; }
 .brand__text span { font-size: 11.5px; color: var(--muted); }
+.brand__author {
+  font-size: 11.5px; color: var(--muted); text-decoration: none;
+  width: fit-content; transition: color .15s;
+}
+.brand__author:hover { color: var(--accent-2); }
 
 .sidebar__search { position: relative; margin: 6px 16px 14px; }
 .sidebar__search input {

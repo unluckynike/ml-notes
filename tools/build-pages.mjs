@@ -111,7 +111,22 @@ body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--
 @media (max-width: 560px) { .art-top { flex-direction: column; text-align: center; } }
 `;
 
-const page = ({ id, h1, desc, content, topicName }) => `<!DOCTYPE html>
+const AUTHOR = { name: 'Halensea', url: 'https://github.com/unluckynike' };
+const BUILD_DATE = new Date().toISOString().slice(0, 10);
+
+const page = ({ id, h1, desc, content, topicName }) => {
+  // Google 结构化数据：机器可读的作者归属（E-E-A-T 信号）
+  const ld = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: h1,
+    description: desc,
+    url: `${BASE}/article/${id}/`,
+    inLanguage: 'zh-CN',
+    author: { '@type': 'Person', name: AUTHOR.name, url: AUTHOR.url },
+    license: 'https://creativecommons.org/licenses/by-nc-sa/4.0/'
+  });
+  return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8" />
@@ -130,8 +145,9 @@ const page = ({ id, h1, desc, content, topicName }) => `<!DOCTYPE html>
 <meta name="twitter:title" content="${h1} · AI 笔记" />
 <meta name="twitter:description" content="${desc}" />
 <link rel="icon" type="image/svg+xml" href="../../favicon.svg" />
-<link rel="stylesheet" href="../../css/article.css" />
+<link rel="stylesheet" href="../../css/article.css?v=${BUILD_DATE}" />
 <style>${CHROME_CSS}</style>
+<script type="application/ld+json">${ld}</script>
 </head>
 <body>
 <header class="art-top">
@@ -148,13 +164,14 @@ const page = ({ id, h1, desc, content, topicName }) => `<!DOCTYPE html>
 ${content}
 </article>
 <footer class="art-foot">
-  <p>本文是 <a href="../../index.html#topic-${id}">「${topicName}」主题</a>的深度长文。全部 125 个主题、交互式演示与知识图谱见 <a href="../../index.html">AI 笔记主页</a>。</p>
+  <p>作者 <a href="${AUTHOR.url}" target="_blank" rel="noopener">${AUTHOR.name} ↗</a> · 本文是 <a href="../../index.html#topic-${id}">「${topicName}」主题</a>的深度长文，全部 125 个主题、交互式演示与知识图谱见 <a href="../../index.html">AI 笔记主页</a>。</p>
   <p>内容采用 CC BY-NC-SA 4.0 授权 · 站点代码 MIT 授权</p>
 </footer>
 </main>
 </body>
 </html>
 `;
+};
 
 // ---------- 5. 主流程 ----------
 const outDirs = ['article', 'css'];
