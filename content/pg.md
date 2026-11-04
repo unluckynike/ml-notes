@@ -88,6 +88,18 @@ $$L = \text{E}\left[\min\left(r_tA_t,\;\; \text{clip}(r_t,\;1\pm\epsilon)A_t\rig
 
 ---
 
+## 四、方差三连降的数学：baseline、GAE 与 clip
+
+**baseline 引理**：给回报减去任意与动作无关的函数 $b(s)$，梯度期望不变：
+
+$$\nabla J = E\big[\nabla \log \pi(a|s)(G - b(s))\big] = E\big[\nabla \log \pi(a|s)\,G\big] - E\big[\nabla \log \pi(a|s)\, b(s)\big]$$
+
+第二项里 $b(s)$ 与动作无关，而 $E[\nabla \log \pi \mid s] = \sum_a \pi \cdot \frac{\nabla \pi}{\pi} = \nabla \sum_a \pi = \nabla 1 = 0$——**减 baseline 不改变梯度期望，只降方差**。理论最优 baseline 是按梯度平方加权的形式，实践中直接用价值网络 $V(s)$ 代替，顺便得到了 TD 误差这个「天然的优势估计」。
+
+**GAE**：把「多步回报」连续化。定义 TD 残差 $\delta_t = r_t + \gamma V(s_{t+1}) - V(s_t)$，则优势的 GAE 估计为 $A_t = \sum_l (\gamma\lambda)^l \delta_{t+l}$——$\lambda = 0$ 退化为一步 TD（低方差、高偏差），$\lambda = 1$ 退化为蒙特卡洛（高方差、低偏差），**λ 就是偏差-方差旋钮**，常用 0.95。
+
+**PPO-clip 的概率含义**：$\min(r_t A_t, \text{clip}(r_t, 1-\epsilon, 1+\epsilon) A_t)$——重要性比率 $r_t$ 跑出 $[1-\epsilon, 1+\epsilon]$ 就不再提供梯度，等于把策略更新限制在「采样策略附近的置信域」。它是 TRPO 二阶约束的一阶廉价近似，也回答了 on-policy 的样本效率账：**数据用过即弃，换训练稳定性**——所以 RLHF 里的 PPO 总是配一个巨大的 prompt 批次池来摊薄采样成本。
+
 ## 常见误区
 
 - **「策略梯度的梯度是无偏的」** —— REINFORCE 的梯度是无偏的，但引入 baseline/advantage/critic 后可能引入偏差（如 advantage 估计的偏差）——「无偏」有条件，非无条件保证。
@@ -95,7 +107,7 @@ $$L = \text{E}\left[\min\left(r_tA_t,\;\; \text{clip}(r_t,\;1\pm\epsilon)A_t\rig
 - **「on-policy 算法不能用旧数据」** —— PPO 通过重要性采样比率重用旧数据（在信任域内有效）——完全不能用旧数据是 REINFORCE 的限制，PPO 已经部分缓解。
 - **「策略梯度中 ∇logπ(a|s) 的直觉是『增加好动作的概率』」** —— 更精确地说：∇logπ 的方向是「参数空间中增加该动作对数概率最快的方向」——「增加概率」是结果，「沿得分方向更新参数」是机制。
 
-## 四、要点总结
+## 五、要点总结
 
 1. **策略梯度的核心公式与直觉？** $\nabla J = \text{E}[R\nabla\log\pi]$：按回报大小成比例地推高/压低轨迹的对数概率。
 2. **为什么减 baseline 期望不变？** $\text{E}[b\nabla\log\pi] = b\nabla\text{(sum of probs)} = 0$——与动作无关的量不改变梯度方向，只降方差。
