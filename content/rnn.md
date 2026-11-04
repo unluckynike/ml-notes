@@ -91,7 +91,7 @@ print(round(float(np.abs(np.linalg.eigvals(J)).max()), 3))  # 每步衰减率 <1
 
 ---
 
-## 五、Seq2Seq 与注意力：从 RNN 到 Transformer 的过渡
+## 四、Seq2Seq 与注意力：从 RNN 到 Transformer 的过渡
 
 RNN 处理「输入序列 → 输出序列」任务时，编码器-解码器（Seq2Seq）架构将输入压缩为固定向量再解码——瓶颈在于「固定向量装不下任意长的输入信息」。**注意力机制**最初就是为了解决这个瓶颈而发明的（Bahdanau 2014）：
 
@@ -101,7 +101,7 @@ $$\text{context}_t = \sum_{i=1}^{T} \alpha_{t,i} \cdot h_i, \quad \alpha_{t,i} =
 
 这个注意力机制后来被单独抽取出来——**「Attention is all you need」**（2017）——去掉了 RNN 骨干，只用注意力 + FFN 堆叠，就是 Transformer。所以：注意力起源于 RNN 的瓶颈，反过来取代了 RNN。
 
-## 六、实战：RNN 的超参与陷阱
+## 五、实战：RNN 的超参与陷阱
 
 | 超参 | 推荐值 | 陷阱 |
 |---|---|---|
@@ -115,7 +115,7 @@ $$\text{context}_t = \sum_{i=1}^{T} \alpha_{t,i} \cdot h_i, \quad \alpha_{t,i} =
 
 **序列长度不等时的 batching**：按长度排序→分桶（bucketing）→pad 到桶内最长→用 pack_padded_sequence 跳过 pad 计算——不排序直接 pad 会浪费大量计算在 pad 上。
 
-## 四、要点总结
+## 六、要点总结
 
 1. **BPTT 是什么？** 把循环按时间展开后做普通反向传播；同一参数在各步的梯度**累加**。
 2. **梯度消失/爆炸的数学来源？** 雅可比连乘：$\prod \text{diag}(\tanh')W_{hh}^{\text{T}}$；谱半径决定指数放大或衰减。

@@ -77,7 +77,7 @@ print([round(focal(1, q, 2), 2) for q in p])   # p 越高（越容易）压得�
 
 ---
 
-## 五、损失函数的完整族谱与选择决策树
+## 四、损失函数的完整族谱与选择决策树
 
 ```
 任务类型？
@@ -102,7 +102,7 @@ print([round(focal(1, q, 2), 2) for q in p])   # p 越高（越容易）压得�
 
 **Label Smoothing 的信息论解释**：硬标签 [1,0,0] 的熵=0（过度自信）；平滑后 [0.9,0.05,0.05] 的熵>0——相当于告诉模型「不确定是正常的」，改善校准。
 
-## 六、损失景观（Loss Landscape）的可视化与洞察
+## 五、损失景观（Loss Landscape）的可视化与洞察
 
 将高维损失面投影到 2D：Sharp/Flat minima 的可视化表明——SGD 偏好平坦极小值（宽谷），Adam 偏好尖锐极小值（窄谷）；平坦极小值的泛化更好。
 
@@ -110,38 +110,7 @@ print([round(focal(1, q, 2), 2) for q in p])   # p 越高（越容易）压得�
 
 ---
 
-## 五、损失函数的完整族谱与选择决策树
-
-```
-任务类型？
-├── 分类
-│   ├── 二分类 → BCE（可加 Focal/Class Weight）
-│   ├── 多分类（互斥）→ Softmax CE
-│   ├── 多标签 → BCE（每个标签独立 sigmoid）
-│   └── 排序 → pairwiseRankNet / listwiseListNet
-├── 回归
-│   ├── 无离群值 → MSE
-│   ├── 有离群值 → Huber / Log-Cosh
-│   └── 预测区间 → Quantile Loss
-├── 生成
-│   ├── 逐 token → Cross-Entropy
-│   ├── 连续 → MSE / Perceptual Loss
-│   └── 分布匹配 → KL / JS / Wasserstein
-└── 度量学习
-    └── Triplet Loss / Contrastive / InfoNCE
-```
-
-**损失组合**：多任务学习 = Σ(任务损失 × 任务权重)；权重可用不确定性加权（Kendall）或 GradNorm 自动调节。
-
-**Label Smoothing 的信息论解释**：硬标签 [1,0,0] 的熵=0（过度自信）；平滑后 [0.9,0.05,0.05] 的熵>0——相当于告诉模型「不确定是正常的」，改善校准。
-
-## 六、损失景观（Loss Landscape）的可视化与洞察
-
-将高维损失面投影到 2D：Sharp/Flat minima 的可视化表明——SGD 偏好平坦极小值（宽谷），Adam 偏好尖锐极小值（窄谷）；平坦极小值的泛化更好。
-
-**模态连通性（Mode Connectivity）**：两个独立训练的模型的极小值之间可以通过**一条低损失路径**连接（不是必须经过高损失屏障）——这说明「损失面中有连续的低损失区域」——与线性模式连通（Linear Mode Connectivity）研究相呼应。
-
-## 四、要点总结
+## 六、要点总结
 
 1. **交叉熵、KL、MLE 的关系？** H(p,q)=H(p)+KL(p‖q)；数据固定时 H(p) 为常数 → 最小化 CE ≡ 最小化 KL ≡ 最大化似然。
 2. **MSE 隐含什么假设？** 高斯噪声、方差恒定；离群点下平方梯度绑架训练 → Huber。

@@ -120,7 +120,7 @@ model.fit(X, y)
 
 ---
 
-## 五、XGBoost vs LightGBM vs CatBoost 的技术对比
+## 七、XGBoost vs LightGBM vs CatBoost 的技术对比
 
 三个梯度提升框架各有独特的工程创新：
 
@@ -135,7 +135,7 @@ model.fit(X, y)
 
 **选型**：特征工程好 + 小数据 → XGBoost（更稳定）；大数据 + 需要速度 → LightGBM；类别特征多（用户/商品 ID）→ CatBoost。
 
-## 六、XGBoost 超参调优的系统化方法
+## 八、XGBoost 超参调优的系统化方法
 
 XGBoost 的超参分为四组，调优有先后依赖：
 
@@ -146,7 +146,7 @@ XGBoost 的超参分为四组，调优有先后依赖：
 
 **贝叶斯优化（Optuna）是标准工具**——网格搜索在 10+ 超参空间中效率极低；Optuna 的 TPE 采样在 100~200 次试验内找到接近最优的配置。
 
-## 七、要点总结
+## 九、要点总结
 
 1. **XGBoost 与 GBDT 的核心区别？** 二阶泰勒（牛顿法 vs 梯度）、叶子权重闭式解、正则化进目标（$\gamma$、$\lambda$）、内置剪枝、工程并行。
 2. **$g_i$、$h_i$ 的含义？** 样本损失的一阶/二阶导数；平方损失下 $h$ 恒为常数，logistic 下 $h = p(1-p)$。

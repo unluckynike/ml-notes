@@ -120,7 +120,7 @@ $$\theta \leftarrow \theta - \eta\left(\frac{\hat{m}_t}{\sqrt{\hat{v}_t}+\vareps
 
 ---
 
-## 五、优化器的完整超参搜索空间
+## 七、优化器的完整超参搜索空间
 
 | 超参 | SGD+M | Adam/AdamW | 说明 |
 |---|---|---|---|
@@ -141,7 +141,7 @@ $$\theta \leftarrow \theta - \eta\left(\frac{\hat{m}_t}{\sqrt{\hat{v}_t}+\vareps
     └── 不确定 → AdamW + 默认超参（先跑通再优化）
 ```
 
-## 六、学习率与 batch size 的缩放法则
+## 八、学习率与 batch size 的缩放法则
 
 **线性缩放法则**（Goyal et al., 2017）：batch size × k → learning rate × k——**前提**：训练初期用 warmup。
 
@@ -151,7 +151,7 @@ $$\theta \leftarrow \theta - \eta\left(\frac{\hat{m}_t}{\sqrt{\hat{v}_t}+\vareps
 
 **超大批量的隐藏代价**：大 batch 减少梯度噪声 → 泛化可能变差（需要更长的训练来补偿）——「大 batch + 短训练」和「小 batch + 长训练」的最终效果可能相当，但前者更快后者更省。
 
-## 五、要点总结
+## 九、要点总结
 
 1. **动量为什么治震荡？** 震荡方向梯度正负抵消、一致方向累积——指数平均充当方向滤波器。
 2. **AdaGrad 为什么后期学不动？RMSProp 怎么修？** 平方和只增不减 → 步长单调萎缩；改指数平均引入遗忘。

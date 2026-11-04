@@ -120,7 +120,7 @@ $$\text{Loss}_{\text{DPO}} = -\log\sigma\left(\beta\log\frac{\pi_\theta(y_w|x)}{
 
 ---
 
-## 五、DPO 的数学推导（从 RLHF 到直接优化）
+## 六、DPO 的数学推导（从 RLHF 到直接优化）
 
 DPO 的推导只需三步（从 RLHF 目标出发）：
 
@@ -136,7 +136,7 @@ $$\text{Loss}_{DPO} = -\log \sigma\left( \beta \log \frac{\pi(y_w|x)}{\pi_{ref}(
 
 **读法**：DPO 直接最大化「被偏好回答的策略比率 − 被拒绝回答的策略比率」的 sigmoid——不需要奖励模型、不需要 RL 循环、不需要采样。**这就是「DPO = RLHF 的闭式解」的完整推导。**
 
-## 六、迭代 DPO 与在线偏好学习
+## 七、迭代 DPO 与在线偏好学习
 
 标准 DPO 是**离线**的（用固定的偏好数据集训练一轮）；迭代 DPO 加入**在线采样**：
 
@@ -149,7 +149,7 @@ $$\text{Loss}_{DPO} = -\log \sigma\left( \beta \log \frac{\pi(y_w|x)}{\pi_{ref}(
 
 **与在线 RL（PPO/GRPO）的对比**：在线方法能「探索」新的行为空间（发现训练数据中没有的好的行为），迭代 DPO 只能在「已有偏好数据的邻域」内改进——能力上限不同但实现复杂度差一个量级。
 
-## 六、要点总结
+## 八、要点总结
 
 1. **RLHF 三个阶段各自解决什么？** SFT 教格式与基础对话；RM 学偏好代理；PPO 把偏好注入策略且 KL 防跑偏。
 2. **Bradley–Terry 假设是什么？** 偏好概率 = 奖励差的 sigmoid；把排序标注转成可微二分类。
