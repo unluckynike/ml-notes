@@ -80,6 +80,19 @@ $$\text{KV} = 2 \times L \times n_{\text{kv}} \times d_{\text{head}} \times \tex
 
 ---
 
+## 六、延迟指标的分解与部署账：TTFT / TPOT / 吞吐
+
+上线一个 LLM 服务，先回答三个数：**TTFT**（首 token 延迟，≈ prefill 全部计算 + 队列）、**TPOT**（每 token 延迟，≈ 单步 decode 的显存瓶颈时间）、**吞吐**（每卡每秒 token）。三者的优化方向互相打架：
+
+- **压 TTFT**：更小的 prefill 批、prompt 缓存（相同前缀的 KV 直接复用——系统提示词的缓存命中能省整个 prefill）、chunked prefill（长 prompt 切片与 decode 混排，别让一个 32k 请求卡住全场）；
+- **压 TPOT**：更大 decode 批（continuous batching 的核心账：decode 是访存受限，批越大每次权重读取摊到的 token 越多——直到 KV Cache 挤爆显存）、投机解码、量化（带宽减半 ≈ TPOT 减半）；
+- **抬吞吐**：把上面两个的余量吃满，代价是排队。
+
+**部署决策的顺序**：先定 SLA（TTFT 上限决定「能不能接受排队与长 prompt」），再选量化档位（TPOT 预算），最后用 continuous batching 收吞吐。**收益最大的第一刀几乎总是「prompt 缓存 + 量化」**——组合拳的每一项单独都不惊艳，叠起来的账（见 KV Cache 一节的 171 GB）才是上线与上不了线的区别。
+
+> [!TIP] 端到端视角
+> 用户感知的是「输入到看到完整答案」的总时长 ≈ TTFT + TPOT × 输出长度。**限制输出长度（max_tokens）是最被低估的延迟优化**——省的是线性的 decode 时间，且顺便省钱。
+
 ## 常见误区
 
 - **「推理优化只关乎速度」** —— 推理优化的三支柱：延迟（首 token/每 token）、吞吐（并发）、成本（每请求）——三者常常冲突（如投机解码增加计算换延迟）；明确优化目标再选手段。
@@ -87,7 +100,7 @@ $$\text{KV} = 2 \times L \times n_{\text{kv}} \times d_{\text{head}} \times \tex
 - **「量化位数越低越好」** —— 4-bit 以下（3/2-bit）精度急剧下降，需要 QAT 或混合精度补偿；量化位数是精度-显存-速度三角中的决策变量。
 - **「batch 越大吞吐越高」** —— 大 batch 提升 GPU 利用率但增加排队延迟——实时场景需要在延迟约束下找最优 batch（continuous batching 缓解但未消除）。
 
-## 六、要点总结
+## 七、要点总结
 
 1. **decode 为什么是带宽瓶颈？** 每 token 一次 GEMV：读全部权重、算术强度极低，GPU 算力闲置。
 2. **KV cache 公式与量级？** 2·L·n_kv·d_head·seq·batch·bytes；Llama-7B fp16 约 0.5MB/token/序列。
