@@ -893,7 +893,63 @@
   }
 
   function initSearch() {
-    $('#searchInput').addEventListener('input', applyFilters);
+    const input = $('#searchInput');
+    input.addEventListener('input', applyFilters);
+    initArticleSearch(input);
+  }
+
+  // ---------- 长文全文检索：构建期索引 + 懒加载 + 结果面板 ----------
+  function initArticleSearch(input) {
+    let INDEX = null, loading = false, panel = null;
+    const host = input.closest('.sidebar__search');
+
+    const runSearch = () => {
+      const q = input.value.trim().toLowerCase();
+      close();
+      if (q.length < 2 || !INDEX) return;
+      const tokens = q.split(/\s+/);
+      const hits = [];
+      for (const art of INDEX) {
+        const titleHit = tokens.every(t => art.t.toLowerCase().includes(t));
+        if (titleHit) hits.push({ art, anchor: '', sec: '', text: '' });
+        else for (const [anchor, st, text] of art.s) {
+          const hay = (st + ' ' + text).toLowerCase();
+          if (tokens.every(t => hay.includes(t))) hits.push({ art, anchor, sec: st, text });
+        }
+      }
+      if (!hits.length) return;
+      panel = document.createElement('div');
+      panel.className = 'search-article-panel';
+      panel.innerHTML = '<div class="sap__title">长文匹配</div>' + hits.slice(0, 10).map(h => {
+        const hay = (h.sec ? h.sec + '：' : '') + h.text;
+        const pos = hay.toLowerCase().indexOf(tokens[0]);
+        let snip = pos >= 0 ? hay.slice(Math.max(0, pos - 20), pos + 70) : hay.slice(0, 80);
+        let html = esc(snip);
+        tokens.forEach(t => {
+          html = html.replace(new RegExp(t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), m => '<mark>' + m + '</mark>');
+        });
+        return `<a class="sap__item" href="article/${h.art.i}/${h.anchor ? '#' + h.anchor : ''}">` +
+          `<b>${esc(h.art.t)}</b>${h.sec ? `<span class="sap__sec">${esc(h.sec)}</span>` : ''}` +
+          `<span class="sap__snip">${html}</span></a>`;
+      }).join('');
+      host.appendChild(panel);
+      panel.querySelectorAll('.sap__item').forEach(a => a.addEventListener('click', close));
+    };
+    const ensureIndex = () => {
+      if (INDEX || loading) return;
+      loading = true;
+      fetch('search-index.json').then(r => r.ok ? r.json() : Promise.reject())
+        .then(d => { INDEX = d; runSearch(); })
+        .catch(() => { loading = false; /* file:// 等场景静默降级：只保留主题卡过滤 */ });
+    };
+    input.addEventListener('focus', ensureIndex);
+
+    const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const close = () => { if (panel) { panel.remove(); panel = null; } };
+    document.addEventListener('click', e => { if (panel && !host.contains(e.target)) close(); });
+    input.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+
+    input.addEventListener('input', () => { close(); ensureIndex(); runSearch(); });
   }
 
   // ---------- hash 路由：#topic-<id> 或 #topic-<id>/<tab> ----------

@@ -55,7 +55,7 @@ new Function(read('js/markdown.js'))();
 const mdRenderer = globalThis.window.MLMarkdown;
 if (!mdRenderer) { console.error('js/markdown.js 没有导出 MLMarkdown'); process.exit(1); }
 
-const { TOPICS } = new Function(read('js/content.js') + '\n;return { TOPICS };')();
+const { TOPICS, GRAPH_EDGES } = new Function(read('js/content.js') + '\n;return { TOPICS, GRAPH_EDGES };')();
 
 // ---------- 3. 文章元信息提取 ----------
 const stripInline = s =>
@@ -103,6 +103,11 @@ body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--
   color: var(--text); background: var(--surface); border: 1px solid var(--border-strong); }
 .art-gh svg { width: 20px; height: 20px; fill: currentColor; }
 .art-gh:hover { background: var(--grad-main); color: #fff; border-color: transparent; }
+.art-rel { margin-top: 44px; padding: 16px 18px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+.art-rel__row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 7px 0; font-size: 13.5px; }
+.art-rel__row > span { flex: none; color: var(--muted); margin-right: 2px; min-width: 34px; }
+.art-rel__row a { color: var(--accent-2); text-decoration: none; padding: 3px 12px; border: 1px solid var(--border); border-radius: 999px; transition: all .15s; }
+.art-rel__row a:hover { border-color: var(--accent-2); background: rgba(0,212,255,.08); }
 .art-main { max-width: 880px; margin: 0 auto; padding: 30px 22px 48px; }
 .art-foot { margin-top: 60px; padding-top: 18px; border-top: 1px dashed var(--border-strong);
   color: var(--muted); font-size: 13.5px; line-height: 1.9; }
@@ -112,9 +117,57 @@ body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--
 `;
 
 const AUTHOR = { name: 'Halensea', url: 'https://github.com/unluckynike' };
+
+// 从 markdown 源提取各 h2 小节的纯文本（搜索索引用），并用 toc 把标题映射到渲染后的锚点 id
+function extractSections(article, toc) {
+  const norm = s => s.replace(/[\s「」（）()·、，。：:——\-]/g, '').toLowerCase();
+  const idByText = {};
+  (toc || []).forEach(h => { idByText[norm(h.text)] = h.id; });
+  const sections = [];
+  let cur = null, buf = [];
+  const flush = () => {
+    if (!cur) return;
+    let text = buf.join(' ')
+      .replace(/```[\s\S]*?```/g, ' ')
+      .replace(/\$\$[\s\S]*?\$\$/g, ' ')
+      .replace(/`[^`]*`/g, ' ')
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+      .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+      .replace(/[#>*|]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (text.length > 400) text = text.slice(0, 400);
+    if (text) sections.push([idByText[norm(cur)] || '', cur, text]);
+  };
+  for (const l of article.split('\n')) {
+    const m = /^## (.+)$/.exec(l);
+    if (m) { flush(); cur = m[1].trim(); buf = []; }
+    else if (cur) buf.push(l);
+  }
+  flush();
+  return sections;
+}
+
+// 相关主题区块：GRAPH_EDGES 的前置（谁是我地基）/后续（读完读什么）/相关
+function relatedBlock(id) {
+  const name = tid => { const t = TOPICS.find(x => x.id === tid); return t ? t.name : null; };
+  const group = (label, ids) => {
+    const ls = [...new Set(ids)].map(tid => {
+      const n = name(tid);
+      return n ? `<a href="../../index.html#topic-${tid}/deep" title="${n}">${n}</a>` : null;
+    }).filter(Boolean);
+    return ls.length ? `<div class="art-rel__row"><span>${label}</span>${ls.join('')}</div>` : '';
+  };
+  const pre = GRAPH_EDGES.filter(e => e[2] === 'pre' && e[1] === id).map(e => e[0]);
+  const next = GRAPH_EDGES.filter(e => e[2] === 'pre' && e[0] === id).map(e => e[1]);
+  const rel = GRAPH_EDGES.filter(e => e[2] === 'rel' && (e[0] === id || e[1] === id))
+                         .map(e => e[0] === id ? e[1] : e[0]);
+  const html = group('前置', pre) + group('后续', next) + group('相关', rel);
+  return html ? `<div class="art-rel">${html}</div>` : '';
+}
 const BUILD_DATE = new Date().toISOString().slice(0, 10);
 
-const page = ({ id, h1, desc, content, topicName }) => {
+const page = ({ id, h1, desc, content, topicName, relHtml }) => {
   // Google 结构化数据：机器可读的作者归属（E-E-A-T 信号）
   const ld = JSON.stringify({
     '@context': 'https://schema.org',
@@ -163,6 +216,7 @@ const page = ({ id, h1, desc, content, topicName }) => {
 <article>
 ${content}
 </article>
+${relHtml}
 <footer class="art-foot">
   <p>作者 <a href="${AUTHOR.url}" target="_blank" rel="noopener">${AUTHOR.name} ↗</a> · 本文是 <a href="../../index.html#topic-${id}">「${topicName}」主题</a>的深度长文，全部 125 个主题、交互式演示与知识图谱见 <a href="../../index.html">AI 笔记主页</a>。</p>
   <p>内容采用 CC BY-NC-SA 4.0 授权 · 站点代码 MIT 授权</p>
@@ -194,18 +248,19 @@ for (const f of files) {
   const topic = TOPICS.find(t => t.id === id) || {};
   const h1Match = /^#\s+(.+)$/m.exec(article);
   const h1 = h1Match ? h1Match[1].trim() : (topic.name || id);
-  let html;
+  let html, toc;
   try {
-    html = mdRenderer.renderBody(article);
+    ({ html, toc } = mdRenderer.render(article));
   } catch (e) {
     errors.push(`${id}: 渲染失败 — ${e.message}`);
     continue;
   }
   const desc = extractDescription(article, topic);
+  const sections = extractSections(article, toc);
   const outPath = path.join('article', id, 'index.html');
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
-  fs.writeFileSync(outPath, page({ id, h1, desc, content: html, topicName: topic.name || id }));
-  built.push({ id, h1, desc });
+  fs.writeFileSync(outPath, page({ id, h1, desc, content: html, topicName: topic.name || id, relHtml: relatedBlock(id) }));
+  built.push({ id, h1, desc, sections });
 }
 if (errors.length) {
   console.error(errors.join('\n'));
@@ -220,6 +275,11 @@ const urls = [
 ];
 fs.writeFileSync('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`);
 
+// 站内全文检索索引（构建产物，SPA 搜索框懒加载）
+const index = built.map(b => ({ i: b.id, t: b.h1, s: b.sections }));
+fs.writeFileSync('search-index.json', JSON.stringify(index));
+
 console.log(`✓ css/article.css（${(articleCss.length / 1024).toFixed(1)} KB）`);
+console.log(`✓ search-index.json（${(JSON.stringify(index).length / 1024).toFixed(0)} KB，${built.length} 篇）`);
 console.log(`✓ article/ ${built.length} 篇静态文章页`);
 console.log(`✓ sitemap.xml（${built.length + 1} 个 URL）`);
