@@ -141,7 +141,7 @@
   const TABS = [
     ['intro', '简介'], ['principle', '核心思想'], ['example', '直观例子'],
     ['proscons', '优缺点'], ['history', '发展历程'], ['scenario', '适用场景'],
-    ['learn', '怎么上手'], ['deep', '深度阅读'], ['demo', '演示']
+    ["learn", "实践路径"], ['deep', '深度阅读'], ['demo', '演示']
   ];
   const TAB_LABEL = Object.fromEntries(TABS);
 

@@ -94,7 +94,7 @@ Methodology block: mlops → experiment (A/B) → evaluation → conformal (unce
 
 **Every topic ships as a trio:**
 
-1. **Nine-tab card** — intro / core idea (with formula) / intuition / pros & cons / history / when to use / how to start / demo / deep dive
+1. **Nine-tab card** — intro / core idea (with formula) / intuition / pros & cons / history / when to use / practice path / demo / deep dive
 2. **Interactive demo** — one Canvas experiment per topic, computed live in the browser: attention heatmaps, K-Means iterations, diffusion denoising, gating mechanics, tic-tac-toe MCTS…
 3. **Deep-dive article** — `content/<topic>.md`, uniform structure: intuition → derivation → runnable code → common pitfalls → key takeaways → further reading
 
