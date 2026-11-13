@@ -174,8 +174,18 @@ a { color: var(--accent-2); text-decoration: none; }
   background: var(--bg);
 }
 @media (max-width: 700px) { .diagram-frame iframe { height: 460px; } }
-.deep-diagram__label { cursor: pointer; }
-.deep-diagram__label:focus-visible { outline: 2px solid var(--accent-2); border-radius: 6px; }
+.deep-diagram { cursor: pointer; transition: border .2s, transform .2s; }
+.deep-diagram:hover { border-color: var(--accent-2); transform: translateY(-1px); }
+.deep-diagram__head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-width: 0; }
+.deep-diagram__btn {
+  margin-left: auto; flex: none;
+  padding: 7px 18px; border-radius: 999px;
+  background: var(--grad-main); color: #06121f;
+  font-size: 13px; font-weight: 700; letter-spacing: .5px;
+  box-shadow: 0 2px 10px rgba(0,212,255,.25);
+}
+.deep-diagram:hover .deep-diagram__btn { filter: brightness(1.12); }
+.deep-diagram:focus-visible { outline: 2px solid var(--accent-2); border-radius: 12px; }
 .sap__title { font-size: 11px; color: var(--muted); padding: 6px 10px 4px; letter-spacing: 2px; }
 .sap__item { display: block; padding: 8px 10px; border-radius: 8px; text-decoration: none; color: var(--text); transition: background .15s; }
 .sap__item:hover { background: var(--surface-2); }

@@ -284,8 +284,7 @@ for (const f of files) {
   const sections = extractSections(article, toc);
   const dg = DIAGRAMS[id];
   const diagHtml = dg ? `<div class="art-diagram-wrap">` +
-    `<div class="art-diagram"><span>📐 可探索架构图：<strong>${dg.title}</strong><span class="art-diagram__note">路径动画 · 透镜聚焦 · 可导出</span></span>` +
-    `<a href="../../diagrams/${dg.file}" target="_blank" rel="noopener">全屏 ↗</a></div>` +
+    `<div class="art-diagram"><span>📐 可探索架构图：<strong>${dg.title}</strong><span class="art-diagram__note">路径动画 · 透镜聚焦 · 可导出 · 图内可全屏</span></span></div>` +
     `<div class="diagram-frame"><iframe src="../../diagrams/${dg.file}" loading="lazy" title="${dg.title}（可探索架构图）" allowfullscreen></iframe></div>` +
     `</div>` : '';
   const outPath = path.join('article', id, 'index.html');

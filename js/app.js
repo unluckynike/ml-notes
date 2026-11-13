@@ -329,34 +329,44 @@ const DIAGRAMS = {
   function diagramBanner(topicId) {
     const d = DIAGRAMS[topicId];
     if (!d) return '';
-    return `<div class="deep-diagram">` +
-      `<span class="deep-diagram__label" role="button" tabindex="0" data-file="diagrams/${d.file}" data-title="${d.title}">` +
-      `📐 可探索架构图：<strong>${d.title}</strong>` +
-      `<span class="deep-diagram__note">点击在下方展开 / 收起 · 路径动画 · 透镜聚焦</span></span>` +
-      `<a class="deep-diagram__full" href="diagrams/${d.file}" target="_blank" rel="noopener">全屏 ↗</a>` +
+    return `<div class="deep-diagram" role="button" tabindex="0" data-file="diagrams/${d.file}" data-title="${d.title}" aria-expanded="false">` +
+      `<span class="deep-diagram__head">📐 可探索架构图：<strong>${d.title}</strong>` +
+      `<span class="deep-diagram__note">路径动画 · 透镜聚焦 · 可导出</span></span>` +
+      `<span class="deep-diagram__btn">展开交互图 ▾</span>` +
       `</div><div class="diagram-frame" hidden></div>`;
   }
 
-  // 事件委托：深度阅读的架构图横幅（deepCache 复用 DOM 后监听器仍在）
-  document.addEventListener('click', e => {
-    const label = e.target.closest('.deep-diagram__label');
-    if (!label) return;
-    e.preventDefault();
-    const frame = label.closest('.deep-diagram').nextElementSibling;
+  // 事件委托：整条横幅可点，展开/收起内嵌交互图（deepCache 复用 DOM 后监听器仍在）
+  function toggleDiagram(banner) {
+    const frame = banner.nextElementSibling;
     if (!frame || !frame.classList.contains('diagram-frame')) return;
-    if (frame.hidden) {
+    const btn = banner.querySelector('.deep-diagram__btn');
+    const open = !frame.hidden;
+    if (open) {
+      frame.hidden = true;
+      btn.textContent = '展开交互图 ▾';
+      banner.setAttribute('aria-expanded', 'false');
+    } else {
       if (!frame.firstChild) {
         const ifr = document.createElement('iframe');
-        ifr.src = label.dataset.file;
-        ifr.title = label.dataset.title + '（可探索架构图）';
+        ifr.src = banner.dataset.file;
+        ifr.title = banner.dataset.title + '（可探索架构图）';
         ifr.setAttribute('allowfullscreen', '');
         frame.appendChild(ifr);
       }
       frame.hidden = false;
-      label.querySelector('.deep-diagram__note').textContent = '点击收起 ▴';
-    } else {
-      frame.hidden = true;
-      label.querySelector('.deep-diagram__note').textContent = '点击在下方展开 / 收起 · 路径动画 · 透镜聚焦';
+      btn.textContent = '收起 ▴';
+      banner.setAttribute('aria-expanded', 'true');
+    }
+  }
+  document.addEventListener('click', e => {
+    const banner = e.target.closest('.deep-diagram');
+    if (banner) toggleDiagram(banner);
+  });
+  document.addEventListener('keydown', e => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.classList?.contains('deep-diagram')) {
+      e.preventDefault();
+      toggleDiagram(e.target);
     }
   });
 
