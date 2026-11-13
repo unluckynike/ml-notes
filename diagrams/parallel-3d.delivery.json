@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "6301a181-9bad-4d7b-834f-77c4c80aa4ee",
+  "status": "current",
+  "command": "deliver",
+  "type": "dataflow",
+  "input": "/Users/hailin/Project/dshworkshop/scratch/ml-notes/.archify/dataflow-parallel-20261113-1020/candidate.json",
+  "output": "/Users/hailin/Project/dshworkshop/scratch/ml-notes/diagrams/parallel-3d.html",
+  "specification": {
+    "sha256": "a56a77311b3f65eb74d4cd806987522785d91c0a1b38eef4c3a1cc51deb39787",
+    "bytes": 4047
+  },
+  "artifact": {
+    "sha256": "8f6757c909d243fc2436f464a81670497bde3636245da3a2fb1f8aa8d29bc538",
+    "bytes": 837275
+  }
+}

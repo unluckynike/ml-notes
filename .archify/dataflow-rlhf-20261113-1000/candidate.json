@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "RLHF 三阶段流水线：数据如何流动",
+    "locale": "zh-CN",
+    "output": "diagrams/rlhf-pipeline.html",
+    "quality_profile": "showcase"
+  },
+  "stages": [
+    { "label": "数据准备" },
+    { "label": "监督微调 SFT" },
+    { "label": "奖励建模 RM" },
+    { "label": "PPO 对齐" },
+    { "label": "上线与回流" }
+  ],
+  "nodes": [
+    { "id": "prompts", "type": "database", "label": "指令池", "sublabel": "人工 / 合成 instruction", "stage": 0, "row": 1 },
+    { "id": "prefs", "type": "database", "label": "偏好标注", "sublabel": "(x, y+, y−) 三元组", "stage": 0, "row": 3 },
+    { "id": "sft", "type": "backend", "label": "SFT 基座", "sublabel": "监督微调 1~3 epoch", "stage": 1, "row": 1 },
+    { "id": "rm", "type": "backend", "label": "奖励模型 RM", "sublabel": "学习人类偏好打分", "stage": 2, "row": 3 },
+    { "id": "ppo", "type": "backend", "label": "PPO 策略", "sublabel": "actor + critic", "stage": 3, "row": 1 },
+    { "id": "klref", "type": "backend", "label": "KL 参考模型", "sublabel": "冻结的 SFT 副本", "stage": 3, "row": 3 },
+    { "id": "aligned", "type": "backend", "label": "对齐模型", "sublabel": "RLHF 产物", "stage": 4, "row": 1 },
+    { "id": "users", "type": "external", "label": "真实用户", "sublabel": "线上对话与反馈", "stage": 4, "row": 3 }
+  ],
+  "flows": [
+    { "id": "sft-data", "from": "prompts", "to": "sft", "label": "SFT 指令数据", "classification": "监督信号", "variant": "emphasis", "route": "straight" },
+    { "id": "pref-pairs", "from": "prefs", "to": "rm", "label": "偏好对数据", "classification": "人类偏好", "variant": "emphasis", "route": "straight" },
+    { "id": "rm-init", "from": "sft", "to": "rm", "label": "权重初始化", "classification": "复用预训练表征", "variant": "default" },
+    { "id": "actor-init", "from": "sft", "to": "ppo", "label": "actor 初始化", "classification": "策略起点", "variant": "emphasis", "route": "straight" },
+    { "id": "frozen-copy", "from": "sft", "to": "klref", "label": "冻结副本", "classification": "锚定参照", "variant": "dashed" },
+    { "id": "reward-signal", "from": "rm", "to": "ppo", "label": "奖励信号", "classification": "标量打分", "variant": "emphasis" },
+    { "id": "kl-penalty", "from": "klref", "to": "ppo", "label": "KL 惩罚", "classification": "防遗忘约束", "variant": "default", "route": "straight" },
+    { "id": "aligned-out", "from": "ppo", "to": "aligned", "label": "对齐后的策略", "classification": "最终权重", "variant": "emphasis", "route": "straight" },
+    { "id": "serve", "from": "aligned", "to": "users", "label": "线上对话", "classification": "推理服务", "variant": "default", "route": "straight" },
+    { "id": "flywheel", "from": "users", "to": "prefs", "label": "新偏好对 · 飞轮", "classification": "迭代回流", "variant": "dashed", "route": "bottom-channel" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "三阶段各司其职",
+      "items": [
+        "SFT 用指令数据教会模型「格式与基本能力」",
+        "RM 从偏好对学会「人类觉得哪个回答更好」",
+        "PPO 用奖励信号把策略一步步推向人类偏好"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "KL 惩罚为什么必不可少",
+      "items": [
+        "没有约束的策略会 reward hacking：讨好奖励模型而丢失语言能力",
+        "冻结的 SFT 副本提供锚定，KL 惩罚限制每步偏移",
+        "正文第三节的目标函数里，β · KL 项就是这条虚线的数学化身"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "数据飞轮",
+      "items": [
+        "上线后的真实对话回流为新的偏好标注",
+        "新一轮 SFT/RM/PPO 迭代由此启动",
+        "对应正文的迭代 DPO 与在线偏好学习"
+      ]
+    }
+  ]
+}

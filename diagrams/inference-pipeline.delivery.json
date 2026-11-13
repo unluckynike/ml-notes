@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "3b2727bb-70fc-4c21-9a33-dfd723ddc4ef",
+  "status": "current",
+  "command": "deliver",
+  "type": "dataflow",
+  "input": "/Users/hailin/Project/dshworkshop/scratch/ml-notes/.archify/dataflow-inference-20261113-1010/candidate.json",
+  "output": "/Users/hailin/Project/dshworkshop/scratch/ml-notes/diagrams/inference-pipeline.html",
+  "specification": {
+    "sha256": "fcc1b88bf9aeadbbec85a842b6df0b9865d4ef1c76948295fb1c0d47c5001d5d",
+    "bytes": 3516
+  },
+  "artifact": {
+    "sha256": "6f3a861dae37464b7d9a7d4f72a7853d27e8baae7894663ae8b3d43d3464e307",
+    "bytes": 838142
+  }
+}

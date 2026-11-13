@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "aa74e57e-44e0-4660-8773-a1e061d8d33c",
+  "status": "current",
+  "command": "deliver",
+  "type": "dataflow",
+  "input": "/Users/hailin/Project/dshworkshop/scratch/ml-notes/.archify/dataflow-transformer-20261113-1010/candidate.json",
+  "output": "/Users/hailin/Project/dshworkshop/scratch/ml-notes/diagrams/transformer-forward.html",
+  "specification": {
+    "sha256": "2a3396b905ba88e1246ac65682732164b22a19e6b58c4919a04e0c4d01f50510",
+    "bytes": 3457
+  },
+  "artifact": {
+    "sha256": "8dc2b51bb6e994cc1de9443a01cf11d5c77d5a3e0377ae6698fa7fea852f7dc7",
+    "bytes": 837018
+  }
+}

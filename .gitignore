@@ -23,3 +23,6 @@ pnpm-debug.log*
 /css/article.css
 /sitemap.xml
 /search-index.json
+diagrams/*.finalize.json
+diagrams/*.finalize-summary.json
+diagrams/*.browser-check.json

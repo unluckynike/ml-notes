@@ -103,6 +103,16 @@ body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--
   color: var(--text); background: var(--surface); border: 1px solid var(--border-strong); }
 .art-gh svg { width: 20px; height: 20px; fill: currentColor; }
 .art-gh:hover { background: var(--grad-main); color: #fff; border-color: transparent; }
+.art-diagram {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin: 0 0 22px; padding: 14px 18px;
+  background: var(--grad-soft); border: 1px solid var(--border-strong); border-radius: 12px;
+  color: var(--text); text-decoration: none; font-size: 14px;
+  transition: border .2s, transform .2s;
+}
+.art-diagram:hover { border-color: var(--accent-2); transform: translateY(-1px); }
+.art-diagram strong { color: var(--accent-2); }
+.art-diagram span { color: var(--muted); font-size: 12.5px; margin-left: auto; }
 .art-rel { margin-top: 44px; padding: 16px 18px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
 .art-rel__row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 7px 0; font-size: 13.5px; }
 .art-rel__row > span { flex: none; color: var(--muted); margin-right: 2px; min-width: 34px; }
@@ -116,6 +126,15 @@ body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--
 @media (max-width: 560px) { .art-top { flex-direction: column; text-align: center; } }
 `;
 
+const DIAGRAMS = {
+  rlhf: { file: 'rlhf-pipeline.html', title: 'RLHF 三阶段流水线' },
+  rag: { file: 'rag-pipeline.html', title: 'RAG 检索管线' },
+  transformer: { file: 'transformer-forward.html', title: 'Transformer 前向数据流' },
+  inference: { file: 'inference-pipeline.html', title: 'LLM 推理数据流' },
+  parallel: { file: 'parallel-3d.html', title: '3D 并行张量与梯度流' },
+  diffusion: { file: 'diffusion-sampling.html', title: '扩散采样数据流' },
+  history: { file: 'ai-history-timeline.html', title: 'AI 三次浪潮时间线' }
+};
 const AUTHOR = { name: 'Halensea', url: 'https://github.com/unluckynike' };
 
 // 从 markdown 源提取各 h2 小节的纯文本（搜索索引用），并用 toc 把标题映射到渲染后的锚点 id
@@ -167,7 +186,7 @@ function relatedBlock(id) {
 }
 const BUILD_DATE = new Date().toISOString().slice(0, 10);
 
-const page = ({ id, h1, desc, content, topicName, relHtml }) => {
+const page = ({ id, h1, desc, content, topicName, relHtml, diagHtml }) => {
   // Google 结构化数据：机器可读的作者归属（E-E-A-T 信号）
   const ld = JSON.stringify({
     '@context': 'https://schema.org',
@@ -213,6 +232,7 @@ const page = ({ id, h1, desc, content, topicName, relHtml }) => {
   </div>
 </header>
 <main class="art-main">
+${diagHtml}
 <article>
 ${content}
 </article>
@@ -257,9 +277,11 @@ for (const f of files) {
   }
   const desc = extractDescription(article, topic);
   const sections = extractSections(article, toc);
+  const dg = DIAGRAMS[id];
+  const diagHtml = dg ? `<a class="art-diagram" href="../../diagrams/${dg.file}" target="_blank" rel="noopener">📐 可探索架构图：<strong>${dg.title}</strong><span>路径动画 · 透镜聚焦 · 可导出——新标签打开 →</span></a>` : '';
   const outPath = path.join('article', id, 'index.html');
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
-  fs.writeFileSync(outPath, page({ id, h1, desc, content: html, topicName: topic.name || id, relHtml: relatedBlock(id) }));
+  fs.writeFileSync(outPath, page({ id, h1, desc, content: html, topicName: topic.name || id, relHtml: relatedBlock(id), diagHtml }));
   built.push({ id, h1, desc, sections });
 }
 if (errors.length) {

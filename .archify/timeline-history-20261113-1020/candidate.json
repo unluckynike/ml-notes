@@ -1,0 +1,206 @@
+{
+ "schema_version": 1,
+ "diagram_type": "timeline",
+ "meta": {
+  "title": "AI 三次浪潮：1950 → 2026",
+  "locale": "zh-CN",
+  "output": "diagrams/ai-history-timeline.html",
+  "quality_profile": "showcase",
+  "evidence": "observed",
+  "timezone": "Asia/Shanghai",
+  "subtitle": "三次浪潮 · 两次寒冬 · 一次范式转移——关键事件按年份排布"
+ },
+ "lanes": [
+  {
+   "id": "symbolic",
+   "label": "符号主义"
+  },
+  {
+   "id": "connectionist",
+   "label": "连接主义"
+  },
+  {
+   "id": "deeplearning",
+   "label": "深度学习"
+  },
+  {
+   "id": "llm",
+   "label": "大模型时代"
+  }
+ ],
+ "events": [
+  {
+   "id": "turing",
+   "at": "1950-10-01T00:00:00+08:00",
+   "title": "图灵测试",
+   "detail": "图灵发表《Computing Machinery and Intelligence》，提出机器智能的可操作判据。",
+   "lane": "symbolic",
+   "kind": "default"
+  },
+  {
+   "id": "dartmouth",
+   "at": "1956-07-01T00:00:00+08:00",
+   "title": "达特茅斯会议",
+   "detail": "「人工智能」一词正式诞生，符号主义成为第一个浪潮的主线。",
+   "lane": "symbolic",
+   "kind": "change"
+  },
+  {
+   "id": "perceptron",
+   "at": "1957-06-01T00:00:00+08:00",
+   "title": "感知机",
+   "detail": "Rosenblatt 提出可学习的单层神经网络——连接主义的起点。",
+   "lane": "connectionist",
+   "kind": "default"
+  },
+  {
+   "id": "perceptrons-book",
+   "at": "1969-06-01T00:00:00+08:00",
+   "title": "《Perceptrons》指出局限",
+   "detail": "Minsky 与 Papert 证明单层网络解不了 XOR，连接主义研究骤然遇冷。",
+   "lane": "connectionist",
+   "kind": "alert"
+  },
+  {
+   "id": "winter1",
+   "at": "1974-06-01T00:00:00+08:00",
+   "title": "第一次 AI 寒冬",
+   "detail": "机器翻译与符号系统的承诺落空，各国资金大幅撤出。",
+   "lane": "symbolic",
+   "kind": "alert"
+  },
+  {
+   "id": "backprop",
+   "at": "1986-01-01T00:00:00+08:00",
+   "title": "反向传播普及",
+   "detail": "Rumelhart、Hinton、Williams 在 Nature 发文，多层网络训练难题被解开。",
+   "lane": "connectionist",
+   "kind": "change"
+  },
+  {
+   "id": "winter2",
+   "at": "1987-06-01T00:00:00+08:00",
+   "title": "第二次 AI 寒冬",
+   "detail": "专家系统维护成本失控，Lisp 机器市场崩塌，AI 进入 disillusionment。",
+   "lane": "symbolic",
+   "kind": "alert"
+  },
+  {
+   "id": "deepblue",
+   "at": "1997-05-11T00:00:00+08:00",
+   "title": "深蓝胜卡斯帕罗夫",
+   "detail": "暴力搜索 + 人工评估函数在国际象棋上战胜世界冠军。",
+   "lane": "symbolic",
+   "kind": "default"
+  },
+  {
+   "id": "lenet",
+   "at": "1998-06-01T00:00:00+08:00",
+   "title": "LeNet 实用化",
+   "detail": "LeCun 的卷积网络大规模读取支票数字——CNN 的第一次工业落地。",
+   "lane": "connectionist",
+   "kind": "default"
+  },
+  {
+   "id": "alexnet",
+   "at": "2012-09-30T00:00:00+08:00",
+   "title": "AlexNet 夺冠 ImageNet",
+   "detail": "GPU + 深度卷积把错误率砍掉 10 个百分点——第三次浪潮的点火时刻。",
+   "lane": "deeplearning",
+   "kind": "change"
+  },
+  {
+   "id": "gan",
+   "at": "2014-06-01T00:00:00+08:00",
+   "title": "GAN 诞生",
+   "detail": "Goodfellow 提出生成对抗网络，生成模型有了新范式。",
+   "lane": "deeplearning",
+   "kind": "default"
+  },
+  {
+   "id": "alphago",
+   "at": "2016-03-15T00:00:00+08:00",
+   "title": "AlphaGo 胜李世石",
+   "detail": "深度网络 + MCTS + 自我对弈，围棋这一「直觉堡垒」被攻破。",
+   "lane": "deeplearning",
+   "kind": "change"
+  },
+  {
+   "id": "transformer",
+   "at": "2017-06-12T00:00:00+08:00",
+   "title": "Transformer 问世",
+   "detail": "《Attention Is All You Need》——此后一切大模型的骨架。",
+   "lane": "deeplearning",
+   "kind": "change"
+  },
+  {
+   "id": "bert-gpt",
+   "at": "2018-06-11T00:00:00+08:00",
+   "title": "BERT 与 GPT 同年",
+   "detail": "双向理解与自回归生成两条路线同时就位，预训练-微调范式确立。",
+   "lane": "llm",
+   "kind": "change"
+  },
+  {
+   "id": "gpt3",
+   "at": "2020-05-28T00:00:00+08:00",
+   "title": "GPT-3 与缩放定律",
+   "detail": "175B 参数展示 in-context learning，Scaling Laws 把炼丹变成科学。",
+   "lane": "llm",
+   "kind": "default"
+  },
+  {
+   "id": "chatgpt",
+   "at": "2022-11-30T00:00:00+08:00",
+   "title": "ChatGPT 上线",
+   "detail": "RLHF 对齐 + 对话界面——五天百万用户，AI 第一次进入大众日常。",
+   "lane": "llm",
+   "kind": "change"
+  },
+  {
+   "id": "gpt4",
+   "at": "2023-03-14T00:00:00+08:00",
+   "title": "GPT-4 与开源浪潮",
+   "detail": "多模态能力跃升；LLaMA 权重泄露引爆开源生态。",
+   "lane": "llm",
+   "kind": "default"
+  },
+  {
+   "id": "reasoning",
+   "at": "2024-09-12T00:00:00+08:00",
+   "title": "推理模型元年",
+   "detail": "o1 展示测试时计算的力量，R1 开源复现；智能体开始接管多步任务。",
+   "lane": "llm",
+   "kind": "change"
+  }
+ ],
+ "cards": [
+  {
+   "dot": "cyan",
+   "title": "三次浪潮的驱动力",
+   "items": [
+    "符号主义：逻辑与搜索， funding 跟着承诺走",
+    "连接主义：数据 + 算力 + 算法三缺二就熄火",
+    "深度学习：三者第一次同时到位（GPU + 互联网数据 + 反向传播）"
+   ]
+  },
+  {
+   "dot": "rose",
+   "title": "两次寒冬的共同剧本",
+   "items": [
+    "承诺超出交付 → 资金撤出 → 研究断代",
+    "第二次寒冬后，「AI 研究者」一度是简历减分项",
+    "理解寒冬才能理解今天的热度为什么需要冷静看待"
+   ]
+  },
+  {
+   "dot": "amber",
+   "title": "2012 为什么是分水岭",
+   "items": [
+    "AlexNet 证明：深 + 数据 + GPU 的组合有效",
+    "此后的每一步都是同一范式的放大",
+    "Transformer 与 GPT 系列都是这条曲线的延续"
+   ]
+  }
+ ]
+}

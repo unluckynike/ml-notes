@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": { "title": "LLM 推理数据流：Prefill 与 Decode 的分工", "locale": "zh-CN", "output": "diagrams/inference-pipeline.html", "quality_profile": "showcase" },
+  "stages": [ { "label": "请求" }, { "label": "预填充 Prefill" }, { "label": "解码 Decode" }, { "label": "交付" } ],
+  "nodes": [
+    { "id": "request", "type": "external", "label": "用户请求", "sublabel": "prompt + max_tokens", "stage": 0, "row": 1 },
+    { "id": "pcache", "type": "database", "label": "Prompt 缓存", "sublabel": "相同前缀 KV 复用", "stage": 0, "row": 3 },
+    { "id": "engine", "type": "backend", "label": "批处理引擎", "sublabel": "continuous batching", "stage": 1, "row": 1 },
+    { "id": "prefill", "type": "backend", "label": "整段预填充", "sublabel": "算力受限·并行算全 prompt", "stage": 1, "row": 3 },
+    { "id": "kvcache", "type": "database", "label": "KV Cache", "sublabel": "每 token 2·层数·头数·d_head·2B", "stage": 2, "row": 3 },
+    { "id": "decode", "type": "backend", "label": "逐 token 解码", "sublabel": "访存受限·每次读全 KV", "stage": 2, "row": 1 },
+    { "id": "stream", "type": "frontend", "label": "流式输出", "sublabel": "SSE 逐 token 下发", "stage": 3, "row": 1 },
+    { "id": "meter", "type": "security", "label": "计量与限流", "sublabel": "token 计费·队列", "stage": 3, "row": 3 }
+  ],
+  "flows": [
+    { "id": "req-engine", "from": "request", "to": "engine", "label": "进入队列", "classification": "排队等批", "variant": "default", "route": "straight" },
+    { "id": "pcache-engine", "from": "pcache", "to": "engine", "label": "前缀命中复用", "classification": "省整个 prefill", "variant": "dashed" },
+    { "id": "engine-prefill", "from": "engine", "to": "prefill", "label": "整段并行算", "classification": "决定 TTFT", "variant": "emphasis", "route": "straight" },
+    { "id": "prefill-kv", "from": "prefill", "to": "kvcache", "label": "写入 KV", "classification": "一次性全量", "variant": "emphasis", "route": "straight" },
+    { "id": "kv-decode", "from": "kvcache", "to": "decode", "label": "读全部上下文", "classification": "决定 TPOT", "variant": "emphasis", "route": "straight" },
+    { "id": "decode-kv", "from": "decode", "to": "kvcache", "label": "新 token 追加", "classification": "每步一写", "variant": "dashed" },
+    { "id": "decode-stream", "from": "decode", "to": "stream", "label": "逐 token 下发", "classification": "用户感知延迟", "variant": "emphasis", "route": "straight" },
+    { "id": "decode-meter", "from": "decode", "to": "meter", "label": "用量上报", "classification": "计费依据", "variant": "security" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "两阶段的物理差异", "items": [ "Prefill 并行算整个 prompt：算力受限，决定首 token 延迟 TTFT", "Decode 一次只算一个 token：访存受限，决定每 token 延迟 TPOT", "两者优化方向相反——这是 PD 分离部署的根源" ] },
+    { "dot": "emerald", "title": "KV Cache 的账", "items": [ "70B 模型、batch 16、4096 上下文 ≈ 172 GB", "GQA 压 KV 头数、量化压字节", "prompt 缓存命中 = 整段 prefill 白送" ] },
+    { "dot": "amber", "title": "continuous batching", "items": [ "decode 访存受限：批越大每次权重读取摊到的 token 越多", "不等整批完成，一个请求结束立刻补位", "吞吐抬升的核心，正文第三节" ] }
+  ]
+}

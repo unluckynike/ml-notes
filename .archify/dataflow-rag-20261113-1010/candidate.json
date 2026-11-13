@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": { "title": "RAG 检索管线：从问题到带引用的回答", "locale": "zh-CN", "output": "diagrams/rag-pipeline.html", "quality_profile": "showcase" },
+  "stages": [ { "label": "查询" }, { "label": "双路召回" }, { "label": "融合与重排" }, { "label": "生成" }, { "label": "交付" } ],
+  "nodes": [
+    { "id": "query", "type": "external", "label": "用户问题", "sublabel": "原句 + 改写", "stage": 0, "row": 1 },
+    { "id": "corpus", "type": "database", "label": "文档库", "sublabel": "切块·已向量化（离线）", "stage": 0, "row": 3 },
+    { "id": "bm25", "type": "backend", "label": "BM25 召回", "sublabel": "词面匹配·倒排索引", "stage": 1, "row": 1 },
+    { "id": "dense", "type": "backend", "label": "向量召回", "sublabel": "语义近邻·ANN", "stage": 1, "row": 3 },
+    { "id": "rrf", "type": "backend", "label": "RRF 融合", "sublabel": "名次倒数相加", "stage": 2, "row": 1 },
+    { "id": "rerank", "type": "backend", "label": "交叉编码器重排", "sublabel": "逐对精排·贵但准", "stage": 2, "row": 3 },
+    { "id": "llm", "type": "backend", "label": "LLM 生成", "sublabel": "带引用编号作答", "stage": 3, "row": 1 },
+    { "id": "cite", "type": "security", "label": "引用对齐校验", "sublabel": "论断↔原文比对", "stage": 3, "row": 3 },
+    { "id": "answer", "type": "frontend", "label": "答案 + 引用", "sublabel": "可信可溯源", "stage": 4, "row": 1 }
+  ],
+  "flows": [
+    { "id": "q-bm25", "from": "query", "to": "bm25", "label": "关键词词面", "classification": "稀疏检索", "variant": "default", "route": "straight" },
+    { "id": "q-dense", "from": "query", "to": "dense", "label": "查询向量", "classification": "稠密检索", "variant": "emphasis" },
+    { "id": "corpus-bm25", "from": "corpus", "to": "bm25", "label": "倒排表", "classification": "离线建好", "variant": "default" },
+    { "id": "corpus-dense", "from": "corpus", "to": "dense", "label": "向量索引", "classification": "离线建好", "variant": "default", "route": "straight" },
+    { "id": "bm25-rrf", "from": "bm25", "to": "rrf", "label": "名次表", "classification": "top-50", "variant": "default", "route": "straight" },
+    { "id": "dense-rrf", "from": "dense", "to": "rrf", "label": "名次表", "classification": "top-50", "variant": "default" },
+    { "id": "rrf-rerank", "from": "rrf", "to": "rerank", "label": "候选集", "classification": "先粗后精", "variant": "default", "route": "straight" },
+    { "id": "rerank-llm", "from": "rerank", "to": "llm", "label": "top-8 上下文", "classification": "拼进 prompt", "variant": "emphasis" },
+    { "id": "llm-cite", "from": "llm", "to": "cite", "label": "引用编号", "classification": "防幻觉", "variant": "security", "route": "straight" },
+    { "id": "cite-answer", "from": "cite", "to": "answer", "label": "可信回答", "classification": "校验通过", "variant": "emphasis", "route": "straight" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "为什么双路必死单路", "items": [ "BM25 命中关键词但不懂同义改写", "向量召回懂语义但可能漏掉专有名词", "RRF 只认名次不认分数，把两路信号拧成一路" ] },
+    { "dot": "emerald", "title": "重排是最便宜的一环", "items": [ "召回可以粗糙（要快），重排精而少（只排几十条）", "交叉编码器逐对精算，价格换精度", "正文第五节：省下的是「答非所问」的下游成本" ] },
+    { "dot": "rose", "title": "可信度的技术实现", "items": [ "生成时强制标注引用编号", "引用与原文逐条对齐校验，失败则更严格重生成", "与主站 article/rag/ 的引用生成一节对应" ] }
+  ]
+}

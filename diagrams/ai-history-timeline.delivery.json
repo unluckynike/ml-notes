@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "a6856f77-dcec-46b7-8768-62a9faf76606",
+  "status": "current",
+  "command": "deliver",
+  "type": "timeline",
+  "input": "/Users/hailin/Project/dshworkshop/scratch/ml-notes/.archify/timeline-history-20261113-1020/candidate.json",
+  "output": "/Users/hailin/Project/dshworkshop/scratch/ml-notes/diagrams/ai-history-timeline.html",
+  "specification": {
+    "sha256": "e9d044a56081fa2966ed5388aa2ce6ad7be5b1bb9528209c47a2ca485f3c5dbb",
+    "bytes": 5898
+  },
+  "artifact": {
+    "sha256": "31a4298e55566591189d69993c5f537afc3074c6a4eb56298f5717d51f4113f7",
+    "bytes": 863214
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": { "title": "Transformer 前向数据流：一个 token 的旅程", "locale": "zh-CN", "output": "diagrams/transformer-forward.html", "quality_profile": "showcase" },
+  "stages": [ { "label": "输入" }, { "label": "自注意力块" }, { "label": "FFN 块" }, { "label": "逐层堆叠" } ],
+  "nodes": [
+    { "id": "embed", "type": "backend", "label": "Token 嵌入 + 位置", "sublabel": "查表 + RoPE/位置编码", "stage": 0, "row": 2 },
+    { "id": "qkv", "type": "backend", "label": "Q / K / V 投影", "sublabel": "三组线性层·多头并行", "stage": 1, "row": 1 },
+    { "id": "scores", "type": "backend", "label": "注意力分数", "sublabel": "softmax(QKᵀ/√dₖ)", "stage": 1, "row": 3 },
+    { "id": "weighted", "type": "backend", "label": "加权求和", "sublabel": "对 V 按权重聚合", "stage": 1, "row": 4 },
+    { "id": "res1", "type": "messagebus", "label": "残差 + LayerNorm", "sublabel": "恒等直通车道", "stage": 1, "row": 0 },
+    { "id": "ffn", "type": "backend", "label": "两层 MLP", "sublabel": "升维 4d → GELU → 降维", "stage": 2, "row": 2 },
+    { "id": "stack", "type": "backend", "label": "×L 层堆叠", "sublabel": "同一结构重复 L 次", "stage": 3, "row": 2 },
+    { "id": "logits", "type": "backend", "label": "LM Head", "sublabel": "最终 LN → 词表 logits", "stage": 3, "row": 0 }
+  ],
+  "flows": [
+    { "id": "embed-qkv", "from": "embed", "to": "qkv", "label": "线性投影", "classification": "每头一份数据", "variant": "emphasis", "route": "straight" },
+    { "id": "qkv-scores", "from": "qkv", "to": "scores", "label": "内积+缩放", "classification": "防 softmax 饱和", "variant": "default", "route": "straight" },
+    { "id": "scores-weighted", "from": "scores", "to": "weighted", "label": "softmax 权重", "classification": "每行一个分布", "variant": "emphasis", "route": "straight" },
+    { "id": "qkv-res", "from": "embed", "to": "res1", "label": "残差直通", "classification": "梯度高速路", "variant": "dashed" },
+    { "id": "weighted-ffn", "from": "weighted", "to": "ffn", "label": "注意力输出", "classification": "跨 token 混合后", "variant": "emphasis" },
+    { "id": "ffn-stack", "from": "ffn", "to": "stack", "label": "残差+LN", "classification": "再进下一层", "variant": "default", "route": "straight" },
+    { "id": "stack-logits", "from": "stack", "to": "logits", "label": "最终表示", "classification": "L 层之后", "variant": "default", "route": "straight" },
+    { "id": "logits-next", "from": "logits", "to": "embed", "label": "采样下一词·自回归", "classification": "decoder-only 循环", "variant": "dashed", "route": "top-channel" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "唯一跨 token 的操作", "items": [ "注意力是全网络里信息在 token 之间流动的唯一位置", "FFN 逐 token 独立：只做「知识加工」", "残差车道让梯度不经过任何矩阵乘直达浅层" ] },
+    { "dot": "emerald", "title": "为什么除以 √dₖ", "items": [ "内积方差随 dₖ 线性涨，不缩放则 softmax 饱和", "饱和区梯度 ≈ 概率 × (1−概率) → 0", "正文第二节有完整推导" ] },
+    { "dot": "violet", "title": "多头 = 并行多份", "items": [ "每个头独立学一种「看谁」的模式", "拼接后再线性融合", " KV Cache 缓存的正是每层的 K 和 V" ] }
+  ]
+}

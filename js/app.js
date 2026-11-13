@@ -205,6 +205,15 @@
     return '';
   }
 
+const DIAGRAMS = {
+  rlhf: { file: 'rlhf-pipeline.html', title: 'RLHF 三阶段流水线' },
+  rag: { file: 'rag-pipeline.html', title: 'RAG 检索管线' },
+  transformer: { file: 'transformer-forward.html', title: 'Transformer 前向数据流' },
+  inference: { file: 'inference-pipeline.html', title: 'LLM 推理数据流' },
+  parallel: { file: 'parallel-3d.html', title: '3D 并行张量与梯度流' },
+  diffusion: { file: 'diffusion-sampling.html', title: '扩散采样数据流' },
+  history: { file: 'ai-history-timeline.html', title: 'AI 三次浪潮时间线' }
+};
   // ---------- 深度阅读（按需加载 markdown） ----------
   const deepCache = Object.create(null);
 
@@ -317,11 +326,25 @@
     </div>`;
   }
 
+  function diagramBanner(topicId) {
+    const d = DIAGRAMS[topicId];
+    if (!d) return '';
+    return `<a class="deep-diagram" href="diagrams/${d.file}" target="_blank" rel="noopener">` +
+      `📐 可探索架构图：<strong>${d.title}</strong>` +
+      `<span class="deep-diagram__note">路径动画 · 透镜聚焦 · 可导出——新标签打开 →</span></a>`;
+  }
+
   function loadDeep(mount) {
     if (mount.dataset.state === 'loading' || mount.dataset.state === 'done') return;
     const src = mount.dataset.src;
     if (!src) return;
-    if (deepCache[src]) { mount.innerHTML = deepCache[src]; autoLinkTopics(mount); mount.dataset.state = 'done'; return; }
+    if (deepCache[src]) {
+      mount.innerHTML = deepCache[src];
+      mount.insertAdjacentHTML('afterbegin', diagramBanner(mount.dataset.topic));
+      autoLinkTopics(mount);
+      mount.dataset.state = 'done';
+      return;
+    }
     if (!window.MLMarkdown) {
       mount.innerHTML = deepFallback(src, { message: 'js/markdown.js 未加载' });
       return;
@@ -333,6 +356,7 @@
         const html = window.MLMarkdown.renderWithToc(text);
         deepCache[src] = html;
         mount.innerHTML = html;
+        mount.insertAdjacentHTML('afterbegin', diagramBanner(mount.dataset.topic));
         autoLinkTopics(mount);
         mount.dataset.state = 'done';
       })

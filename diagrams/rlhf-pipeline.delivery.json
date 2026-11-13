@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "afcecb75-41a6-4aa8-babd-1927f8e078b0",
+  "status": "current",
+  "command": "deliver",
+  "type": "dataflow",
+  "input": "/Users/hailin/Project/dshworkshop/scratch/ml-notes/.archify/dataflow-rlhf-20261113-1000/candidate.json",
+  "output": "/Users/hailin/Project/dshworkshop/scratch/ml-notes/diagrams/rlhf-pipeline.html",
+  "specification": {
+    "sha256": "4c78d1039954c77e336b48e3660562c3947ee1b35a63b62aae190a78b6c8b4ad",
+    "bytes": 3994
+  },
+  "artifact": {
+    "sha256": "3c4b901c9575182c98aa1e5157f833c97cf99f7669fd8b063db7779a56a767cf",
+    "bytes": 839918
+  }
+}

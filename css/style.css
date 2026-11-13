@@ -148,6 +148,18 @@ a { color: var(--accent-2); text-decoration: none; }
 }
 .sidebar__search input:focus { border-color: var(--accent-2); box-shadow: 0 0 0 3px rgba(0,212,255,.15); }
 
+/* 深度阅读内的可探索架构图入口 */
+.deep-diagram {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin: 4px 0 18px; padding: 12px 16px;
+  background: var(--grad-soft); border: 1px solid var(--border-strong); border-radius: 12px;
+  color: var(--text); text-decoration: none; font-size: 13.5px;
+  transition: border .2s, transform .2s;
+}
+.deep-diagram:hover { border-color: var(--accent-2); transform: translateY(-1px); }
+.deep-diagram strong { color: var(--accent-2); }
+.deep-diagram__note { color: var(--muted); font-size: 12px; margin-left: auto; }
+
 /* 长文全文检索结果面板 */
 .search-article-panel {
   position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 300;

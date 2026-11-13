@@ -1,0 +1,165 @@
+{
+ "schema_version": 1,
+ "diagram_type": "dataflow",
+ "meta": {
+  "title": "扩散模型采样数据流：从噪声到图像",
+  "locale": "zh-CN",
+  "output": "diagrams/diffusion-sampling.html",
+  "quality_profile": "showcase"
+ },
+ "stages": [
+  {
+   "label": "输入"
+  },
+  {
+   "label": "预测噪声"
+  },
+  {
+   "label": "引导与更新"
+  },
+  {
+   "label": "交付"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "noise",
+   "type": "database",
+   "label": "初始噪声",
+   "sublabel": "z_T ~ N(0,1)",
+   "stage": 0,
+   "row": 1
+  },
+  {
+   "id": "sched",
+   "type": "backend",
+   "label": "时间步调度",
+   "sublabel": "σ_T → σ_0 逐步",
+   "stage": 0,
+   "row": 3
+  },
+  {
+   "id": "unet",
+   "type": "backend",
+   "label": "UNet / DiT",
+   "sublabel": "预测当前噪声 ε",
+   "stage": 1,
+   "row": 1
+  },
+  {
+   "id": "cfg",
+   "type": "backend",
+   "label": "CFG 引导",
+   "sublabel": "有条件与无条件外推",
+   "stage": 1,
+   "row": 3
+  },
+  {
+   "id": "update",
+   "type": "backend",
+   "label": "x 更新",
+   "sublabel": "循环 T 次：DDPM 20~50 步 / DDIM 10~20 步",
+   "stage": 2,
+   "row": 1
+  },
+  {
+   "id": "vae",
+   "type": "backend",
+   "label": "VAE 解码",
+   "sublabel": "潜空间 → 像素",
+   "stage": 3,
+   "row": 1
+  },
+  {
+   "id": "image",
+   "type": "frontend",
+   "label": "最终图像",
+   "sublabel": "x_0 解码为 RGB",
+   "stage": 3,
+   "row": 3
+  }
+ ],
+ "flows": [
+  {
+   "id": "noise-unet",
+   "from": "noise",
+   "to": "unet",
+   "label": "初始 x_T",
+   "classification": "起点纯噪声",
+   "variant": "emphasis",
+   "route": "straight"
+  },
+  {
+   "id": "sched-unet",
+   "from": "sched",
+   "to": "unet",
+   "label": "时间步 t",
+   "classification": "噪声强度表",
+   "variant": "default"
+  },
+  {
+   "id": "unet-cfg",
+   "from": "unet",
+   "to": "cfg",
+   "label": "ε 有条件 / 无条件",
+   "classification": "各前向一次",
+   "variant": "default",
+   "route": "straight"
+  },
+  {
+   "id": "cfg-update",
+   "from": "cfg",
+   "to": "update",
+   "label": "外推引导 w",
+   "classification": "prompt 服从度",
+   "variant": "emphasis"
+  },
+  {
+   "id": "update-vae",
+   "from": "update",
+   "to": "vae",
+   "label": "最终 x_0",
+   "classification": "t=0 停止",
+   "variant": "emphasis",
+   "route": "straight"
+  },
+  {
+   "id": "vae-image",
+   "from": "vae",
+   "to": "image",
+   "label": "像素解码",
+   "classification": "8× 空间上采样",
+   "variant": "emphasis",
+   "route": "straight"
+  }
+ ],
+ "cards": [
+  {
+   "dot": "cyan",
+   "title": "训练学的是什么",
+   "items": [
+    "每一步只做一件事：预测当前图像里的噪声 ε",
+    "损失 = ε̂ 与真实 ε 的 MSE",
+    "采样时反复调用同一个网络，只是 σ 越来越小"
+   ]
+  },
+  {
+   "dot": "emerald",
+   "title": "CFG 引导强度",
+   "items": [
+    "ε = ε_无条件 + w · (ε_有条件 − ε_无条件)",
+    "w 大 → 服从 prompt 但色彩过饱和",
+    "w 小 → 自由但可能跑题；步数 × w 联合决定算力账"
+   ]
+  },
+  {
+   "dot": "violet",
+   "title": "少步化的终点",
+   "items": [
+    "DDIM 用确定性路径把步数压到 10~20",
+    "progressive distillation 再到 1~4 步",
+    "consistency models 一步出图——见扩散加速采样深读"
+   ]
+  }
+ ]
+}

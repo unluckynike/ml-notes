@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "dcdeea77-9598-4960-b5ee-5b572b4ac6f6",
+  "status": "current",
+  "command": "deliver",
+  "type": "dataflow",
+  "input": "/Users/hailin/Project/dshworkshop/scratch/ml-notes/.archify/dataflow-diffusion-20261113-1020/candidate.json",
+  "output": "/Users/hailin/Project/dshworkshop/scratch/ml-notes/diagrams/diffusion-sampling.html",
+  "specification": {
+    "sha256": "617fed520ca0fcfb88965393a0fc228aee4f7d39de2686e587b47071790f7cc0",
+    "bytes": 3294
+  },
+  "artifact": {
+    "sha256": "9540b94bd8b3001b2e703947c94088f4433e2d698e0ccfac9a561ccae0b9b41e",
+    "bytes": 834102
+  }
+}

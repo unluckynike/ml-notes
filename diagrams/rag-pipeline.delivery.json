@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "9526c85f-66ce-4e9e-a6bc-680fb060fe64",
+  "status": "current",
+  "command": "deliver",
+  "type": "dataflow",
+  "input": "/Users/hailin/Project/dshworkshop/scratch/ml-notes/.archify/dataflow-rag-20261113-1010/candidate.json",
+  "output": "/Users/hailin/Project/dshworkshop/scratch/ml-notes/diagrams/rag-pipeline.html",
+  "specification": {
+    "sha256": "f535689df410959d7dcc311f9ca863974747a9e406729556d13ec0de141099d4",
+    "bytes": 3799
+  },
+  "artifact": {
+    "sha256": "1d5a46d70fa64a56d341ebb6b0344f90df37dbb108370eb2044bc485cb81d402",
+    "bytes": 841135
+  }
+}

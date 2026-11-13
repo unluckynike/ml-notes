@@ -1,0 +1,192 @@
+{
+ "schema_version": 1,
+ "diagram_type": "dataflow",
+ "meta": {
+  "title": "分布式训练 3D 并行：张量与梯度的旅程",
+  "locale": "zh-CN",
+  "output": "diagrams/parallel-3d.html",
+  "quality_profile": "showcase"
+ },
+ "stages": [
+  {
+   "label": "数据加载"
+  },
+  {
+   "label": "前向计算"
+  },
+  {
+   "label": "反向计算"
+  },
+  {
+   "label": "优化器同步"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "loader",
+   "type": "database",
+   "label": "数据集",
+   "sublabel": "tokenizer 后的 token 流",
+   "stage": 0,
+   "row": 1
+  },
+  {
+   "id": "split",
+   "type": "backend",
+   "label": "DP 切分",
+   "sublabel": "micro-batch 逐卡分发",
+   "stage": 0,
+   "row": 3
+  },
+  {
+   "id": "pp",
+   "type": "backend",
+   "label": "PP 流水线段",
+   "sublabel": "按层切段·跨机传输激活",
+   "stage": 1,
+   "row": 3
+  },
+  {
+   "id": "tp",
+   "type": "backend",
+   "label": "TP 张量列",
+   "sublabel": "层内切权重·NVLink 域内",
+   "stage": 1,
+   "row": 1
+  },
+  {
+   "id": "recompute",
+   "type": "backend",
+   "label": "激活重算",
+   "sublabel": "反向时重算省显存",
+   "stage": 2,
+   "row": 1
+  },
+  {
+   "id": "grad",
+   "type": "backend",
+   "label": "梯度 All-Reduce",
+   "sublabel": "DP 维度求平均",
+   "stage": 2,
+   "row": 3
+  },
+  {
+   "id": "zero",
+   "type": "backend",
+   "label": "ZeRO 分片优化器",
+   "sublabel": "Adam 状态 1/N",
+   "stage": 3,
+   "row": 1
+  },
+  {
+   "id": "broadcast",
+   "type": "messagebus",
+   "label": "参数广播",
+   "sublabel": "新权重 all-gather · 循环至前向",
+   "stage": 3,
+   "row": 3
+  }
+ ],
+ "flows": [
+  {
+   "id": "data-split",
+   "from": "loader",
+   "to": "split",
+   "label": "micro-batch",
+   "classification": "数据维并行",
+   "variant": "emphasis",
+   "route": "straight"
+  },
+  {
+   "id": "split-pp",
+   "from": "split",
+   "to": "pp",
+   "label": "进入流水线",
+   "classification": "段间传激活",
+   "variant": "default",
+   "route": "straight"
+  },
+  {
+   "id": "pp-tp",
+   "from": "pp",
+   "to": "tp",
+   "label": "段内层间",
+   "classification": "TP 与 PP 正交",
+   "variant": "default"
+  },
+  {
+   "id": "tp-fwd",
+   "from": "tp",
+   "to": "recompute",
+   "label": "前向激活",
+   "classification": "决定 MFU",
+   "variant": "emphasis",
+   "route": "straight"
+  },
+  {
+   "id": "fwd-grad",
+   "from": "recompute",
+   "to": "grad",
+   "label": "反向传播",
+   "classification": "链式法则",
+   "variant": "emphasis",
+   "route": "straight"
+  },
+  {
+   "id": "pp-grad",
+   "from": "pp",
+   "to": "grad",
+   "label": "段边界梯度",
+   "classification": "1F1B 调度",
+   "variant": "default"
+  },
+  {
+   "id": "grad-zero",
+   "from": "grad",
+   "to": "zero",
+   "label": "分片更新",
+   "classification": "显存省 12/16",
+   "variant": "emphasis",
+   "route": "straight"
+  },
+  {
+   "id": "zero-broadcast",
+   "from": "zero",
+   "to": "broadcast",
+   "label": "同步新参数",
+   "classification": "下一 micro-batch",
+   "variant": "default",
+   "route": "straight"
+  }
+ ],
+ "cards": [
+  {
+   "dot": "cyan",
+   "title": "显存账先行",
+   "items": [
+    "混合精度训练每参数 ≈ 16 字节（2 权重 + 2 梯度 + 12 Adam 状态）",
+    "70B 模型仅状态就 1TB+——必须切分",
+    "ZeRO 三级逐级切冗余：状态 → 梯度 → 参数"
+   ]
+  },
+  {
+   "dot": "emerald",
+   "title": "通信强度决定布线",
+   "items": [
+    "TP 每层 2 次 All-Reduce：只能放 NVLink 域内",
+    "PP 只传段边界激活：跨机可忍，代价是气泡 (p−1)/(m+p−1)",
+    "组合原则：TP 机内 → PP 跨机 → DP 吃尾 → ZeRO 调显存"
+   ]
+  },
+  {
+   "dot": "amber",
+   "title": "MFU 是唯一裁判",
+   "items": [
+    "模型 FLOPs ÷ (峰值 × 卡数 × 步时)，大规模典型 30%~50%",
+    "差距全在通信等待、气泡与重计算",
+    "与 AI 芯片主题的 Roofline 是同一套语言",
+    "新参数经 all-gather 回到每张卡，下一个 micro-batch 从前向重新开始——循环即训练"
+   ]
+  }
+ ]
+}
