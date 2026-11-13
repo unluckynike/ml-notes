@@ -166,6 +166,16 @@ a { color: var(--accent-2); text-decoration: none; }
   background: var(--surface); border: 1px solid var(--border-strong); border-radius: 12px;
   box-shadow: var(--shadow); max-height: 62vh; overflow-y: auto; padding: 6px;
 }
+.diagram-frame { margin: -6px 0 18px; }
+.diagram-frame[hidden] { display: none; }
+.diagram-frame iframe {
+  width: 100%; height: 680px; display: block;
+  border: 1px solid var(--border-strong); border-radius: 12px;
+  background: var(--bg);
+}
+@media (max-width: 700px) { .diagram-frame iframe { height: 460px; } }
+.deep-diagram__label { cursor: pointer; }
+.deep-diagram__label:focus-visible { outline: 2px solid var(--accent-2); border-radius: 6px; }
 .sap__title { font-size: 11px; color: var(--muted); padding: 6px 10px 4px; letter-spacing: 2px; }
 .sap__item { display: block; padding: 8px 10px; border-radius: 8px; text-decoration: none; color: var(--text); transition: background .15s; }
 .sap__item:hover { background: var(--surface-2); }

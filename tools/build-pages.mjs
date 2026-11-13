@@ -112,7 +112,12 @@ body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--
 }
 .art-diagram:hover { border-color: var(--accent-2); transform: translateY(-1px); }
 .art-diagram strong { color: var(--accent-2); }
-.art-diagram span { color: var(--muted); font-size: 12.5px; margin-left: auto; }
+.art-diagram span { color: var(--muted); font-size: 12.5px; }
+.art-diagram__note { margin-left: 8px; }
+.art-diagram a { margin-left: auto; color: var(--accent-2); text-decoration: none; font-size: 13px; }
+.art-diagram a:hover { text-decoration: underline; }
+.art-diagram-wrap .diagram-frame { margin: -10px 0 22px; }
+.art-diagram-wrap .diagram-frame iframe { border-radius: 0 0 12px 12px; }
 .art-rel { margin-top: 44px; padding: 16px 18px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
 .art-rel__row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 7px 0; font-size: 13.5px; }
 .art-rel__row > span { flex: none; color: var(--muted); margin-right: 2px; min-width: 34px; }
@@ -278,7 +283,11 @@ for (const f of files) {
   const desc = extractDescription(article, topic);
   const sections = extractSections(article, toc);
   const dg = DIAGRAMS[id];
-  const diagHtml = dg ? `<a class="art-diagram" href="../../diagrams/${dg.file}" target="_blank" rel="noopener">📐 可探索架构图：<strong>${dg.title}</strong><span>路径动画 · 透镜聚焦 · 可导出——新标签打开 →</span></a>` : '';
+  const diagHtml = dg ? `<div class="art-diagram-wrap">` +
+    `<div class="art-diagram"><span>📐 可探索架构图：<strong>${dg.title}</strong><span class="art-diagram__note">路径动画 · 透镜聚焦 · 可导出</span></span>` +
+    `<a href="../../diagrams/${dg.file}" target="_blank" rel="noopener">全屏 ↗</a></div>` +
+    `<div class="diagram-frame"><iframe src="../../diagrams/${dg.file}" loading="lazy" title="${dg.title}（可探索架构图）" allowfullscreen></iframe></div>` +
+    `</div>` : '';
   const outPath = path.join('article', id, 'index.html');
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, page({ id, h1, desc, content: html, topicName: topic.name || id, relHtml: relatedBlock(id), diagHtml }));
